@@ -176,31 +176,6 @@ public:
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols, frame.rows), amplitudes[i]);
 			vidWriter << frame;
 		}
-		/*
-		for (int i = 0; i < msg.length(); i++)
-		{
-			for (int j = 7; j >= 0; j--)
-			{
-				int needed_frequency = FREQ[(msg[i] >> (7 - j)) & 1];
-				int frames_per_half_cycle = framerate / (needed_frequency * 2);
-				// start high
-				int luminance_index = 0;
-				for (int k = 0; k < frames_per_symbol; k++)
-				{
-					Mat frame = img.clone();
-					if ((k%frames_per_half_cycle) == 0)
-					{
-						luminance_index ^= 1;
-					}
-					//cout << luminance_index;
-					Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols, frame.rows), LUMINANCE[luminance_index]);
-					vidWriter << frame;
-				}
-				cout << (int)((msg[i] >> (7 - j)) & 1);
-			}
-		}
-		cout << endl;
-		*/
 	}
 
 	// symbol_time: how many milliseconds will the symbol last

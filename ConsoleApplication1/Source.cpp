@@ -3,24 +3,6 @@
 
 int testSendReceive(int argc, char** argv)
 {
-	//typedef std::chrono::high_resolution_clock Clock;
-	//typedef std::chrono::microseconds microseconds;
-	//Clock::time_point t0 = Clock::now();
-	//try
-	//{
-	//	//DisplatStabilizeVideo("..\\Debug\\20140925_131350_abcdefghijklm_90_degrees_handheld.mp4", "..\\Debug\\stabilized.avi");
-	//	stabilizeVideo2("..\\Debug\\20140925_150121_1bcdefghijklm_handheld.mp4");
-	//	//stabilizeVideo("..\\Debug\\20140925_150121_1bcdefghijklm_handheld.mp4");
-	//}
-	//catch (...)
-	//{
-	//	puts("something");
-	//}
-	//microseconds ms = std::chrono::duration_cast<microseconds>(Clock::now() - t0);
-	//cout << ms.count() << " microseconds" << endl;
-	////
-	//return 0;
-	//extractAllVideoFrames("D:\\VLC_1st_Demo\\MVI.MOV");
 	if (argc < 3)
 	{
 		cout << "Usage: run.exe (-s <message>)|(-r <filename>)\n";
@@ -37,7 +19,7 @@ int testSendReceive(int argc, char** argv)
 		}
 		else
 		{
-			SendReceive::createOfflineVideoWithGivenFPS(2 * FREQ[ONE] * (FREQ[ZERO] / gcd((int)FREQ[ZERO], (int)FREQ[ONE])),
+			SplitFrameSendReceive::createOfflineVideoWithGivenFPSWithTwoFreq(2 * FREQ[ONE] * (FREQ[ZERO] / gcd((int)FREQ[ZERO], (int)FREQ[ONE])),
 				"D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", argv[2], "output.avi", 1000);
 			//createOfflineVideo("D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", argv[2], "output_old.avi", 1000);
 		}

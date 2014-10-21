@@ -14,38 +14,43 @@ public:
 		int framerate = frequency; //get the frame rate
 		int frame_width = img.cols;
 		int frame_height = img.rows;
-		int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-
+		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
+		vector<int> amplitudes = SendReceive::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE]);
 		// create the video writer
 		VideoWriter vidWriter;
 		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(frame_width, frame_height));
-		for (int i = 0; i < msg.length(); i++)
+		for (int i = 0; i < amplitudes.size(); i++)
 		{
-			for (int j = 7; j >= 0; j--)
-			{
-				int needed_frequency = FREQ[(msg[i] >> (7 - j)) & 1];
-				int frames_per_half_cycle = framerate / (needed_frequency * 2);
-				// start high
-				int luminance_index = 0;
-				for (int k = 0; k < frames_per_symbol; k++)
-				{
-					Mat frame = img.clone();
-					if ((k%frames_per_half_cycle) == 0)
-					{
-						luminance_index ^= 1;
-					}
-					//cout << luminance_index;
-					Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), LUMINANCE[luminance_index]);
-					Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), LUMINANCE[luminance_index ^ 1]);
-					vidWriter << frame;
-				}
-				cout << (int)((msg[i] >> (7 - j)) & 1);
-			}
+			Mat frame = img.clone();
+			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes[i]);
+			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes[i]);
+			vidWriter << frame;
 		}
-
-		cout << endl;
 	}
 
+
+	// symbol_time: how many milliseconds will the symbol last
+	static void createOfflineVideoWithGivenFPSWithTwoFreq(double frequency, string inputImage, string msg, string outputVideoFile, int symbol_time)
+	{
+		Mat img = imread(inputImage);
+
+		int framerate = frequency; //get the frame rate
+		int frame_width = img.cols;
+		int frame_height = img.rows;
+		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
+		vector<int> amplitudes1 = SendReceive::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE]);
+		vector<int> amplitudes2 = SendReceive::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ONE], FREQ[ZERO]);
+		// create the video writer
+		VideoWriter vidWriter;
+		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(frame_width, frame_height));
+		for (int i = 0; i < amplitudes1.size(); i++)
+		{
+			Mat frame = img.clone();
+			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes1[i]);
+			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
+			vidWriter << frame;
+		}
+	}
 
 	/// get video frames luminance (this is the split version which splits the image into two)
 	// video name as input
