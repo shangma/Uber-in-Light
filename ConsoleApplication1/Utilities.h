@@ -2,7 +2,7 @@
 
 #include "Header.h"
 // 0 means 20 hz and 1 is 30 hz
-const double FREQ[] = { 10, 6 };
+const double FREQ[] = { 12, 8 };
 const int LUMINANCE[] = { 1, -1 };
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
