@@ -1,5 +1,6 @@
 #include "SendReceive.h"
 #include "SplitFrameSendReceive.h"
+#include "SpatialFrequency.h"
 
 int testSendReceive(int argc, char** argv)
 {

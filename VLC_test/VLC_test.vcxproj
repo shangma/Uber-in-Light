@@ -14,6 +14,7 @@
     <ClInclude Include="Header.h" />
     <ClInclude Include="SelectByMouse.h" />
     <ClInclude Include="SendReceive.h" />
+    <ClInclude Include="SpatialFrequency.h" />
     <ClInclude Include="SplitFrameSendReceive.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoStabilizer.h" />
