@@ -146,6 +146,10 @@ ModelManifest.xml
 Thumbs.db
 ehthumbs.db
 
+# Video files
+*.avi
+*.mp4
+
 # Folder config file
 Desktop.ini
 
