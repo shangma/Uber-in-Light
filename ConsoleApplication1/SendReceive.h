@@ -166,7 +166,8 @@ public:
 		int frame_width = img.cols;
 		int frame_height = img.rows;
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-		vector<int> amplitudes = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE]);
+		int lumin[] = { LUMINANCE[0], LUMINANCE[1] };
+		vector<int> amplitudes = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 		// create the video writer
 		VideoWriter vidWriter;
 		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(frame_width, frame_height));
@@ -179,7 +180,7 @@ public:
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
-	static vector<int> createWaveGivenFPS(double frequency, string msg, int symbol_time,int ZeroFrequency,int OneFrequency)
+	static vector<int> createWaveGivenFPS(double frequency, string msg, int symbol_time,int ZeroFrequency,int OneFrequency,int luminance[2])
 	{
 		vector<int> amplitudes;
 		int framerate = frequency; //get the frame rate
@@ -202,7 +203,7 @@ public:
 						luminance_index ^= 1;
 					}
 					//cout << luminance_index;
-					amplitudes.push_back(LUMINANCE[luminance_index]);
+					amplitudes.push_back(luminance[luminance_index]);
 				}
 				cout << (int)((msg[i] >> (7 - j)) & 1);
 			}
@@ -355,22 +356,7 @@ public:
 			hy = max(hy, points[i].y);
 		}
 		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
-		// write the new video
-		VideoWriter vidWriter;
-		vidWriter.open("ROI.avi", CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(ROI.width, ROI.height));
-		while (success)
-		{
-			// save the ROI
-			Mat tmp = frame;
-			//cv::cvtColor(getImageFFT(frame), tmp, CV_GRAY2BGR);
-			vidWriter << tmp;
-			float luminance = getLuminance(tmp, ROI);
-			frames.push_back(luminance);
-			success = cap.read(frame);
-		}
-		cout << "End frame processing." << endl;
-		// the camera will be deinitialized automatically in VideoCapture destructor
-		return frames;
+		return getVideoFrameLuminances(cap, ROI);
 	}
 
 	/// get video frames luminance
@@ -394,14 +380,20 @@ public:
 		int lowerY = (frame_height - height) / 2;
 		VideoWriter vidWriter;
 		vidWriter.open(std::to_string(percent) + ".avi", CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(width, height));
-		cout << count << endl;
-		//Mat edges;
-		//namedWindow("edges", 1);
-		cout << "Processing Frames..." << endl;
-		Mat frame;
 		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 		cv::Rect ROI = cv::Rect(lowerX, lowerY, width, height);
-		Mat prev;
+		return getVideoFrameLuminances(cap, ROI);
+	}
+
+	/// get video frames luminance
+	// VideoCapture as input
+	// ROI as input
+	// returns vector<float> with the luminances
+	static vector<float> getVideoFrameLuminances(VideoCapture cap, cv::Rect ROI)
+	{
+		vector<float> frames;
+		cout << "Processing Frames..." << endl;
+		Mat frame, prev;
 		cap.read(prev);
 		prev = prev(ROI);
 		while (cap.read(frame))
@@ -409,9 +401,7 @@ public:
 			frame = frame(ROI);
 			// save the ROI
 			Mat tmp = frame;
-			//cv::cvtColor(getImageFFT(frame), tmp, CV_GRAY2BGR);
-			vidWriter << tmp;
-
+			
 			Mat hsv1, hsv2;
 			vector<Mat> HSV1, HSV2;
 			Mat tmp1, tmp2;
@@ -430,43 +420,7 @@ public:
 			prev = frame.clone();
 			//float luminance = getLuminance(tmp, ROI);
 			frames.push_back(luminance);
-
 		}
-		// the camera will be deinitialized automatically in VideoCapture destructor
-		return frames;
-	}
-
-	/// get video frames luminance
-	// video name as input
-	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
-	static vector<int> getVideoFrameLuminancesTest(string videoName)
-	{
-		vector<int> frames;
-		VideoCapture cap(videoName); // open the default camera
-		if (!cap.isOpened())  // check if we succeeded
-			return frames;
-		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		double framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		Rect ROI(0, 0, frame_width, frame_height);
-		VideoWriter vidWriter;
-		cout << count << endl;
-		//Mat edges;
-		//namedWindow("edges", 1);
-		cout << "Processing Frames..." << endl;
-		Mat frame;
-		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-		int ind = 0;
-		cap.read(frame);
-		Mat prev = frame;
-		while (cap.read(frame))
-		{
-		cv:Scalar tempVal = mean(frame);
-			frames.push_back(tempVal.val[0]);
-			prev = frame;
-		}
-		cout << "End frame processing." << endl;
 		// the camera will be deinitialized automatically in VideoCapture destructor
 		return frames;
 	}

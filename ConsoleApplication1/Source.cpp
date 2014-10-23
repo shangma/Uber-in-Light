@@ -15,7 +15,7 @@ int testSendReceive(int argc, char** argv)
 	{
 		if (argc == 4)
 		{
-			SplitFrameSendReceive::createOfflineVideoFromVideo(argv[3], argv[2], "Output_outputVideoFileVideo.avi", 1000);
+			SplitFrameSendReceive::createOfflineVideoFromVideoWithTwoFreq(argv[3], argv[2], "Output_outputVideoFileVideo.avi", 1000);
 		}
 		else
 		{
@@ -31,7 +31,7 @@ int testSendReceive(int argc, char** argv)
 		{
 			// then we have ROI
 			cout << "here = " << argv[3] << endl;
-			SendReceive::receiveWithInputROIRatio(argv[2], 30, stod(string(argv[3])));
+			SplitFrameSendReceive::receiveWithInputROIRatioFreqDiff(argv[2], 30, stod(string(argv[3])));
 		}
 		else
 		{
