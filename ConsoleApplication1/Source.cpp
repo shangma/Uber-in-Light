@@ -22,7 +22,7 @@ int testSendReceive(int argc, char** argv)
 			SplitFrameSendReceive::createOfflineVideoWithGivenFPSWithTwoFreq(2 * FREQ[ONE] * (FREQ[ZERO] / gcd((int)FREQ[ZERO], (int)FREQ[ONE])),
 				"D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", argv[2], "output.avi", 1000);
 			//createOfflineVideo("D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", argv[2], "output_old.avi", 1000);
-		}
+		} 
 	}
 	else if (!strcmp(argv[1], "-r"))
 	{
