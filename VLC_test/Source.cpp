@@ -28,6 +28,8 @@ int testSendReceive(int argc, char** argv)
 	else if (!strcmp(argv[1], "-r"))
 	{
 		//receive("D:\\testing videos\\20140918_115116.mp4");
+		//SpatialFrequency::getVideoFrameLuminances(argv[2]);
+		//return 0;
 		if (argc == 4)
 		{
 			// then we have ROI

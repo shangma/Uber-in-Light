@@ -400,22 +400,9 @@ public:
 		{
 			frame = frame(ROI);
 			// save the ROI
-			Mat tmp = frame;
-			
-			Mat hsv1, hsv2;
-			vector<Mat> HSV1, HSV2;
-			Mat tmp1, tmp2;
-
-			cv::cvtColor(prev, hsv1, CV_BGR2HSV);
-			cv::split(hsv1, HSV1);
-			HSV1[2].convertTo(tmp1, CV_32F);
-
-			cv::cvtColor(frame, hsv2, CV_BGR2HSV);
-
-			cv::split(hsv2, HSV2);
-
-			HSV2[2].convertTo(tmp2, CV_32F);
-			cv::subtract(tmp2, tmp1, tmp);
+			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
+			//imshow("test", tmp);
+			//cv::waitKey(0);
 			float luminance = cv::mean(tmp).val[0];
 			prev = frame.clone();
 			//float luminance = getLuminance(tmp, ROI);

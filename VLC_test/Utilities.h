@@ -2,7 +2,7 @@
 
 #include "Header.h"
 // 0 means 20 hz and 1 is 30 hz
-const double FREQ[] = { 12, 8 };
+const double FREQ[] = { 15, 10 };
 const int LUMINANCE[] = { 1, -1 };
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
@@ -123,5 +123,106 @@ public:
 		return ret;
 	}
 
+	// x0,y0 are from the prev frame
+	// x1,y1 are from the current frame
+	// frames here are V-channels onlt in floating point
+	static float getDifference(Mat &prev, Mat &frame, int x0, int y0,int x1,int y1)
+	{
+		if (x1 < 0 || x1 >= frame.cols)
+		{
+			return 10000000000;
+		}
+		if (y1 < 0 || y1 >= frame.rows)
+		{
+			return 10000000000;
+		}
+		// then get the real difference
+		return (((float*)frame.data)[y1 * frame.cols + x1] - ((float*)prev.data)[y0 * frame.cols + x0]);
+	}
+
+	// the input frames here are the V-channels only in floating point
+	static float getSmallestDifference(Mat &prev, Mat &frame, int radius, int x, int y)
+	{
+		// loop on all points in HSV1[2] and check the nearest point corresponds to this point
+		float minimum = getDifference(prev, frame, x, y, x, y);
+		// check the excact location
+		for (int r = 1; r <= radius; r++)
+		{
+			for (int i = 0; i <= r; i++)
+			{
+				int j = r - i;
+				if (i == 0)
+				{
+					// check i , j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x, y + j));
+					// check i , -j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x, y - j));
+				}
+				else if (j == 0)
+				{
+					// check i , j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x + i, y));
+					// check -i , j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x - i, y));
+				}
+				else
+				{
+					// check i , j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x + i, y + j));
+					// check i , -j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x + i, y - j));
+					// check -i , j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x - i, y + j));
+					// check -i , -j
+					minimum = std::min(minimum, getDifference(prev, frame, x, y, x - i, y - j));
+				}
+			}
+		}
+		return minimum;
+	}
+
+	// the input frames here are the original frames
+	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius)
+	{
+		// save the ROI
+		Mat tmp, hsv1, hsv2;
+		vector<Mat> HSV1, HSV2;
+		Mat tmp1, tmp2;
+
+		cv::cvtColor(prev, hsv1, CV_BGR2HSV);
+		cv::split(hsv1, HSV1);
+		HSV1[2].convertTo(tmp1, CV_32F);
+		
+		cv::cvtColor(frame, hsv2, CV_BGR2HSV);
+
+		cv::split(hsv2, HSV2);
+
+		HSV2[2].convertTo(tmp2, CV_32F);
+		cv::subtract(tmp2, tmp1, tmp);
+		
+		//double min, max;
+		//cv::minMaxLoc(tmp, &min, &max);
+		//cout << min << "\t" << max << endl;
+		/*
+		tmp = tmp1.clone();
+		int ind = 0;
+		for (int y = 0; y < tmp.rows; y++)
+		{
+			for (int x = 0; x < tmp.cols; x++,ind++)
+			{
+				float val = getSmallestDifference(tmp1, tmp2, radius, x, y);
+				if (abs(val > 3))
+				{
+					((float*)tmp.data)[ind] = 0;
+				}
+				else
+				{
+					((float*)tmp.data)[ind] = val;
+				}
+			}
+		}
+		*/
+		return tmp;
+	}
 
 };

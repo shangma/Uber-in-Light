@@ -184,7 +184,7 @@ public:
 		int fps = 0;
 		vector<vector<float> > frames = getVideoFrameLuminances(fileName, ROI_Ratio, fps);
 		double sum = 0;
-		vector<float> freqDiff;
+		vector<float> maxFreq1, maxFreq2, freqDiff;
 		vector<float> freqDiffAvg;
 		for (int i = 0; i < frames[0].size() - frames_per_symbol; i++)
 		{
@@ -203,6 +203,8 @@ public:
 					max1 = j;
 				}
 			}
+			maxFreq1.push_back(temp0[max0].freq);
+			maxFreq2.push_back(temp1[max1].freq);
 			freqDiff.push_back(temp0[max0].freq - temp1[max1].freq);
 			sum += freqDiff[i];
 			if (i >= frames_per_symbol)
@@ -213,8 +215,9 @@ public:
 		}
 		// output the numbers
 		int ind = 0;
-		for (; ind < freqDiffAvg.size(); ind++)
+		for (; ind < freqDiff.size(); ind++)
 		{
+			//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
 			{
 				printf("0");
@@ -226,21 +229,38 @@ public:
 				break;
 			}
 		}
-		for (; ind < freqDiffAvg.size();)
+		int i = 0;
+		do
+		{
+			i++, ind++;
+			//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
+		}while (i < frames_per_symbol && ind < freqDiff.size() - 1);
+		for (; ind < freqDiff.size() - 1;)
 		{
 			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
 			{
 				printf("0");
-				ind += frames_per_symbol;
+				i = 0;
+				do
+				{
+					i++, ind++;
+					//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
+				} while (i < frames_per_symbol && ind < freqDiff.size() - 1);
 			}
 			else if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
 			{
 				printf("1");
-				ind += frames_per_symbol;
+				i = 0;
+				do
+				{
+					i++, ind++;
+					//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
+				} while (i < frames_per_symbol && ind < freqDiff.size() - 1);
 			}
 			else
 			{
 				ind++;
+				//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 			}
 		}
 	}

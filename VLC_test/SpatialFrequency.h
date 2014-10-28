@@ -55,21 +55,8 @@ public:
 		while (cap.read(frame))
 		{
 			// save the ROI
-			Mat tmp,hsv1, hsv2;
-			vector<Mat> HSV1, HSV2;
-			Mat tmp1, tmp2;
-
-			cv::cvtColor(prev, hsv1, CV_BGR2HSV);
-			cv::split(hsv1, HSV1);
-			HSV1[2].convertTo(tmp1, CV_32F);
-
-			cv::cvtColor(frame, hsv2, CV_BGR2HSV);
-
-			cv::split(hsv2, HSV2);
-
-			HSV2[2].convertTo(tmp2, CV_32F);
-			cv::subtract(tmp2, tmp1, tmp);
-			imshow("test", tmp * 255);
+			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
+			imshow("test", tmp);
 			cvWaitKey(0);
 			prev = frame.clone();
 		}
