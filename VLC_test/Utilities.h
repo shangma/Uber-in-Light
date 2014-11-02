@@ -1,9 +1,11 @@
 #pragma once
 
 #include "Header.h"
+#include "SelectByMouse.h"
+
 // 0 means 20 hz and 1 is 30 hz
 const double FREQ[] = { 15, 10 };
-const int LUMINANCE[] = { 1, -1 };
+const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
 const double M_PI = 3.14159265359;
@@ -26,9 +28,19 @@ public:
 		cv::cvtColor(frame, tmp, CV_BGR2HSV);
 		vector<Mat> HSV(3);
 		split(tmp, HSV);
+		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << "\t";
 		//HSV[2] = 0 * HSV[2] + (alpha / 100.0) * 255;
+		// convert to float and add the difference as percentage
+		//HSV[2].convertTo(HSV[2], CV_32F);
+		// normalize
+		//HSV[2] /= 255.0;
 		Mat aux = HSV[2](ROI);
-		aux = (aux + alpha);
+		// add the alpha value (which should be percentage)
+		aux = (aux + alpha*255);
+		// convert back to unsigned char
+		//HSV[2] *= 255;
+		//HSV[2].convertTo(HSV[2], CV_8U);
+		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << endl;
 		merge(HSV, tmp);
 		cv::cvtColor(tmp, frame, CV_HSV2BGR);
 	}
@@ -225,4 +237,252 @@ public:
 		return tmp;
 	}
 
+	// convert video fps to certain given fps
+	static void convertVideo(string inputVideo, string outputVideo, double newFPS)
+	{
+		VideoCapture videoReader(inputVideo);
+		if (videoReader.isOpened())
+		{
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			while (frame_height > 1000)
+			{
+				frame_width /= 2;
+				frame_height /= 2;
+			}
+			VideoWriter vidWriter;
+			vidWriter.open(outputVideo, CV_FOURCC('D', 'I', 'V', 'X'), newFPS, cv::Size(frame_width, frame_height));
+			Mat frame;
+			while (videoReader.read(frame))
+			{
+				Mat tmp;
+				cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+				vidWriter << tmp;
+			}
+		}
+	}
+
+	// this method is combining the system parameters into a string to be used in the output video name
+	static string createOuputVideoName(int symbol_time,string inputVideoFile,string outputVideoFile)
+	{
+		ostringstream outputVideoStream;
+		outputVideoStream << "_" << FREQ[ZERO] << "Hz_" << FREQ[ONE] << "Hz_";
+		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0]-LUMINANCE[1]) << "levels_" << inputVideoFile << "_" << outputVideoFile;
+
+		return outputVideoStream.str();
+	}
+
+	/// get video frames luminance
+	// VideoCapture as input
+	// ROI as input
+	// returns vector<float> with the luminances
+	static vector<float> getVideoFrameLuminances(VideoCapture cap, cv::Rect ROI)
+	{
+		vector<float> frames;
+		cout << "Processing Frames..." << endl;
+		Mat frame, prev;
+		cap.read(prev);
+		prev = prev(ROI);
+		while (cap.read(frame))
+		{
+			frame = frame(ROI);
+			// save the ROI
+			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
+			//imshow("test", tmp);
+			//cv::waitKey(0);
+			float luminance = cv::mean(tmp).val[0];
+			prev = frame.clone();
+			//float luminance = getLuminance(tmp, ROI);
+			frames.push_back(luminance);
+		}
+		// the camera will be deinitialized automatically in VideoCapture destructor
+		return frames;
+	}
+
+	/// get video frames luminance (this is the split version which splits the image into two)
+	// video name as input
+	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
+	// int &framerate: is output parameter
+	// divisions: supports 2 and 4 only for now
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions)
+	{
+		vector<vector<float> > frames;
+		VideoCapture cap(videoName); // open the default camera
+		if (!cap.isOpened())  // check if we succeeded
+			return frames;
+		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+		// the ROI		
+		if (divisions == 2)
+		{
+			int width = frame_width * percent;
+			int height = frame_height * percent;
+			int lowerX = (frame_width - width) / 2;
+			int lowerY = (frame_height - height) / 2;
+
+			cv::Rect ROI1 = cv::Rect(lowerX, lowerY, width / 2 - lowerX, height);
+			cv::Rect ROI2 = cv::Rect(lowerX + frame_width / 2, lowerY, width / 2 - lowerX, height);
+
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI1));
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI2));
+		}
+		else if (divisions == 4)
+		{
+			int width = frame_width / 2;
+			int height = frame_height / 2;
+			int xStart = width * (1.0 - percent);
+			int yStart = height * (1.0 - percent);
+
+			cv::Rect ROI11 = cv::Rect(xStart, yStart, width * percent, height * percent);
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI11));
+
+			cv::Rect ROI12 = cv::Rect(xStart + width, yStart, width * percent, height * percent);
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI12));
+
+			cv::Rect ROI21 = cv::Rect(xStart, yStart + height, width * percent, height * percent);
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI21));
+
+			cv::Rect ROI22 = cv::Rect(xStart + width, yStart + height, width * percent, height * percent);
+			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			frames.push_back(getVideoFrameLuminances(cap, ROI22));
+		}
+		return frames;
+	}
+
+	float getLuminanceWithMaskFromGray(Mat& frame, cv::Rect& ROI)
+	{
+		// get the ROI
+		Mat tmp = frame(ROI);
+		// convert the color for the ROI only
+		cv::cvtColor(tmp, tmp, CV_BGR2GRAY);
+		// get pixels with values above 127
+		cv::Mat mask = (tmp > 10) / 255;
+		//imshow("test", tmp.mul(mask));
+		//cv::waitKey(0);
+		return cv::sum(tmp.mul(mask)).val[0] / cv::sum(mask).val[0];
+	}
+
+	float getLuminanceWithMaskFromHSV(Mat& frame, cv::Rect& ROI, double percent)
+	{
+		// get the ROI
+		Mat tmp = frame(ROI);
+		// convert the color for the ROI only
+		// convert the color for the ROI only
+		cv::cvtColor(tmp, tmp, CV_BGR2HSV);
+		vector<Mat> HSV(3);
+		split(tmp, HSV);
+		// get pixels with values above 127
+		Mat tmp1 = HSV[2].clone();
+		cv::Mat mask = (tmp1 > (255 - 255 * percent)) / 255;
+		//imshow("test", tmp.mul(mask));
+		//cv::waitKey(0);
+		return cv::sum(tmp1.mul(mask)).val[0] / cv::sum(mask).val[0];
+	}
+
+	float getLuminanceFromGray(Mat& frame, cv::Rect& ROI)
+	{
+		// get the ROI
+		Mat tmp = frame(ROI);
+		// convert the color for the ROI only
+		cv::cvtColor(tmp, tmp, CV_BGR2GRAY);
+		cv::Scalar tempVal = mean(tmp);
+		float myMAtMean = tempVal.val[0];
+
+		return myMAtMean;
+	}
+
+	float getLuminanceFromHSV(Mat& frame, cv::Rect& ROI)
+	{
+		// get the ROI
+		Mat tmp = frame(ROI);
+		// convert the color for the ROI only
+		cv::cvtColor(tmp, tmp, CV_BGR2HSV);
+		vector<Mat> HSV(3);
+		split(tmp, HSV);
+		cv::Scalar tempVal = mean(HSV[2]);
+		float myMAtMean = tempVal.val[0];
+
+		return myMAtMean;
+	}
+
+	float getLuminance(Mat& frame, cv::Rect& ROI)
+	{
+		return getLuminanceWithMaskFromHSV(frame, ROI, 1);
+	}
+
+	/// get video frames luminance
+	// video name as input
+	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
+	// int &framerate: is out parameter
+	static vector<float> getVideoFrameLuminances(string videoName, int &framerate)
+	{
+		vector<float> frames;
+		VideoCapture cap(videoName); // open the default camera
+		if (!cap.isOpened())  // check if we succeeded
+			return frames;
+		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+
+		cout << count << endl;
+		//Mat edges;
+		//namedWindow("edges", 1);
+		cout << "Processing Frames..." << endl;
+		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+		int ind = 0;
+		Mat frame;
+		bool success = cap.read(frame);
+		vector<Point> points = SelectByMouse::getROI(frame);
+		int lx = 10000000, ly = 10000000, hx = 0, hy = 0;
+		for (int i = 0; i < points.size(); i++)
+		{
+			lx = min(lx, points[i].x);
+			ly = min(ly, points[i].y);
+			hx = max(hx, points[i].x);
+			hy = max(hy, points[i].y);
+		}
+		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
+		return Utilities::getVideoFrameLuminances(cap, ROI);
+	}
+
+	/// get video frames luminance
+	// video name as input
+	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
+	// int &framerate: is output parameter
+	static vector<float> getVideoFrameLuminances(string videoName, double percent, int &framerate)
+	{
+		vector<float> frames;
+		VideoCapture cap(videoName); // open the default camera
+		if (!cap.isOpened())  // check if we succeeded
+			return frames;
+		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+		// the ROI
+		int width = frame_width * percent;
+		int height = frame_height * percent;
+		int lowerX = (frame_width - width) / 2;
+		int lowerY = (frame_height - height) / 2;
+		VideoWriter vidWriter;
+		vidWriter.open(std::to_string(percent) + ".avi", CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(width, height));
+		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+		cv::Rect ROI = cv::Rect(lowerX, lowerY, width, height);
+		return Utilities::getVideoFrameLuminances(cap, ROI);
+	}
+
+	// open a video writer to use the same codec with every one
+	static VideoWriter getVideoWriter(string vidName,double framerate, cv::Size frameSize)
+	{
+		VideoWriter vidWriter(vidName, 0/*CV_FOURCC('D', 'I', 'V', 'X')*/, framerate, frameSize);
+		return vidWriter;
+	}
 };

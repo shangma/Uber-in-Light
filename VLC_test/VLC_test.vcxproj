@@ -13,9 +13,11 @@
   <ItemGroup>
     <ClInclude Include="Header.h" />
     <ClInclude Include="SelectByMouse.h" />
-    <ClInclude Include="SendReceive.h" />
-    <ClInclude Include="SpatialFrequency.h" />
-    <ClInclude Include="SplitFrameSendReceive.h" />
+    <ClInclude Include="Communicator.h" />
+    <ClInclude Include="SpatialFrequencyCommunicator.h" />
+    <ClInclude Include="SplitAmplitudeCommunicator.h" />
+    <ClInclude Include="SplitFrequencyAmplitudeCommunicator.h" />
+    <ClInclude Include="SplitFrequencyCommunicator.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoStabilizer.h" />
   </ItemGroup>
