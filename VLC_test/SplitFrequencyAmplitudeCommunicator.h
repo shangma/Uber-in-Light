@@ -18,11 +18,6 @@ public:
 		int fps = frequency; //get the frame rate
 		int frame_width = img.cols;
 		int frame_height = img.rows;
-		while (frame_height > 1000)
-		{
-			frame_width /= 2;
-			frame_height /= 2;
-		}
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
 		double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
@@ -32,12 +27,12 @@ public:
 		vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 		// create the video writer
 		ostringstream outputVideoStream;
-		outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, cv::Size(frame_width, frame_height));
+		outputVideoStream << msg << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 		for (int i = 0; i < amplitudes11.size(); i++)
 		{
 			Mat frame;
-			cv::resize(img, frame, cv::Size(frame_width, frame_height));
+			cv::resize(img, frame, Utilities::getFrameSize());
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows / 2), amplitudes11[i]);
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows / 2), amplitudes12[i]);
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, frame.rows / 2, frame.cols / 2, frame.rows / 2), amplitudes21[i]);
@@ -55,11 +50,6 @@ public:
 			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
-			while (frame_height > 1000)
-			{
-				frame_width /= 2;
-				frame_height /= 2;
-			}
 			int fps = Utilities::lcm((int)framerate, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
 			//int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 			double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
@@ -71,8 +61,8 @@ public:
 			Mat frame;
 			// create the video writer
 			ostringstream outputVideoStream;
-			outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, cv::Size(frame_width, frame_height));
+			outputVideoStream << msg << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			for (int k = 0; k < amplitudes11.size(); k++)
 			{
@@ -81,7 +71,7 @@ public:
 					videoReader.read(frame);
 				}
 				Mat tmp;
-				cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+				cv::resize(frame, tmp, Utilities::getFrameSize());
 				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, 0, tmp.cols / 2, tmp.rows / 2), amplitudes11[k]);
 				Utilities::updateFrameWithAlpha(tmp, cv::Rect(tmp.cols / 2, 0, tmp.cols / 2, tmp.rows / 2), amplitudes12[k]);
 				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, tmp.rows / 2, tmp.cols / 2, tmp.rows / 2), amplitudes21[k]);

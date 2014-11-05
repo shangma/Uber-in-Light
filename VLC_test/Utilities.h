@@ -9,6 +9,7 @@ const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
 const double M_PI = 3.14159265359;
+const string codec = "I420"; // DIB ,DIVX, XVID
 
 // the frequency component and the percentage it represent in the frequency components given
 struct Frequency
@@ -24,25 +25,28 @@ public:
 	/// this function adds alpha to the value channel in the selected ROI
 	static void updateFrameWithAlpha(Mat &frame, Rect ROI, double alpha)
 	{
-		Mat tmp;
-		cv::cvtColor(frame, tmp, CV_BGR2HSV);
-		vector<Mat> HSV(3);
-		split(tmp, HSV);
+		//Mat tmp;
+		//cv::cvtColor(frame, tmp, CV_BGR2HSV);
+		//vector<Mat> HSV(3);
+		//split(tmp, HSV);
 		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << "\t";
 		//HSV[2] = 0 * HSV[2] + (alpha / 100.0) * 255;
 		// convert to float and add the difference as percentage
 		//HSV[2].convertTo(HSV[2], CV_32F);
 		// normalize
 		//HSV[2] /= 255.0;
-		Mat aux = HSV[2](ROI);
+		//Mat aux = HSV[2](ROI);
+		Mat aux = frame(ROI);
 		// add the alpha value (which should be percentage)
 		aux = (aux + alpha*255);
 		// convert back to unsigned char
 		//HSV[2] *= 255;
 		//HSV[2].convertTo(HSV[2], CV_8U);
 		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << endl;
-		merge(HSV, tmp);
-		cv::cvtColor(tmp, frame, CV_HSV2BGR);
+		//merge(HSV, tmp);
+		//imshow("image", frame);
+		//cv::waitKey(0);
+		//cv::cvtColor(tmp, frame, CV_HSV2BGR);
 	}
 	static int gcd(int a, int b)
 	{
@@ -269,9 +273,12 @@ public:
 	{
 		ostringstream outputVideoStream;
 		outputVideoStream << "_" << FREQ[ZERO] << "Hz_" << FREQ[ONE] << "Hz_";
-		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0]-LUMINANCE[1]) << "levels_" << inputVideoFile << "_" << outputVideoFile;
+		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0] - LUMINANCE[1]) << "levels_" << codec << "_" << inputVideoFile << "_" << outputVideoFile;
+		string str = outputVideoStream.str();
+		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
+		str.erase(end_pos, str.end());
 
-		return outputVideoStream.str();
+		return str;
 	}
 
 	/// get video frames luminance
@@ -482,7 +489,19 @@ public:
 	// open a video writer to use the same codec with every one
 	static VideoWriter getVideoWriter(string vidName,double framerate, cv::Size frameSize)
 	{
-		VideoWriter vidWriter(vidName, 0/*CV_FOURCC('D', 'I', 'V', 'X')*/, framerate, frameSize);
+		// 0 -> no compression, DIVX, H264
+		unsigned long milliseconds_since_epoch =
+			std::chrono::duration_cast<std::chrono::milliseconds>
+			(std::chrono::system_clock::now().time_since_epoch()).count();
+		ostringstream name;
+		name << milliseconds_since_epoch << "_" << vidName;
+		VideoWriter vidWriter(name.str(),
+			CV_FOURCC(codec[0], codec[1], codec[2], codec[3])
+			, framerate, frameSize);
 		return vidWriter;
+	}
+	static cv::Size getFrameSize()
+	{
+		return cv::Size(640, 480);
 	}
 };

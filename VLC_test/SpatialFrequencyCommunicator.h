@@ -54,7 +54,7 @@ public:
 				frame_width >>= 1;
 			}
 			VideoWriter vidWriter;
-			if (vidWriter.open("SpatialFrequency_" + outputVideoFile, 0/*CV_FOURCC('D', 'I', 'V', 'X')*/, framerate, cv::Size(frame_width, frame_height)))
+			if (vidWriter.open("SpatialFrequency_" + outputVideoFile, 0/*CV_FOURCC('D', 'I', 'V', 'X')*/, framerate, Utilities::getFrameSize()))
 			{
 				Mat frame;
 
@@ -66,7 +66,7 @@ public:
 					typedef std::chrono::milliseconds milliseconds;
 					Clock::time_point t0 = Clock::now();
 					videoReader.read(frame);
-					cv::resize(frame, frame, cv::Size(frame_width,frame_height));
+					cv::resize(frame, frame, Utilities::getFrameSize());
 					if (j % 2)
 					{
 						for (int i = 0; i < frame_width - clnWidth; i += clnWidth)

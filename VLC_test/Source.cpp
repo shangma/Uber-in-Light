@@ -2,56 +2,180 @@
 #include "SplitAmplitudeCommunicator.h"
 #include "SpatialFrequencyCommunicator.h"
 
-int testSendReceive(int argc, char** argv)
+struct Properties
 {
-	if (argc < 3)
+	int mode; // 0 for send and 1 for receive
+	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
+	string outputFileName; // used in send only
+	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
+	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> spatial
+	bool realVideo; // true means real video and false means not
+	string text; // text to send
+	Properties()
+	{
+		mode = -1;
+		realVideo = false;
+		outputFileName = "output.avi";
+		inputFileName = "";
+		ROI = 1;
+		type = 0;
+		text = "";
+	}
+	int returnError()
 	{
 		cout << "Usage: run.exe (-s <message>)|(-r <filename>)\n";
 		cout << "One option must be selected\n";
 		cout << "-s : create video file with the specified message where the message will be converted to binary\n";
 		cout << "-r : receive message from video file and write the output to the screen\n";
+		return -1;
+	}
+	int testSendReceive(int argc, char** argv)
+	{
+		Communicator *communicator;
+		for (int i = 1; i < argc;i++)
+		{
+			if (!strcmp(argv[i], "-s"))
+			{
+				mode = 0;
+			}
+			else if (!strcmp(argv[i], "-r"))
+			{
+				mode = 1;
+			}
+			else if (!strcmp(argv[i], "-if"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					inputFileName = argv[++i];
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-of"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					outputFileName = argv[++i];
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-m"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					type = (argv[++i][0]-'0');
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-t"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					text = argv[++i];
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-roi"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					ROI = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-v"))
+			{
+				realVideo = true;
+			}
+		}
+		if (mode != 0 && mode != 1)
+		{
+			return returnError();
+		}
+		if (inputFileName == "")
+		{
+			return returnError();
+		}
+		if (mode == 0 && text == "")
+		{
+			return returnError();
+		}
+		switch (type)
+		{
+		case 1:
+			communicator = new SplitAmplitudeCommunicator;
+			break;
+		case 2:
+			communicator = new SplitFrequencyCommunicator;
+			break;
+		case 3:
+			communicator = new SplitFrequencyAmplitudeCommunicator;
+			break;
+		case 4:
+			communicator = new SpatialFrequencyCommunicator;
+			break;
+		default:
+			communicator = new Communicator;
+		}
+		if (!strcmp(argv[1], "-s"))
+		{
+			if (realVideo)
+			{
+				communicator->sendVideo(inputFileName, text, outputFileName, 1000);
+			}
+			else
+			{
+				communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
+					inputFileName, text, outputFileName, 1000);
+			}
+		}
+		else if (!strcmp(argv[1], "-r"))
+		{
+			if (ROI > 0 && ROI <= 1)
+			{
+				// then we have ROI
+				communicator->receive(inputFileName, 30, ROI);
+			}
+			else
+			{
+				communicator->receiveWithSelectionByHand(inputFileName, 30);
+			}
+		}
+		else if (!strcmp(argv[1], "-c"))
+		{
+			// convert argv2 video to argv3 as a video with the framerate in argv4
+			// argv3 must end with .avi
+			Utilities::convertVideo(argv[2], argv[3], stod(string(argv[4])));
+		}
 		return 0;
 	}
-	Communicator *communicator = new SpatialFrequencyCommunicator;
-	if (!strcmp(argv[1], "-s"))
-	{
-		if (argc == 4)
-		{
-			communicator->sendVideo(argv[3], argv[2], "outputVideoFileVideo.avi", 1000);
-		}
-		else
-		{
-			communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
-				"D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", argv[2], "output.avi", 1000);
-		} 
-	}
-	else if (!strcmp(argv[1], "-r"))
-	{
-		if (argc == 4)
-		{
-			// then we have ROI
-			cout << "here = " << argv[3] << endl;
-			communicator->receive(argv[2], 30, stod(string(argv[3])));
-		}
-		else
-		{
-			communicator->receiveWithSelectionByHand(argv[2], 30);
-		}
-	}
-	else if (!strcmp(argv[1], "-c"))
-	{
-		// convert argv2 video to argv3 as a video with the framerate in argv4
-		// argv3 must end with .avi
-		Utilities::convertVideo(argv[2], argv[3], stod(string(argv[4])));
-	}
-	return 0;
-}
+};
 
 int main(int argc, char** argv)
 {
 	//SpatialFrequency::createOfflineVideoWithGivenFPS(30, "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", "a", "output.avi", 1000);
 	//SpatialFrequency::getVideoFrameLuminances(argv[1]);
-	return testSendReceive(argc,argv);
+	Properties prop;
+	return prop.testSendReceive(argc, argv);
 	//displayVideo("..\\Debug\\20141009_131021_abcde_30fps_15Hz_10Hz_newblending.mp4");
 	//-createHalfAndHalfImage();
 	return 0;

@@ -21,11 +21,12 @@ public:
 		vector<float> amplitudes2 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 		// create the video writer
 		ostringstream outputVideoStream;
-		outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, cv::Size(frame_width, frame_height));
+		outputVideoStream << msg << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
 		for (int i = 0; i < amplitudes1.size(); i++)
 		{
-			Mat frame = img.clone();
+			Mat frame;
+			cv::resize(img, frame,Utilities::getFrameSize());
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes1[i]);
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
 			vidWriter << frame;
@@ -56,8 +57,8 @@ public:
 			Mat frame;
 			// create the video writer
 			ostringstream outputVideoStream;
-			outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, cv::Size(frame_width, frame_height));
+			outputVideoStream << msg << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			for (int k = 0; k < amplitudes1.size(); k++)
 			{
@@ -66,7 +67,7 @@ public:
 					videoReader.read(frame);
 				}
 				Mat tmp;
-				cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+				cv::resize(frame, tmp, Utilities::getFrameSize());
 				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, 0, tmp.cols / 2, tmp.rows), amplitudes1[k]);
 				Utilities::updateFrameWithAlpha(tmp, cv::Rect(tmp.cols / 2, 0, tmp.cols / 2, tmp.rows), amplitudes2[k]);
 				vidWriter << tmp;
