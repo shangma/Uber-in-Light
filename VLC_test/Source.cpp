@@ -9,6 +9,14 @@ enum
 	CNVRT
 };
 
+enum
+{
+	NORMAL = 0,
+	AMP_DIFF,
+	FREQ_DIFF,
+	FREQ_AMP_DIFF
+};
+
 struct Properties
 {
 	int mode; // 0 for send and 1 for receive, 2 for converting video
