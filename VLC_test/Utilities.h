@@ -4,12 +4,12 @@
 #include "SelectByMouse.h"
 
 // 0 means 20 hz and 1 is 30 hz
-const double FREQ[] = { 15, 10 };
+const double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
 const double M_PI = 3.14159265359;
-const string codec = "I420"; // DIB ,DIVX, XVID
+const string codec = "DIVX"; //I420, DIB ,DIVX, XVID
 
 // the frequency component and the percentage it represent in the frequency components given
 struct Frequency
@@ -39,6 +39,7 @@ public:
 		Mat aux = frame(ROI);
 		// add the alpha value (which should be percentage)
 		aux = (aux + alpha*255);
+		//puts("here");
 		// convert back to unsigned char
 		//HSV[2] *= 255;
 		//HSV[2].convertTo(HSV[2], CV_8U);

@@ -2,18 +2,26 @@
 #include "SplitAmplitudeCommunicator.h"
 #include "SpatialFrequencyCommunicator.h"
 
+enum
+{
+	SEND = 1,
+	RECV,
+	CNVRT
+};
+
 struct Properties
 {
-	int mode; // 0 for send and 1 for receive
+	int mode; // 0 for send and 1 for receive, 2 for converting video
 	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
 	string outputFileName; // used in send only
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> spatial
 	bool realVideo; // true means real video and false means not
 	string text; // text to send
+	double fps;
 	Properties()
 	{
-		mode = -1;
+		mode = SEND;
 		realVideo = false;
 		outputFileName = "output.avi";
 		inputFileName = "";
@@ -36,11 +44,15 @@ struct Properties
 		{
 			if (!strcmp(argv[i], "-s"))
 			{
-				mode = 0;
+				mode = SEND;
 			}
 			else if (!strcmp(argv[i], "-r"))
 			{
-				mode = 1;
+				mode = RECV;
+			}
+			else if (!strcmp(argv[i], "-c"))
+			{
+				mode = CNVRT;
 			}
 			else if (!strcmp(argv[i], "-if"))
 			{
@@ -102,20 +114,28 @@ struct Properties
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-fps"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					fps = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 			else if (!strcmp(argv[i], "-v"))
 			{
 				realVideo = true;
 			}
 		}
-		if (mode != 0 && mode != 1)
-		{
-			return returnError();
-		}
 		if (inputFileName == "")
 		{
 			return returnError();
 		}
-		if (mode == 0 && text == "")
+		if (mode == SEND && text == "")
 		{
 			return returnError();
 		}
@@ -136,7 +156,7 @@ struct Properties
 		default:
 			communicator = new Communicator;
 		}
-		if (!strcmp(argv[1], "-s"))
+		if (mode == SEND)
 		{
 			if (realVideo)
 			{
@@ -148,7 +168,7 @@ struct Properties
 					inputFileName, text, outputFileName, 1000);
 			}
 		}
-		else if (!strcmp(argv[1], "-r"))
+		else if (mode == RECV)
 		{
 			if (ROI > 0 && ROI <= 1)
 			{
@@ -160,11 +180,11 @@ struct Properties
 				communicator->receiveWithSelectionByHand(inputFileName, 30);
 			}
 		}
-		else if (!strcmp(argv[1], "-c"))
+		else if (mode == CNVRT)
 		{
 			// convert argv2 video to argv3 as a video with the framerate in argv4
 			// argv3 must end with .avi
-			Utilities::convertVideo(argv[2], argv[3], stod(string(argv[4])));
+			Utilities::convertVideo(inputFileName, outputFileName, fps);
 		}
 		return 0;
 	}
