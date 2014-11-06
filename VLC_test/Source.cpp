@@ -181,7 +181,7 @@ struct Properties
 			if (ROI > 0 && ROI <= 1)
 			{
 				// then we have ROI
-				communicator->receive(inputFileName, 30, ROI);
+				communicator->receive(inputFileName, 60, ROI);
 			}
 			else
 			{

@@ -4,7 +4,7 @@
 #include "SelectByMouse.h"
 
 // 0 means 20 hz and 1 is 30 hz
-const double FREQ[] = { 12, 8 };
+const double FREQ[] = { 15, 10 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
@@ -98,7 +98,7 @@ public:
 	// start from frame number: start
 	// Number of frames to take: L
 	// returns vector<Frequency> 
-	static vector<Frequency> myft(vector<float> luminance, double Fs, int start = 0, int L = 30)
+	static vector<Frequency> myft(vector<float> luminance, double Fs, int start, int L)
 	{
 		Mat inp = Mat::zeros(1, L, CV_32F);
 		for (int i = 0; i < L; i++)
@@ -120,10 +120,6 @@ public:
 		vector<Frequency> ret;
 		float total = 1;
 		for (int i = 1; (i * (Fs / oup.cols)) <= Fs / 2; i++){
-			//if (((float*)magI.data)[i] > 10)
-			//{
-			//cout << i * (Fs / oup.cols) << "\t" << ((float*)magI.data)[i] << endl;
-			//}
 			Frequency f;
 			f.freq = i * (Fs / oup.cols);
 			f.percent = ((float*)magI.data)[i];
@@ -292,9 +288,12 @@ public:
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
 		cap.read(prev);
+		//cap.read(prev);
 		prev = prev(ROI);
+		
 		while (cap.read(frame))
 		{
+			//cap.read(frame);
 			frame = frame(ROI);
 			// save the ROI
 			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
@@ -303,7 +302,14 @@ public:
 			float luminance = cv::mean(tmp).val[0];
 			prev = frame.clone();
 			//float luminance = getLuminance(tmp, ROI);
-			frames.push_back(luminance);
+			if (abs(luminance) < 0.001 && frames.size())
+			{
+				frames.push_back(frames[frames.size() - 1]);
+			}
+			else
+			{
+				frames.push_back(luminance);
+			}
 		}
 		// the camera will be deinitialized automatically in VideoCapture destructor
 		return frames;
