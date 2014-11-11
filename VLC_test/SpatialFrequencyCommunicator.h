@@ -87,26 +87,28 @@ public:
 	}
 
 	// receive with a certain ROI ratio
-	void receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
+		vector<short> result;
 		VideoCapture cap(fileName); // open the default camera
-		if (!cap.isOpened())  // check if we succeeded
-			return;
-		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		int framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		// the ROI
-		Mat prev, frame;
-		cap.read(prev);
-		while (cap.read(frame))
+		if (cap.isOpened())  // check if we succeeded
 		{
-			// save the ROI
-			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
-			imshow("test", tmp);
-			cvWaitKey(0);
-			prev = frame.clone();
+			double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+			int framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+			int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+			// the ROI
+			Mat prev, frame;
+			cap.read(prev);
+			while (cap.read(frame))
+			{
+				// save the ROI
+				Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
+				imshow("test", tmp);
+				cvWaitKey(0);
+				prev = frame.clone();
+			}
 		}
-
+		return result;
 	}
 };

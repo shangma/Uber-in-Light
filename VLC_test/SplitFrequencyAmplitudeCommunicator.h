@@ -11,7 +11,7 @@ public:
 	////////////////////////////////// Split Frequency and Amplitude ////////////////////////////////
 
 	// symbol_time: how many milliseconds will the symbol last
-	void sendImage(double frequency, string inputImage, string msg, string outputVideoFile, int symbol_time)
+	void sendImage(double frequency, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		Mat img = imread(inputImage);
 
@@ -27,7 +27,7 @@ public:
 		vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 		// create the video writer
 		ostringstream outputVideoStream;
-		outputVideoStream << msg << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 		for (int i = 0; i < amplitudes11.size(); i++)
 		{
@@ -41,7 +41,7 @@ public:
 		}
 	}
 
-	void sendVideo(string inputVideoFile, string msg, string outputVideoFile, int symbol_time)
+	void sendVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		VideoCapture videoReader(inputVideoFile);
 		if (videoReader.isOpened())
@@ -61,7 +61,7 @@ public:
 			Mat frame;
 			// create the video writer
 			ostringstream outputVideoStream;
-			outputVideoStream << msg << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			for (int k = 0; k < amplitudes11.size(); k++)
@@ -84,7 +84,7 @@ public:
 	}
 
 	// receive with a certain ROI ratio
-	void receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<vector<float> > temp = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 4);
@@ -94,6 +94,6 @@ public:
 			frames[0].push_back(temp[0][i] - temp[2][i]);
 			frames[1].push_back(temp[1][i] - temp[3][i]);
 		}
-		receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
+		return receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
 	}
 };

@@ -1,6 +1,9 @@
 #include "SplitFrequencyAmplitudeCommunicator.h"
 #include "SplitAmplitudeCommunicator.h"
 #include "SpatialFrequencyCommunicator.h"
+#include "BCH.h"
+#include "Hamming.h"
+#include "SplitScreenCommunicator.h"
 
 enum
 {
@@ -26,6 +29,7 @@ struct Properties
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> spatial
 	bool realVideo; // true means real video and false means not
 	string text; // text to send
+	vector<short> msg; // the message after conversion to vector<short>
 	double fps;
 	Properties()
 	{
@@ -138,6 +142,30 @@ struct Properties
 			{
 				realVideo = true;
 			}
+			else if (!strcmp(argv[i], "-zero"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					FREQ[ZERO] = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-one"))
+			{
+				// get the file name
+				if (i < argc - 1)
+				{
+					FREQ[ONE] = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 		}
 		if (inputFileName == "")
 		{
@@ -159,21 +187,23 @@ struct Properties
 			communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
 		case 4:
-			communicator = new SpatialFrequencyCommunicator;
+			communicator = new SplitScreenCommunicator;
 			break;
 		default:
 			communicator = new Communicator;
 		}
+		// convert the message to vector of short
+		msg = Utilities::getBinaryMessage(text);
 		if (mode == SEND)
 		{
 			if (realVideo)
 			{
-				communicator->sendVideo(inputFileName, text, outputFileName, 1000);
+				communicator->sendVideo(inputFileName, msg, outputFileName, 1000);
 			}
 			else
 			{
 				communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
-					inputFileName, text, outputFileName, 1000);
+					inputFileName, msg, outputFileName, 1000);
 			}
 		}
 		else if (mode == RECV)
@@ -181,7 +211,18 @@ struct Properties
 			if (ROI > 0 && ROI <= 1)
 			{
 				// then we have ROI
-				communicator->receive(inputFileName, 60, ROI);
+				vector<short> received = communicator->receive(inputFileName, 30, ROI);
+				for (int i = 0; i < msg.size(); i++)
+				{
+					cout << msg[i];
+				}
+				cout << endl;
+				for (int i = 0; i < received.size(); i++)
+				{
+					cout << received[i];
+				}
+				cout << endl;
+				Utilities::LCS(msg, received);
 			}
 			else
 			{
@@ -203,9 +244,12 @@ int main(int argc, char** argv)
 	//SpatialFrequency::createOfflineVideoWithGivenFPS(30, "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg", "a", "output.avi", 1000);
 	//SpatialFrequency::getVideoFrameLuminances(argv[1]);
 	Properties prop;
+	//Utilities::compareVideos("..\\Release\\2688345269_104_12Hz_8Hz_1000ms_0.01levels_I420_image_output.avi",
+	//	"..\\Release\\2688579461_104_Split1_12Hz_8Hz_1000ms_0.01levels_I420_image_output.avi");
 	return prop.testSendReceive(argc, argv);
 	//displayVideo("..\\Debug\\20141009_131021_abcde_30fps_15Hz_10Hz_newblending.mp4");
 	//-createHalfAndHalfImage();
-
+	//testBCH();
+	//testHamming();
 	return 0;
 }

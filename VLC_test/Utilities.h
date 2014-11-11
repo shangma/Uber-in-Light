@@ -4,12 +4,13 @@
 #include "SelectByMouse.h"
 
 // 0 means 20 hz and 1 is 30 hz
-const double FREQ[] = { 15, 10 };
+double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = 1e-10;
 const double M_PI = 3.14159265359;
-const string codec = "DIVX"; //I420, DIB ,DIVX, XVID
+const string codec = "I420"; //I420, DIB ,DIVX, XVID
+cv::Size DefaultFrameSize(640, 480);
 
 // the frequency component and the percentage it represent in the frequency components given
 struct Frequency
@@ -265,6 +266,34 @@ public:
 		}
 	}
 
+	// compare two videos that should be identical
+	static void compareVideos(string video1, string video2)
+	{
+		VideoCapture vid1(video1);
+		VideoCapture vid2(video2);
+		if (vid1.isOpened())
+		{
+			if (vid2.isOpened())
+			{
+				Mat frame1,frame2;
+				while (vid1.read(frame1) && vid2.read(frame2))
+				{
+					imshow("diff", 255*(frame2 - frame1));
+					cv::waitKey(0);
+				}
+			}
+		}
+	}
+
+	// add dummy seconds to video
+	static void addDummyFramesToVideo(VideoWriter &vidWriter, int n, Mat dummyFrame)
+	{
+		for (int i = 0; i < n; i++)
+		{
+			vidWriter << dummyFrame;
+		}
+	}
+
 	// this method is combining the system parameters into a string to be used in the output video name
 	static string createOuputVideoName(int symbol_time,string inputVideoFile,string outputVideoFile)
 	{
@@ -282,37 +311,103 @@ public:
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<float> getVideoFrameLuminances(VideoCapture cap, cv::Rect ROI)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROI,double fps)
 	{
-		vector<float> frames;
+		vector<vector<float> > frames(ROI.size());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
 		cap.read(prev);
 		//cap.read(prev);
-		prev = prev(ROI);
-		
-		while (cap.read(frame))
+		//prev = prev(ROI);
+		double nextIndex = 0; 
+		int count = 1;
+		while (true)
 		{
+			nextIndex += fps / 30;;
+			bool flag = true;
+			
+			do
+			{
+				++count;
+				flag = cap.read(frame);
+			} while ((int)nextIndex > count + 1);
+			if (!flag)
+			{
+				break;
+			}
 			//cap.read(frame);
-			frame = frame(ROI);
+			//frame = frame(ROI);
 			// save the ROI
-			Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
-			//imshow("test", tmp);
-			//cv::waitKey(0);
-			float luminance = cv::mean(tmp).val[0];
+			for (int i = 0; i < ROI.size(); i++)
+			{
+				Mat tmp = Utilities::getDiffInVchannelHSV(prev(ROI[i]), frame(ROI[i]), 0);
+				//imshow("test", tmp);
+				//cv::waitKey(0);
+				float luminance = cv::mean(tmp).val[0];
+				//float luminance = getLuminance(tmp, ROI);
+				if (abs(luminance) < 0.001 && frames[i].size())
+				{
+					frames[i].push_back(frames[i][frames[i].size() - 1]);
+				}
+				else
+				{
+					frames[i].push_back(luminance);
+				}
+			}
 			prev = frame.clone();
-			//float luminance = getLuminance(tmp, ROI);
-			if (abs(luminance) < 0.001 && frames.size())
-			{
-				frames.push_back(frames[frames.size() - 1]);
-			}
-			else
-			{
-				frames.push_back(luminance);
-			}
 		}
 		// the camera will be deinitialized automatically in VideoCapture destructor
 		return frames;
+	}
+
+	// divide a frame with certain number of divisions with removing percentage from the boundaries
+	// divisions: number of divisions
+	// frame_width: frame width
+	// frame_height: frame Height
+	// percent: percentage to crop from the image
+	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
+	static vector<cv::Rect> getDivisions(int divisions,int frame_width,int frame_height,double percent,bool cropInclusive)
+	{
+		int sectionsPerLength = sqrt(divisions);
+		vector<cv::Rect> ROIs;
+		if (cropInclusive)
+		{
+			int sectionWidth = frame_width / sectionsPerLength;
+			int sectionHeight = frame_height / sectionsPerLength;
+
+			for (int y = 0; y < sectionsPerLength; y++)
+			{
+				for (int x = 0; x < sectionsPerLength; x++)
+				{
+					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					ROIs.push_back(cv::Rect(
+						x * sectionWidth + (1 - percent)*sectionWidth,
+						y * sectionHeight + (1 - percent)*sectionHeight,
+						percent * sectionWidth,
+						percent * sectionHeight));
+				}
+			}
+		}
+		else
+		{
+			int sectionWidth = (frame_width * percent) / sectionsPerLength;
+			int sectionHeight = (frame_height * percent) / sectionsPerLength;
+			int widthStart = frame_width * (1 - percent);
+			int heightStart = frame_height * (1 - percent);
+			for (int y = 0; y < sectionsPerLength; y++)
+			{
+				for (int x = 0; x < sectionsPerLength; x++)
+				{
+					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					ROIs.push_back(cv::Rect(
+						x * sectionWidth + widthStart,
+						y * sectionHeight + heightStart,
+						sectionWidth,
+						sectionHeight));
+				}
+			}
+		}
+		return ROIs;
 	}
 
 	/// get video frames luminance (this is the split version which splits the image into two)
@@ -342,11 +437,13 @@ public:
 			cv::Rect ROI2 = cv::Rect(lowerX + frame_width / 2, lowerY, width / 2 - lowerX, height);
 
 			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI1));
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI2));
+			vector<cv::Rect> ROIs;
+			ROIs.push_back(ROI1);
+			ROIs.push_back(ROI2);
+			frames = getVideoFrameLuminances(cap, ROIs,framerate);
+			
 		}
-		else if (divisions == 4)
+		/*else if (divisions == 4)
 		{
 			int width = frame_width / 2;
 			int height = frame_height / 2;
@@ -354,20 +451,22 @@ public:
 			int yStart = height * (1.0 - percent);
 
 			cv::Rect ROI11 = cv::Rect(xStart, yStart, width * percent, height * percent);
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI11));
-
 			cv::Rect ROI12 = cv::Rect(xStart + width, yStart, width * percent, height * percent);
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI12));
-
 			cv::Rect ROI21 = cv::Rect(xStart, yStart + height, width * percent, height * percent);
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI21));
-
 			cv::Rect ROI22 = cv::Rect(xStart + width, yStart + height, width * percent, height * percent);
+
 			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			frames.push_back(getVideoFrameLuminances(cap, ROI22));
+			vector<cv::Rect> ROIs;
+			ROIs.push_back(ROI11);
+			ROIs.push_back(ROI12);
+			ROIs.push_back(ROI21);
+			ROIs.push_back(ROI22);
+			frames = getVideoFrameLuminances(cap, ROIs, framerate);
+		}
+		*/else
+		{
+			vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false);
+			frames = getVideoFrameLuminances(cap, ROIs, framerate);
 		}
 		return frames;
 	}
@@ -464,7 +563,9 @@ public:
 			hy = max(hy, points[i].y);
 		}
 		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
-		return Utilities::getVideoFrameLuminances(cap, ROI);
+		vector<cv::Rect> ROIs;
+		ROIs.push_back(ROI);
+		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate)[0];
 	}
 
 	/// get video frames luminance
@@ -489,8 +590,9 @@ public:
 		VideoWriter vidWriter;
 		vidWriter.open(std::to_string(percent) + ".avi", CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(width, height));
 		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-		cv::Rect ROI = cv::Rect(lowerX, lowerY, width, height);
-		return Utilities::getVideoFrameLuminances(cap, ROI);
+		vector<cv::Rect> ROI;
+		ROI.push_back(cv::Rect(lowerX, lowerY, width, height));
+		return Utilities::getVideoFrameLuminances(cap, ROI,framerate)[0];
 	}
 
 	// open a video writer to use the same codec with every one
@@ -509,6 +611,59 @@ public:
 	}
 	static cv::Size getFrameSize()
 	{
-		return cv::Size(640, 480);
+		return DefaultFrameSize;
+	}
+
+	// calculate longest common subsequence between two strings
+	static void LCS(vector<short> orig_msg, vector<short> test_msg)
+	{
+		int **l = new int*[orig_msg.size() + 1];
+		//int lcs = -1;
+
+		for (int i = 0; i <= orig_msg.size(); i++)
+		{
+			l[i] = new int[test_msg.size() + 1];
+			for (int j = 0; j <= test_msg.size(); j++)
+			{
+				l[i][j] = 0;
+			}
+		}
+		
+		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
+		for (int i = 1; i <= orig_msg.size(); i++)
+		{
+			for (int j = 1; j <= test_msg.size(); j++)
+			{
+				l[i][j] = std::max(l[i - 1][j - 1], std::max(l[i - 1][j], l[i][j - 1]));
+				if (orig_msg[i - 1] == test_msg[j - 1])
+				{
+					l[i][j] = max(l[i - 1][j - 1] + 1, max(l[i - 1][j], l[i][j - 1]));
+				}
+			}
+		}
+		int lcs = l[orig_msg.size()][test_msg.size()];
+		double percent = lcs;
+		percent /= orig_msg.size();
+		printf("Longest Common SubString Length = %d = %0.2llf%%\r\n", lcs, 100*percent);
+		// deallocate
+		for (int i = 0; i <= orig_msg.size(); i++)
+		{
+			delete []l[i];
+		}
+		delete []l;
+	}
+
+	// create binary message from string message
+	static vector<short> getBinaryMessage(string msg)
+	{
+		vector<short> result;
+		for (int i = 0; i < msg.length(); i++)
+		{
+			for (int j = 7; j >= 0; j--)
+			{
+				result.push_back((msg[i] >> (7 - j)) & 1);
+			}
+		}
+		return result;
 	}
 };

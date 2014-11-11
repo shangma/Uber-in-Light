@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BCH.h" />
+    <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="SelectByMouse.h" />
     <ClInclude Include="Communicator.h" />
@@ -26,6 +28,7 @@
     <ClInclude Include="SplitAmplitudeCommunicator.h" />
     <ClInclude Include="SplitFrequencyAmplitudeCommunicator.h" />
     <ClInclude Include="SplitFrequencyCommunicator.h" />
+    <ClInclude Include="SplitScreenCommunicator.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoStabilizer.h" />
   </ItemGroup>

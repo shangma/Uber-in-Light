@@ -7,7 +7,7 @@ public:
 	///////////////////////////// Split Frequency /////////////////////////////////////////
 
 	// symbol_time: how many milliseconds will the symbol last
-	void sendImage(double frequency, string inputImage, string msg, string outputVideoFile, int symbol_time)
+	void sendImage(double frequency, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		Mat img = imread(inputImage);
 
@@ -20,7 +20,7 @@ public:
 		vector<float> amplitudes2 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1);
 		// create the video writer
 		ostringstream outputVideoStream;
-		outputVideoStream << msg << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		outputVideoStream << msg.size() << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
 		for (int i = 0; i < amplitudes1.size(); i++)
 		{
@@ -33,7 +33,7 @@ public:
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
-	void sendVideo(string inputVideoFile, string msg, string outputVideoFile, int symbol_time)
+	void sendVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		VideoCapture videoReader(inputVideoFile);
 		if (videoReader.isOpened())
@@ -50,7 +50,7 @@ public:
 			Mat frame;
 			// create the video writer
 			ostringstream outputVideoStream;
-			outputVideoStream << msg << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			outputVideoStream << msg.size() << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			for (int k = 0; k < amplitudes1.size(); k++)
@@ -76,17 +76,18 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 
 	// receive with a certain ROI ratio
-	void receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2);
-		receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
+		return receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
 	}
 
 protected:
 
-	void receiveWithInputROIRatioFreqDiff(vector<vector<float> > frames, int fps, int frames_per_symbol)
+	vector<short> receiveWithInputROIRatioFreqDiff(vector<vector<float> > frames, int fps, int frames_per_symbol)
 	{
+		vector<short> result;
 		double sum = 0;
 		vector<float> maxFreq1, maxFreq2, freqDiff;
 		vector<float> freqDiffAvg;
@@ -124,12 +125,12 @@ protected:
 			//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
 			{
-				printf("0");
+				result.push_back(0);
 				break;
 			}
 			else if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
 			{
-				printf("1");
+				result.push_back(1);
 				break;
 			}
 		}
@@ -142,8 +143,9 @@ protected:
 		for (; ind < freqDiff.size() - 1;)
 		{
 			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
+			//if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])))
 			{
-				printf("0");
+				result.push_back(0);
 				i = 0;
 				do
 				{
@@ -153,7 +155,7 @@ protected:
 			}
 			else if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
 			{
-				printf("1");
+				result.push_back(1);
 				i = 0;
 				do
 				{
@@ -167,6 +169,7 @@ protected:
 				//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 			}
 		}
+		return result;
 	}
 
 };

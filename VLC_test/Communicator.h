@@ -154,7 +154,7 @@ protected:
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
-	vector<float> createWaveGivenFPS(double frequency, string msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance[2])
+	vector<float> createWaveGivenFPS(double frequency, vector<short> msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance[2])
 	{
 		vector<float> amplitudes;
 		int framerate = frequency; //get the frame rate
@@ -162,25 +162,22 @@ protected:
 		int frequencies[] = { ZeroFrequency, OneFrequency };
 		// create the video writer
 		VideoWriter vidWriter;
-		for (int i = 0; i < msg.length(); i++)
+		for (int i = 0; i < msg.size(); i++)
 		{
-			for (int j = 7; j >= 0; j--)
+			int needed_frequency = frequencies[msg[i]];
+			int frames_per_half_cycle = framerate / (needed_frequency * 2);
+			// start high
+			int luminance_index = 0;
+			for (int k = 0; k < frames_per_symbol; k++)
 			{
-				int needed_frequency = frequencies[(msg[i] >> (7 - j)) & 1];
-				int frames_per_half_cycle = framerate / (needed_frequency * 2);
-				// start high
-				int luminance_index = 0;
-				for (int k = 0; k < frames_per_symbol; k++)
+				if ((k%frames_per_half_cycle) == 0)
 				{
-					if ((k%frames_per_half_cycle) == 0)
-					{
-						luminance_index ^= 1;
-					}
-					//cout << luminance_index;
-					amplitudes.push_back(luminance[luminance_index]);
+					luminance_index ^= 1;
 				}
-				cout << (int)((msg[i] >> (7 - j)) & 1);
+				//cout << luminance_index;
+				amplitudes.push_back(luminance[luminance_index]);
 			}
+			cout << msg[i];
 		}
 		cout << endl;
 		return amplitudes;
@@ -188,7 +185,7 @@ protected:
 
 public:
 	// symbol_time: how many milliseconds will the symbol last
-	virtual void sendImage(double frequency, string inputImage, string msg, string outputVideoFile, int symbol_time)
+	virtual void sendImage(double frequency, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		Mat img = imread(inputImage);
 
@@ -200,7 +197,7 @@ public:
 		vector<float> amplitudes = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 		// create the video writer
 		ostringstream outputVideoStream;
-		outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
 		for (int i = 0; i < amplitudes.size(); i++)
 		{
@@ -307,7 +304,7 @@ public:
 
 
 	// symbol_time: how many milliseconds will the symbol last
-	virtual void sendVideo(string inputVideoFile, string msg, string outputVideoFile, int symbol_time)
+	virtual void sendVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		VideoCapture videoReader(inputVideoFile);
 		if (videoReader.isOpened())
@@ -326,7 +323,7 @@ public:
 			Mat frame;
 			// create the video writer
 			ostringstream outputVideoStream;
-			outputVideoStream << msg << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
@@ -367,8 +364,9 @@ public:
 		//myft(frames,30,180);
 		//myft();
 	}
-	void receive2(vector<float> frames, int fps, int frames_per_symbol)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol)
 	{
+		vector<short> result;
 		vector<int> zero_detected(frames.size(), 0);
 		vector<int> one_detected(frames.size(), 0);
 		vector<int> other_detected(frames.size(), 0);
@@ -399,6 +397,7 @@ public:
 				// other detected
 				for (int j = 0; j < frames_per_symbol; j++) other_detected[i + j]++;
 			}
+			
 		}
 		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 
 		// and the symbol should have enough time (at least after the first FRAMES_PER_SYMBOL have been passed)
@@ -409,14 +408,14 @@ public:
 			{
 				// this first frame and zero
 				starting_index = i;
-				printf("0");
+				result.push_back(0);
 				break;
 			}
 			else if (one_detected[i] * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
 			{
 				// this first frame and one
 				starting_index = i;
-				printf("1");
+				result.push_back(1);
 				break;
 			}
 		}
@@ -427,27 +426,28 @@ public:
 			if (zero_detected[i] > one_detected[i])
 			{
 				// this first frame and zero
-				printf("0");
+				result.push_back(0);
 			}
 			else if (one_detected[i] > zero_detected[i])
 			{
 				// this first frame and one
 				starting_index = i;
-				printf("1");
+				result.push_back(1);
 			}
 			else
 			{
 				i = (i + 1 - frames_per_symbol);
 			}
 		}
+		return result;
 	}
 
 	// receive with a certain ROI ratio
-	virtual void receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	virtual vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, ROI_Ratio, fps);
-		receive2(frames, fps, frames_per_symbol);
+		return receive2(frames, 30, frames_per_symbol);
 	}
 
 	// receive with a certain ROI ratio
