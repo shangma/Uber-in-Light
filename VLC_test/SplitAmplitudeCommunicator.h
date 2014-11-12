@@ -10,7 +10,7 @@ public:
 	void sendImage(double frequency, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
 		Mat img = imread(inputImage);
-
+		cv::resize(img, img, Utilities::getFrameSize());
 		int framerate = frequency; //get the frame rate
 		int frame_width = img.cols;
 		int frame_height = img.rows;
@@ -23,14 +23,15 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << msg.size() << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		//Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 		for (int i = 0; i < amplitudes1.size(); i++)
 		{
-			Mat frame;
-			cv::resize(img, frame,Utilities::getFrameSize());
+			Mat frame = img.clone();
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes1[i]);
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
 			vidWriter << frame;
 		}
+		//Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 	}
 
 	// symbol_time: how many milliseconds will the symbol last

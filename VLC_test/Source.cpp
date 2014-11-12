@@ -4,6 +4,7 @@
 #include "BCH.h"
 #include "Hamming.h"
 #include "SplitScreenCommunicator.h"
+#include "SplitScreenAmpDifferenceCommunicator.h"
 
 enum
 {
@@ -187,7 +188,13 @@ struct Properties
 			communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
 		case 4:
-			communicator = new SplitScreenCommunicator;
+			communicator = new SplitScreenCommunicator(2);
+			break;
+		case 5:
+			communicator = new SplitScreenAmpDifferenceCommunicator(2);
+			break;
+		case 6:
+			communicator = new SpatialFrequencyCommunicator;
 			break;
 		default:
 			communicator = new Communicator;

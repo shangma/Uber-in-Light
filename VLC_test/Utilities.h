@@ -443,27 +443,7 @@ public:
 			frames = getVideoFrameLuminances(cap, ROIs,framerate);
 			
 		}
-		/*else if (divisions == 4)
-		{
-			int width = frame_width / 2;
-			int height = frame_height / 2;
-			int xStart = width * (1.0 - percent);
-			int yStart = height * (1.0 - percent);
-
-			cv::Rect ROI11 = cv::Rect(xStart, yStart, width * percent, height * percent);
-			cv::Rect ROI12 = cv::Rect(xStart + width, yStart, width * percent, height * percent);
-			cv::Rect ROI21 = cv::Rect(xStart, yStart + height, width * percent, height * percent);
-			cv::Rect ROI22 = cv::Rect(xStart + width, yStart + height, width * percent, height * percent);
-
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			vector<cv::Rect> ROIs;
-			ROIs.push_back(ROI11);
-			ROIs.push_back(ROI12);
-			ROIs.push_back(ROI21);
-			ROIs.push_back(ROI22);
-			frames = getVideoFrameLuminances(cap, ROIs, framerate);
-		}
-		*/else
+		else
 		{
 			vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false);
 			frames = getVideoFrameLuminances(cap, ROIs, framerate);

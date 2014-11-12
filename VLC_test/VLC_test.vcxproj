@@ -28,6 +28,7 @@
     <ClInclude Include="SplitAmplitudeCommunicator.h" />
     <ClInclude Include="SplitFrequencyAmplitudeCommunicator.h" />
     <ClInclude Include="SplitFrequencyCommunicator.h" />
+    <ClInclude Include="SplitScreenAmpDifferenceCommunicator.h" />
     <ClInclude Include="SplitScreenCommunicator.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoStabilizer.h" />
