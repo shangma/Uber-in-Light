@@ -79,7 +79,7 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,false);
 		return receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
 	}
 

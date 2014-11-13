@@ -87,7 +87,7 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > temp = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 4);
+		vector<vector<float> > temp = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 4,false);
 		vector<vector<float> > frames(2);
 		for (int i = 0; i < temp[0].size(); i++)
 		{

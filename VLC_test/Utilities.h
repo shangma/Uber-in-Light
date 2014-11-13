@@ -11,6 +11,7 @@ const double EPSILON = 1e-10;
 const double M_PI = 3.14159265359;
 const string codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size DefaultFrameSize(640, 480);
+Size patternsize(11, 11);
 
 // the frequency component and the percentage it represent in the frequency components given
 struct Frequency
@@ -321,19 +322,28 @@ public:
 		//prev = prev(ROI);
 		double nextIndex = 0; 
 		int count = 1;
+		frame = prev.clone();
 		while (true)
 		{
 			nextIndex += fps / 30;;
 			bool flag = true;
 			
-			do
+			while ((int)nextIndex > count + 1)
 			{
 				++count;
 				flag = cap.read(frame);
-			} while ((int)nextIndex > count + 1);
+			} 
 			if (!flag)
 			{
 				break;
+			}
+			if (!(count % 10))
+			{
+				Rect endChess = Utilities::detectMyBoard(frame);
+				if (endChess.width > 10 && endChess.height > 10)
+				{
+					break;
+				}
 			}
 			//cap.read(frame);
 			//frame = frame(ROI);
@@ -366,18 +376,31 @@ public:
 	// frame_height: frame Height
 	// percent: percentage to crop from the image
 	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
-	static vector<cv::Rect> getDivisions(int divisions,int frame_width,int frame_height,double percent,bool cropInclusive)
+	static vector<cv::Rect> getDivisions(int divisions,int frame_width,int frame_height,double percent,bool cropInclusive,cv::Rect globalROI)
 	{
-		int sectionsPerLength = sqrt(divisions);
+		frame_width = globalROI.width;
+		frame_height = globalROI.height;
+		int sectionsPerWidth = sqrt(divisions);
+		int sectionsPerHeight = sectionsPerWidth;
 		vector<cv::Rect> ROIs;
+		int sectionWidth = 0, sectionHeight = 0;
 		if (cropInclusive)
 		{
-			int sectionWidth = frame_width / sectionsPerLength;
-			int sectionHeight = frame_height / sectionsPerLength;
-
-			for (int y = 0; y < sectionsPerLength; y++)
+			if (divisions == 2)
 			{
-				for (int x = 0; x < sectionsPerLength; x++)
+				sectionWidth = frame_width / divisions;
+				sectionHeight = frame_height;
+				sectionsPerWidth = divisions;
+				sectionsPerHeight = 1;
+			}
+			else
+			{
+				sectionWidth = frame_width / sectionsPerWidth;
+				sectionHeight = frame_height / sectionsPerHeight;
+			}
+			for (int y = 0; y < sectionsPerHeight; y++)
+			{
+				for (int x = 0; x < sectionsPerWidth; x++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
@@ -387,16 +410,27 @@ public:
 						percent * sectionHeight));
 				}
 			}
+
 		}
 		else
 		{
-			int sectionWidth = (frame_width * percent) / sectionsPerLength;
-			int sectionHeight = (frame_height * percent) / sectionsPerLength;
+			if (divisions == 2)
+			{
+				sectionWidth = (frame_width * percent) / divisions;
+				sectionHeight = frame_height * percent;
+				sectionsPerWidth = divisions;
+				sectionsPerHeight = 1;
+			}
+			else
+			{
+				sectionWidth = (frame_width * percent) / sectionsPerWidth;
+				sectionHeight = (frame_height * percent) / sectionsPerHeight;
+			}			
 			int widthStart = frame_width * (1 - percent);
 			int heightStart = frame_height * (1 - percent);
-			for (int y = 0; y < sectionsPerLength; y++)
+			for (int y = 0; y < sectionsPerHeight; y++)
 			{
-				for (int x = 0; x < sectionsPerLength; x++)
+				for (int x = 0; x < sectionsPerWidth; x++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
@@ -407,6 +441,12 @@ public:
 				}
 			}
 		}
+		// shift to the global ROI
+		for (int i = 0; i < ROIs.size();i++)
+		{
+			ROIs[i].x += globalROI.x;
+			ROIs[i].y + globalROI.y;
+		}
 		return ROIs;
 	}
 
@@ -415,7 +455,8 @@ public:
 	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
 	// int &framerate: is output parameter
 	// divisions: supports 2 and 4 only for now
-	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions)
+	// ROI: is the area of interest only for the whole image
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions,bool useGlobalROI)
 	{
 		vector<vector<float> > frames;
 		VideoCapture cap(videoName); // open the default camera
@@ -425,29 +466,40 @@ public:
 		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+		// try to detect the chess board
+		int index = 0;
+		Mat frame;
+		cv::Rect globalROI(0,0,frame_width,frame_height);
+		if (useGlobalROI)
+		{
+			for (; cap.read(frame); index++)
+			{
+				// this loop to detect the first chess board
+				//cout << index << endl;
+				//imshow("frame", frame);
+				//cv::waitKey(0);
+				globalROI = Utilities::detectMyBoard(frame);
+				if (globalROI.width > 10 && globalROI.height > 10)
+				{
+					break;
+				}
+			}
+			int countChess = 0;
+			for (; cap.read(frame); index++, countChess++)
+			{
+				// this loop to detect the last chess board
+				Rect roi = Utilities::detectMyBoard(frame);
+				if (roi.width < 10 || roi.height < 10)
+				{
+					break;
+				}
+				globalROI = roi;
+			}
+		}
 		// the ROI		
-		if (divisions == 2)
-		{
-			int width = frame_width * percent;
-			int height = frame_height * percent;
-			int lowerX = (frame_width - width) / 2;
-			int lowerY = (frame_height - height) / 2;
-
-			cv::Rect ROI1 = cv::Rect(lowerX, lowerY, width / 2 - lowerX, height);
-			cv::Rect ROI2 = cv::Rect(lowerX + frame_width / 2, lowerY, width / 2 - lowerX, height);
-
-			cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			vector<cv::Rect> ROIs;
-			ROIs.push_back(ROI1);
-			ROIs.push_back(ROI2);
-			frames = getVideoFrameLuminances(cap, ROIs,framerate);
-			
-		}
-		else
-		{
-			vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false);
-			frames = getVideoFrameLuminances(cap, ROIs, framerate);
-		}
+		vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false,globalROI);
+		frames = getVideoFrameLuminances(cap, ROIs, framerate);
 		return frames;
 	}
 
@@ -644,6 +696,100 @@ public:
 				result.push_back((msg[i] >> (7 - j)) & 1);
 			}
 		}
+		return result;
+	}
+	// Get teh size from utilities
+	// boarderPercentage that will be white
+	// patternsize is the number of interior points
+	// return BGR image
+	static Mat createChessBoard()
+	{
+		double boarderPercentage = 0.95;
+		Mat board = 255 * Mat::ones(Utilities::getFrameSize(), CV_8UC1);
+		cv::cvtColor(board, board, CV_GRAY2BGR);
+		int xStep = (board.cols * boarderPercentage) / (patternsize.width + 1);
+		int yStep = (board.rows * boarderPercentage) / (patternsize.height + 1);
+		int xStart = (board.cols * (1 - boarderPercentage)) / 2;
+		int yStart = (board.rows * (1 - boarderPercentage)) / 2;
+		for (int x = 0; x <= patternsize.width; x += 2)
+		{
+			for (int y = 0; y <= patternsize.height; y += 2)
+			{
+				cv::rectangle(board,
+					cv::Point(xStart + x*xStep, yStart + y*yStep),
+					cv::Point(xStart + (x + 1)*xStep, yStart + (y + 1)*yStep),
+					cv::Scalar(0, 0, 0),
+					CV_FILLED);
+
+			}
+		}
+		for (int x = 1; x <= patternsize.width; x += 2)
+		{
+			for (int y = 1; y <= patternsize.height; y += 2)
+			{
+				cv::rectangle(board,
+					cv::Point(xStart + x*xStep, yStart + y*yStep),
+					cv::Point(xStart + (x + 1)*xStep, yStart + (y + 1)*yStep),
+					cv::Scalar(0, 0, 0),
+					CV_FILLED);
+
+			}
+		}
+
+		return board;
+	}
+	// img: input image in BGR
+	// patternSize: interior number of corners
+	// return rectangle around the calibration points
+	static cv::Rect detectMyBoard(Mat img)
+	{
+		// create the gray image
+		Mat gray; //source image
+		if (img.channels() == 3)
+		{
+			cv::cvtColor(img, gray, CV_BGR2GRAY);
+		}
+		else
+		{
+			gray = img.clone();
+		}
+		vector<Point2f> corners; //this will be filled by the detected corners
+
+		//CALIB_CB_FAST_CHECK saves a lot of time on images
+		//that do not contain any chessboard corners
+		bool patternfound = findChessboardCorners(gray, patternsize, corners,
+			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
+			+ CALIB_CB_FAST_CHECK);
+
+		cv::Rect result;
+		if (patternfound)
+		{
+			cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
+				TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+		}
+		else
+		{
+			return result;
+		}
+		/*
+		Mat temp = img.clone();
+		drawChessboardCorners(temp, patternsize, Mat(corners), patternfound);
+		imshow("img", temp);
+		cv::waitKey(0);
+		*/
+		
+		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
+		for (int i = 0; i < corners.size(); i++)
+		{
+			xl = std::min(xl, corners[i].x);
+			yl = std::min(yl, corners[i].y);
+			xh = std::max(xh, corners[i].x);
+			yh = std::max(yh, corners[i].y);
+		}
+		result.x = xl;
+		result.y = yl;
+		result.width = xh - xl + 1;
+		result.height = yh - yl + 1;
 		return result;
 	}
 };

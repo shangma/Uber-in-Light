@@ -23,7 +23,7 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << msg.size() << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
-		//Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 		for (int i = 0; i < amplitudes1.size(); i++)
 		{
 			Mat frame = img.clone();
@@ -31,7 +31,7 @@ public:
 			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
 			vidWriter << frame;
 		}
-		//Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -87,13 +87,13 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,false);
 		vector<float> amplitude_difference;
 		for (int i = 0; i < frames[0].size(); i++)
 		{
 			amplitude_difference.push_back(frames[0][i] - frames[1][i]);
 		}
-		return receive2(amplitude_difference, fps, frames_per_symbol);
+		return receive2(amplitude_difference, 30, frames_per_symbol);
 	}
 };
 

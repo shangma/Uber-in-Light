@@ -1,5 +1,6 @@
 #pragma once
 #include "Communicator.h"
+
 class SplitScreenCommunicator :
 	public Communicator
 {
@@ -32,8 +33,10 @@ public:
 		outputVideoStream << msg.size() << "_Split" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
 		// get the sections
-		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false);
+		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false, globalROI);
 		// add dummy seconds in the beginning of the video
+		Utilities::addDummyFramesToVideo(vidWriter, framerate / 2, Utilities::createChessBoard());
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 		for (int i = 0; i < amplitudes1.size();i += (sections * framesForSymbol))
 		{
@@ -50,6 +53,8 @@ public:
 		}
 		// adding one dummy black second to the end of the video
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		// adding chess board to indicate the end of transmission
+		Utilities::addDummyFramesToVideo(vidWriter, framerate / 2, Utilities::createChessBoard());
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -78,10 +83,13 @@ public:
 
 			int inputFrameUsageFrames = fps / framerate;
 			// get the sections
-			vector<cv::Rect> ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false);
+			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			vector<cv::Rect> ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false,globalROI);
 			// add dummy frames
 			videoReader.read(img);
 			cv::resize(img, img, Utilities::getFrameSize());
+			// add dummy seconds in the beginning of the video
+			Utilities::addDummyFramesToVideo(vidWriter, fps / 2, Utilities::createChessBoard());
 			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
 			for (int i = 0; i < amplitudes1.size(); i += (sections * framesForSymbol))
 			{
@@ -103,6 +111,8 @@ public:
 			}
 			// add dummy frames
 			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
+			// end of sending chess
+			Utilities::addDummyFramesToVideo(vidWriter, fps / 2, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -114,6 +124,8 @@ public:
 	{
 		int sections = sectionsPerLength * sectionsPerLength;
 		vector<short> result;
+		if (frames.size() == 0)
+			return result;
 		vector<vector<int> > zero_detected(sections,vector<int>(frames[0].size(),0));
 		vector<vector<int> > one_detected(sections, vector<int>(frames[0].size(), 0));
 		vector<vector<int> > other_detected(sections, vector<int>(frames[0].size(), 0));
@@ -183,11 +195,15 @@ public:
 					// this first frame and zero
 					result.push_back(0);
 				}
-				else
+				else// if (one_detected[k][i] > zero_detected[k][i])
 				{
 					// this first frame and one
 					result.push_back(1);
 				}
+				/*else
+				{
+					result.push_back(2);
+				}*/
 			}
 		}
 		return result;
@@ -197,7 +213,7 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength,true);
 		return receiveN(frames, 30, frames_per_symbol);
 	}
 };

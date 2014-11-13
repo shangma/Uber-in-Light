@@ -1,3 +1,4 @@
+#pragma once
 /*
 * File:    bch3.c
 * Title:   Encoder/decoder for binary BCH codes in C (Version 3.1)
@@ -72,16 +73,20 @@
 #include <math.h>
 #include <stdio.h>
 
-int             m, n, length, k, t, d;
-int             p[21];
 int             alpha_to[1048576], index_of[1048576], g[548576];
 int             recd[1048576], data[1048576], bb[548576];
+int             elp[1026][1024];
+class BCH
+{
+public:
+
+int             m, n, length, k, t, d;
+int             p[21];
 int             seed;
 int             numerr, errpos[1024], decerror = 0;
 
 
-void
-read_p()
+BCH()
 /*
 *	Read m, the degree of a primitive polynomial p(x) used to compute the
 *	Galois field GF(2**m). Get precomputed coefficients p[] of p(x). Read
@@ -89,7 +94,7 @@ read_p()
 */
 {
 	int			i, ninf;
-
+	/*
 	printf("bch3: An encoder/decoder for binary BCH codes\n");
 	printf("Copyright (c) 1994-7. Robert Morelos-Zaragoza.\n");
 	printf("This program is free, please read first the copyright notice.\n");
@@ -98,7 +103,8 @@ read_p()
 	do {
 		printf("Enter m (between 2 and 20): ");
 		scanf("%d", &m);
-	} while (!(m>1) || !(m<21));
+	} while (!(m>1) || !(m<21));*/
+	m = 4;
 	for (i = 1; i<m; i++)
 		p[i] = 0;
 	p[0] = p[m] = 1;
@@ -130,10 +136,13 @@ read_p()
 	printf("\n");
 	n = n / 2 - 1;
 	ninf = (n + 1) / 2 - 1;
-	do  {
+	length = 8;
+	/*do  {
 		printf("Enter code length (%d < length <= %d): ", ninf, n);
 		scanf("%d", &length);
-	} while (!((length <= n) && (length>ninf)));
+	} while (!((length <= n) && (length>ninf)));*/
+	generate_gf();          /* Construct the Galois Field GF(2**m) */
+	gen_poly();             /* Compute the generator polynomial of BCH code */
 }
 
 
@@ -227,8 +236,9 @@ gen_poly()
 	} while (ll < (n - 1));
 	nocycles = jj;		/* number of cycle sets modulo n */
 
-	printf("Enter the error correcting capability, t: ");
-	scanf("%d", &t);
+	printf("Enter the error correcting capability, t: \n");
+	//scanf("%d", &t);
+	t = 1;
 
 	d = 2 * t + 1;
 
@@ -320,7 +330,6 @@ encode_bch()
 	}
 }
 
-
 void
 decode_bch()
 /*
@@ -347,7 +356,7 @@ decode_bch()
 */
 {
 	register int    i, j, u, q, t2, count = 0, syn_error = 0;
-	int             elp[1026][1024], d[1026], l[1026], u_lu[1026], s[1025];
+	int d[1026], l[1026], u_lu[1026], s[1025];
 	int             root[200], loc[200], err[1024], reg[201];
 
 	t2 = 2 * t;
@@ -512,9 +521,9 @@ void testBCH()
 {
 	int             i;
 
-	read_p();               /* Read m */
-	generate_gf();          /* Construct the Galois Field GF(2**m) */
-	gen_poly();             /* Compute the generator polynomial of BCH code */
+	//read_p();               /* Read m */
+	//generate_gf();          /* Construct the Galois Field GF(2**m) */
+	//gen_poly();             /* Compute the generator polynomial of BCH code */
 
 	/* Randomly generate DATA */
 	seed = 131073;
@@ -590,3 +599,4 @@ void testBCH()
 	else
 		printf("Succesful decoding\n");
 }
+};

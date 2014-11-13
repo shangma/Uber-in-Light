@@ -28,7 +28,8 @@ public:
 		outputVideoStream << msg.size() << "_SplitAmp" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
 		// get the sections
-		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false);
+		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false,globalROI);
 		// add dummy seconds in the beginning of the video
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
 		for (int i = 0; i < amplitudes1.size(); i += (sections * framesForSymbol))
@@ -78,7 +79,8 @@ public:
 
 			int inputFrameUsageFrames = fps / framerate;
 			// get the sections
-			ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false);
+			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false,globalROI);
 			// add dummy frames
 			videoReader.read(img);
 			cv::resize(img, img, Utilities::getFrameSize());
@@ -121,7 +123,31 @@ public:
 		int fps = cap.get(CV_CAP_PROP_FPS); //get the frame rate
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, frame_width, frame_height, ROI_Ratio, false);
+		// try to detect the chess board
+		int index = 0;
+		Mat frame;
+		cv::Rect globalROI;
+		for (; cap.read(frame); index++)
+		{
+			// this loop to detect the first chess board
+			globalROI = Utilities::detectMyBoard(frame);
+			if (globalROI.width > 10 && globalROI.height > 10)
+			{
+				break;
+			}
+		}
+		int countChess = 0;
+		for (; cap.read(frame); index++, countChess++)
+		{
+			// this loop to detect the last chess board
+			Rect roi = Utilities::detectMyBoard(frame);
+			if (roi.width < 10 || roi.height < 10)
+			{
+				break;
+			}
+			globalROI = roi;
+		}
+		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, frame_width, frame_height, ROI_Ratio, false,globalROI);
 		vector<cv::Rect> ROIs2;
 		for (int i = 0; i < ROIs.size(); i++)
 		{
