@@ -199,14 +199,19 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
+		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		for (int i = 0; i < amplitudes.size(); i++)
 		{
 			Mat frame;
 			cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols, frame.rows), amplitudes[i]);
+			Utilities::updateFrameWithAlpha(frame, globalROI, amplitudes[i]);
 			//frame.convertTo(frame, CV_32F);
 			vidWriter << frame;
 		}
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 	}
 
 	// 
@@ -329,6 +334,9 @@ public:
 			double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
 			vector<float> amplitudes = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 			int InputFrameCounter = 0;
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 			for (int k = 0; k < amplitudes.size(); k++)
 			{
 				if (k%inputFrameUsageFrames == 0)
@@ -338,10 +346,11 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, 0, tmp.cols, tmp.rows), amplitudes[k]);
+				Utilities::updateFrameWithAlpha(tmp, globalROI, amplitudes[k]);
 				vidWriter << tmp;
 			}
-
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -404,40 +413,40 @@ public:
 		int starting_index = 0;
 		for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
 		{
-			if (zero_detected[i] * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
+			if ((zero_detected[i] + one_detected[i]) * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
 			{
 				// this first frame and zero
 				starting_index = i;
-				result.push_back(0);
+				//result.push_back(0);
 				break;
 			}
-			else if (one_detected[i] * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
+			/*else if (one_detected[i] * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 5)
 			{
 				// this first frame and one
 				starting_index = i;
 				result.push_back(1);
 				break;
-			}
+			}*/
 		}
 		// for the rest of the symbols
 		// just follow the same rule
-		for (int i = starting_index + frames_per_symbol; i < frames.size() - frames_per_symbol; i += frames_per_symbol)
+		for (int i = starting_index; i < frames.size() - frames_per_symbol; i += frames_per_symbol)
 		{
 			if (zero_detected[i] > one_detected[i])
 			{
 				// this first frame and zero
 				result.push_back(0);
 			}
-			else if (one_detected[i] > zero_detected[i])
+			else// if (one_detected[i] > zero_detected[i])
 			{
 				// this first frame and one
 				starting_index = i;
 				result.push_back(1);
-			}
+			}/*
 			else
 			{
 				i = (i + 1 - frames_per_symbol);
-			}
+			}*/
 		}
 		return result;
 	}
@@ -446,7 +455,7 @@ public:
 	virtual vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, ROI_Ratio, fps);
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true)[0];
 		return receive2(frames, 30, frames_per_symbol);
 	}
 

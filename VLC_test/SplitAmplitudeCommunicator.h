@@ -23,15 +23,19 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << msg.size() << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
-		for (int i = 0; i < amplitudes1.size(); i++)
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
+		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
+		for (int i = 0; i < amplitudes1.size();i++)
 		{
 			Mat frame = img.clone();
-			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes1[i]);
-			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
+			Utilities::updateFrameWithAlpha(frame, ROIs[0], amplitudes1[i]);
+			Utilities::updateFrameWithAlpha(frame, ROIs[1], amplitudes2[i]);
 			vidWriter << frame;
 		}
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());		
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -56,11 +60,17 @@ public:
 			double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
 			vector<float> amplitudes2 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 			Mat frame;
+			
 			// create the video writer
 			ostringstream outputVideoStream;
 			outputVideoStream << msg.size() << "_AmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
+			videoReader.read(frame);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
 			for (int k = 0; k < amplitudes1.size(); k++)
 			{
 				if (k%inputFrameUsageFrames == 0)
@@ -69,11 +79,12 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, 0, tmp.cols / 2, tmp.rows), amplitudes1[k]);
-				Utilities::updateFrameWithAlpha(tmp, cv::Rect(tmp.cols / 2, 0, tmp.cols / 2, tmp.rows), amplitudes2[k]);
+				Utilities::updateFrameWithAlpha(tmp, ROIs[0], amplitudes1[k]);
+				Utilities::updateFrameWithAlpha(tmp, ROIs[1], amplitudes2[k]);
 				vidWriter << tmp;
-
 			}
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -87,7 +98,7 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,false);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,true);
 		vector<float> amplitude_difference;
 		for (int i = 0; i < frames[0].size(); i++)
 		{

@@ -130,8 +130,7 @@ public:
 		for (; cap.read(frame); index++)
 		{
 			// this loop to detect the first chess board
-			globalROI = Utilities::detectMyBoard(frame);
-			if (globalROI.width > 10 && globalROI.height > 10)
+			if (Utilities::canDetectMyBoard(frame))
 			{
 				break;
 			}
@@ -140,12 +139,14 @@ public:
 		for (; cap.read(frame); index++, countChess++)
 		{
 			// this loop to detect the last chess board
-			Rect roi = Utilities::detectMyBoard(frame);
-			if (roi.width < 10 || roi.height < 10)
+			if (Utilities::canDetectMyBoard(frame))
+			{
+				globalROI = Utilities::detectMyBoard(frame);
+			}
+			else
 			{
 				break;
 			}
-			globalROI = roi;
 		}
 		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, frame_width, frame_height, ROI_Ratio, false,globalROI);
 		vector<cv::Rect> ROIs2;
@@ -154,7 +155,7 @@ public:
 			ROIs2.push_back(cv::Rect(ROIs[i].x, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
 			ROIs2.push_back(cv::Rect(ROIs[i].x + ROIs[i].width / 2, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
 		}
-		vector<vector<float> > frames2 = Utilities::getVideoFrameLuminances(cap, ROIs2, fps);
+		vector<vector<float> > frames2 = Utilities::getVideoFrameLuminances(cap, ROIs2, fps,true);
 		vector<vector<float> > frames(ROIs.size());
 		for (int i = 0; i < frames2.size(); i += 2)
 		{

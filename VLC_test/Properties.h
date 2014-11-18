@@ -6,12 +6,12 @@
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 
-
 enum
 {
 	SEND = 1,
 	RECV,
-	CNVRT
+	CNVRT,
+	EXTEND
 };
 
 enum
@@ -33,6 +33,7 @@ struct Properties
 	string text; // text to send
 	vector<short> msg; // the message after conversion to vector<short>
 	double fps;
+	int extendN;
 	Properties()
 	{
 		mode = SEND;
@@ -42,6 +43,7 @@ struct Properties
 		ROI = 1;
 		type = 0;
 		text = "";
+		
 	}
 	int returnError()
 	{
@@ -67,6 +69,19 @@ struct Properties
 			else if (!strcmp(argv[i], "-c"))
 			{
 				mode = CNVRT;
+			}
+			else if (!strcmp(argv[i], "-e"))
+			{
+				mode = EXTEND;
+				// get number of repitionis
+				if (i < argc - 1)
+				{
+					extendN = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
 			}
 			else if (!strcmp(argv[i], "-if"))
 			{
@@ -109,7 +124,21 @@ struct Properties
 				// get the file name
 				if (i < argc - 1)
 				{
-					text = argv[++i];
+					string fileName = argv[++i];
+					ifstream ifs(fileName);
+					if (ifs.is_open())
+					{
+						// assume the text inside
+						ifs >> text;
+						ifs.close();
+					}
+					else					
+					{
+						// assume the file name is the text
+						text = fileName;
+					}
+					// convert the message to vector of short
+					msg = Utilities::getBinaryMessage(text);
 				}
 				else
 				{
@@ -189,7 +218,7 @@ struct Properties
 			communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
 		case 4:
-			communicator = new SplitScreenCommunicator(1);
+			communicator = new SplitScreenCommunicator(2);
 			break;
 		case 5:
 			communicator = new SplitScreenAmpDifferenceCommunicator(1);
@@ -200,10 +229,10 @@ struct Properties
 		default:
 			communicator = new Communicator;
 		}
-		// convert the message to vector of short
-		msg = Utilities::getBinaryMessage(text);
-		if (mode == SEND)
+		
+		switch (mode)
 		{
+		case SEND:
 			if (realVideo)
 			{
 				communicator->sendVideo(inputFileName, msg, outputFileName, 1000);
@@ -213,9 +242,9 @@ struct Properties
 				communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
 					inputFileName, msg, outputFileName, 1000);
 			}
-		}
-		else if (mode == RECV)
-		{
+			break;
+		case RECV:
+
 			if (ROI > 0 && ROI <= 1)
 			{
 				// then we have ROI
@@ -230,19 +259,24 @@ struct Properties
 					cout << received[i];
 				}
 				cout << endl;
-				Utilities::LCS(msg, received);
+				Utilities::LCS_greedy(msg, received);
 			}
 			else
 			{
 				communicator->receiveWithSelectionByHand(inputFileName, 30);
 			}
-		}
-		else if (mode == CNVRT)
-		{
+			break;
+		case CNVRT:
 			// convert argv2 video to argv3 as a video with the framerate in argv4
 			// argv3 must end with .avi
 			Utilities::convertVideo(inputFileName, outputFileName, fps);
+			break;
+		case EXTEND:
+			// extend the video by repeating
+			Utilities::repeatVideo(inputFileName, outputFileName, fps, extendN);
+			break;
 		}
+		
 		return 0;
 	}
 };

@@ -14,7 +14,7 @@ namespace LCS
             string abcde =
                 "1000011001000110110001100010011010100110"; 
             string test =
-                 "00001100100011011000110001001101010011";
+                 "1000011001000111110001110000011010100110";
             LCS(test, abcde);
             //Console.WriteLine("size = {0}", result.Length);
             Console.ReadKey();

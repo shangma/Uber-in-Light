@@ -2,6 +2,7 @@
 
 #include "Header.h"
 #include "SelectByMouse.h"
+#include "background_subtractor.h"
 
 // 0 means 20 hz and 1 is 30 hz
 double FREQ[] = { 12, 8 };
@@ -214,29 +215,7 @@ public:
 
 		HSV2[2].convertTo(tmp2, CV_32F);
 		cv::subtract(tmp2, tmp1, tmp);
-		
-		//double min, max;
-		//cv::minMaxLoc(tmp, &min, &max);
-		//cout << min << "\t" << max << endl;
-		/*
-		tmp = tmp1.clone();
-		int ind = 0;
-		for (int y = 0; y < tmp.rows; y++)
-		{
-			for (int x = 0; x < tmp.cols; x++,ind++)
-			{
-				float val = getSmallestDifference(tmp1, tmp2, radius, x, y);
-				if (abs(val > 3))
-				{
-					((float*)tmp.data)[ind] = 0;
-				}
-				else
-				{
-					((float*)tmp.data)[ind] = val;
-				}
-			}
-		}
-		*/
+
 		return tmp;
 	}
 
@@ -266,7 +245,55 @@ public:
 			}
 		}
 	}
-
+	// convert video fps to certain given fps
+	static void repeatVideo(string inputVideo, string outputVideo, double fps, int numberOfRepetitions)
+	{
+		VideoCapture videoReader(inputVideo);
+		if (videoReader.isOpened())
+		{
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
+			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			while (frame_height > 1000)
+			{
+				frame_width /= 2;
+				frame_height /= 2;
+			}
+			VideoWriter vidWriter;
+			vidWriter.open(outputVideo, CV_FOURCC('D', 'I', 'V', 'X'), fps, cv::Size(frame_width, frame_height));
+			Mat frame;
+			for (int i = 0; i < numberOfRepetitions;i++)
+			{
+				if (i & 1)
+				{
+					// move backward
+					for (int j = numberOfFrames - 1; j >= 0; j--)
+					{
+						videoReader.set(CV_CAP_PROP_POS_FRAMES, j);
+						videoReader >> frame;
+						Mat tmp;
+						cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+						vidWriter << tmp;
+					}
+				}
+				else
+				{
+					// move forward
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, 0);
+					for (int j = 0; j < numberOfFrames; j++)
+					{
+						videoReader >> frame;
+						Mat tmp;
+						cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+						vidWriter << tmp;
+					}
+				}
+				
+			}
+		}
+	}
 	// compare two videos that should be identical
 	static void compareVideos(string video1, string video2)
 	{
@@ -287,7 +314,7 @@ public:
 	}
 
 	// add dummy seconds to video
-	static void addDummyFramesToVideo(VideoWriter &vidWriter, int n, Mat dummyFrame)
+	static void addDummyFramesToVideo(VideoWriter &vidWriter, int n, Mat dummyFrame = Mat::zeros(getFrameSize(),CV_8UC3))
 	{
 		for (int i = 0; i < n; i++)
 		{
@@ -308,11 +335,13 @@ public:
 		return str;
 	}
 
+	
+
 	/// get video frames luminance
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROI,double fps)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROI,double fps,bool useChessBoard)
 	{
 		vector<vector<float> > frames(ROI.size());
 		cout << "Processing Frames..." << endl;
@@ -322,9 +351,12 @@ public:
 		//prev = prev(ROI);
 		double nextIndex = 0; 
 		int count = 1;
+		//Mat mask, prev_mask; = getBinaryMask(prev);
 		frame = prev.clone();
 		while (true)
 		{
+			//imshow("prev", prev);
+			//cv::waitKey(30);
 			nextIndex += fps / 30;;
 			bool flag = true;
 			
@@ -337,23 +369,28 @@ public:
 			{
 				break;
 			}
-			if (!(count % 10))
+			//cout << count << endl;
+			//mask = getBinaryMask(frame);
+			if (useChessBoard && (count % 10) == 0 && canDetectMyBoard(frame))
 			{
-				Rect endChess = Utilities::detectMyBoard(frame);
-				if (endChess.width > 10 && endChess.height > 10)
-				{
-					break;
-				}
+				break;
 			}
-			//cap.read(frame);
-			//frame = frame(ROI);
-			// save the ROI
+			
+			Mat add_mask = MaskFactory::getBackgroundMask(prev, frame);// prev_mask & mask;
+			//imshow("mask", mask);
+			//imshow("prev_mask", prev_mask);
+			//imshow("add_mask", add_mask);
+			//cv::waitKey(0);
+			Mat tmp_frame;
+			frame.copyTo(tmp_frame, add_mask);
+			Mat tmp_prev;
+			prev.copyTo(tmp_prev, add_mask);
 			for (int i = 0; i < ROI.size(); i++)
 			{
-				Mat tmp = Utilities::getDiffInVchannelHSV(prev(ROI[i]), frame(ROI[i]), 0);
-				//imshow("test", tmp);
-				//cv::waitKey(0);
-				float luminance = cv::mean(tmp).val[0];
+				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROI[i]), tmp_frame(ROI[i]), 0);
+				float luminance = cv::sum(tmp).val[0];
+				float summation = ((cv::sum(add_mask(ROI[i])).val[0]) / 255.0) + 1;
+				luminance /= summation;
 				//float luminance = getLuminance(tmp, ROI);
 				if (abs(luminance) < 0.001 && frames[i].size())
 				{
@@ -365,6 +402,7 @@ public:
 				}
 			}
 			prev = frame.clone();
+			//prev_mask = mask.clone();
 		}
 		// the camera will be deinitialized automatically in VideoCapture destructor
 		return frames;
@@ -386,7 +424,7 @@ public:
 		int sectionWidth = 0, sectionHeight = 0;
 		if (cropInclusive)
 		{
-			if (divisions == 2)
+			if (divisions <= 2)
 			{
 				sectionWidth = frame_width / divisions;
 				sectionHeight = frame_height;
@@ -414,7 +452,7 @@ public:
 		}
 		else
 		{
-			if (divisions == 2)
+			if (divisions <= 2)
 			{
 				sectionWidth = (frame_width * percent) / divisions;
 				sectionHeight = frame_height * percent;
@@ -479,8 +517,7 @@ public:
 				//cout << index << endl;
 				//imshow("frame", frame);
 				//cv::waitKey(0);
-				globalROI = Utilities::detectMyBoard(frame);
-				if (globalROI.width > 10 && globalROI.height > 10)
+				if (canDetectMyBoard(frame))
 				{
 					break;
 				}
@@ -489,17 +526,24 @@ public:
 			for (; cap.read(frame); index++, countChess++)
 			{
 				// this loop to detect the last chess board
-				Rect roi = Utilities::detectMyBoard(frame);
-				if (roi.width < 10 || roi.height < 10)
+				if (canDetectMyBoard(frame))
+				{
+					globalROI = detectMyBoard(frame);
+				}
+				else
 				{
 					break;
 				}
-				globalROI = roi;
 			}
 		}
 		// the ROI		
 		vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false,globalROI);
-		frames = getVideoFrameLuminances(cap, ROIs, framerate);
+		frames = getVideoFrameLuminances(cap, ROIs, framerate,true);
+		if (frames.size() != divisions || frames[0].size() <= 200)
+		{
+			cap.set(CV_CAP_PROP_POS_FRAMES, -1); //Set index to first frame
+			frames = getVideoFrameLuminances(cap, ROIs, framerate,false);
+		}
 		return frames;
 	}
 
@@ -597,7 +641,7 @@ public:
 		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
 		vector<cv::Rect> ROIs;
 		ROIs.push_back(ROI);
-		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate)[0];
+		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate,false)[0];
 	}
 
 	/// get video frames luminance
@@ -624,7 +668,7 @@ public:
 		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 		vector<cv::Rect> ROI;
 		ROI.push_back(cv::Rect(lowerX, lowerY, width, height));
-		return Utilities::getVideoFrameLuminances(cap, ROI,framerate)[0];
+		return Utilities::getVideoFrameLuminances(cap, ROI,framerate,false)[0];
 	}
 
 	// open a video writer to use the same codec with every one
@@ -685,15 +729,61 @@ public:
 		delete []l;
 	}
 
+	// calculate best greedy match
+	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg)
+	{
+		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
+		int lcs = 0;
+		int t_sz = test_msg.size();
+		int o_sz = orig_msg.size();
+		int best_i;
+		for (int i = -t_sz + 1; i < o_sz; i++)
+		{
+			int sum = 0;
+			for (int j = std::max(0,i); j < std::min(o_sz, t_sz + i); j++)
+			{
+				sum += 1 & (~(orig_msg[j] ^ test_msg[j - i]));
+			}
+			//cout << i << "\t" << sum << endl;
+			if (sum > lcs)
+			{
+				lcs = sum;
+				best_i = i;
+			}
+		}
+		double percent = lcs;
+		percent /= orig_msg.size();
+		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
+	}
+
 	// create binary message from string message
 	static vector<short> getBinaryMessage(string msg)
 	{
 		vector<short> result;
+		bool convert = false;
 		for (int i = 0; i < msg.length(); i++)
 		{
-			for (int j = 7; j >= 0; j--)
+			if (msg[i] != '0' && msg[i] != '1')
 			{
-				result.push_back((msg[i] >> (7 - j)) & 1);
+				convert = true;
+				break;
+			}
+		}
+		if (convert)
+		{
+			for (int i = 0; i < msg.length(); i++)
+			{
+				for (int j = 7; j >= 0; j--)
+				{
+					result.push_back((msg[i] >> (7 - j)) & 1);
+				}
+			}
+		}
+		else
+		{
+			for (int i = 0; i < msg.length(); i++)
+			{
+				result.push_back(msg[i] - '0');
 			}
 		}
 		return result;
@@ -791,5 +881,29 @@ public:
 		result.width = xh - xl + 1;
 		result.height = yh - yl + 1;
 		return result;
+	}
+
+
+	// img: input image in BGR
+	// return true if board detected
+	static bool canDetectMyBoard(Mat img)
+	{
+		// create the gray image
+		Mat gray; //source image
+		if (img.channels() == 3)
+		{
+			cv::cvtColor(img, gray, CV_BGR2GRAY);
+		}
+		else
+		{
+			gray = img.clone();
+		}
+		vector<Point2f> corners; //this will be filled by the detected corners
+
+		//CALIB_CB_FAST_CHECK saves a lot of time on images
+		//that do not contain any chessboard corners
+		return findChessboardCorners(gray, patternsize, corners,
+			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
+			+ CALIB_CB_FAST_CHECK);
 	}
 };

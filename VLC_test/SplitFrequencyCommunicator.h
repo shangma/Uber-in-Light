@@ -22,14 +22,20 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << msg.size() << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
 		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
 		for (int i = 0; i < amplitudes1.size(); i++)
 		{
 			Mat frame;
 			cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameWithAlpha(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows), amplitudes1[i]);
-			Utilities::updateFrameWithAlpha(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows), amplitudes2[i]);
+			Utilities::updateFrameWithAlpha(frame, ROIs[0], amplitudes1[i]);
+			Utilities::updateFrameWithAlpha(frame, ROIs[1], amplitudes2[i]);
 			vidWriter << frame;
 		}
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -53,6 +59,11 @@ public:
 			outputVideoStream << msg.size() << "_FreqDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
+			videoReader.read(frame);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
 			for (int k = 0; k < amplitudes1.size(); k++)
 			{
 				if (k%inputFrameUsageFrames == 0)
@@ -61,11 +72,12 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, cv::Rect(0, 0, tmp.cols / 2, tmp.rows), amplitudes1[k]);
-				Utilities::updateFrameWithAlpha(tmp, cv::Rect(tmp.cols / 2, 0, tmp.cols / 2, tmp.rows), amplitudes2[k]);
+				Utilities::updateFrameWithAlpha(tmp, ROIs[0], amplitudes1[k]);
+				Utilities::updateFrameWithAlpha(tmp, ROIs[1], amplitudes2[k]);
 				vidWriter << tmp;
-
 			}
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -79,8 +91,8 @@ public:
 	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,false);
-		return receiveWithInputROIRatioFreqDiff(frames, fps, frames_per_symbol);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,true);
+		return receiveWithInputROIRatioFreqDiff(frames, 30, frames_per_symbol);
 	}
 
 protected:
@@ -142,8 +154,8 @@ protected:
 		} while (i < frames_per_symbol && ind < freqDiff.size() - 1);
 		for (; ind < freqDiff.size() - 1;)
 		{
-			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
-			//if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])))
+			//if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
+			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])))
 			{
 				result.push_back(0);
 				i = 0;
@@ -153,7 +165,7 @@ protected:
 					//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 				} while (i < frames_per_symbol && ind < freqDiff.size() - 1);
 			}
-			else if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
+			else// if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
 			{
 				result.push_back(1);
 				i = 0;
@@ -163,11 +175,11 @@ protected:
 					//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
 				} while (i < frames_per_symbol && ind < freqDiff.size() - 1);
 			}
-			else
-			{
-				ind++;
-				//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
-			}
+			//else
+			//{
+			//	ind++;
+			//	//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
+			//}
 		}
 		return result;
 	}

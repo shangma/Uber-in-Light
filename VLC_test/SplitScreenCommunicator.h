@@ -36,8 +36,8 @@ public:
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false, globalROI);
 		// add dummy seconds in the beginning of the video
-		Utilities::addDummyFramesToVideo(vidWriter, framerate / 2, Utilities::createChessBoard());
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
 		for (int i = 0; i < amplitudes1.size();i += (sections * framesForSymbol))
 		{
 			for (int k = 0; k < framesForSymbol; k++)
@@ -52,9 +52,9 @@ public:
 			}
 		}
 		// adding one dummy black second to the end of the video
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
 		// adding chess board to indicate the end of transmission
-		Utilities::addDummyFramesToVideo(vidWriter, framerate / 2, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -167,20 +167,20 @@ public:
 		{
 			for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
 			{
-				if (zero_detected[k][i] * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
+				if ((zero_detected[k][i] + one_detected[k][i]) * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
 				{
 					// this first frame and zero
 					starting_indeces[k] = i;
 					//result.push_back(0);
 					break;
 				}
-				else if (one_detected[k][i] * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
-				{
+				//else if (one_detected[k][i] * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
+				//{
 					// this first frame and one
-					starting_indeces[k] = i;
+					//starting_indeces[k] = i;
 					//result.push_back(1);
-					break;
-				}
+					//break;
+				//}
 			}
 		}
 		int starting_index = std::max(fps,*(std::min_element(starting_indeces.begin(), starting_indeces.end())));

@@ -16,6 +16,7 @@
 #include <thread>
 #include <chrono>
 #include <iomanip>
+#include <fstream>
 
 using namespace cv;
 using namespace std;
