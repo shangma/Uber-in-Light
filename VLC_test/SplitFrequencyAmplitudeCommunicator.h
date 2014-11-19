@@ -26,9 +26,9 @@ public:
 		vector<float> amplitudes21 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 		vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 		// create the video writer
-		ostringstream outputVideoStream;
-		outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
+		//ostringstream outputVideoStream;
+		//outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter("_FreqAmpDiff_" + outputVideoFile, fps, Utilities::getFrameSize());
 		Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
@@ -66,9 +66,9 @@ public:
 			vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 			Mat frame;
 			// create the video writer
-			ostringstream outputVideoStream;
-			outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
+			//ostringstream outputVideoStream;
+			//outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter("_FreqAmpDiff_" + outputVideoFile, fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			videoReader.read(frame);
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());

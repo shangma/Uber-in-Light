@@ -29,9 +29,9 @@ public:
 		int sectionWidth = Utilities::getFrameSize().width / sectionsPerLength;
 		int sectionHeight = Utilities::getFrameSize().height / sectionsPerLength;*/
 		// create the video writer
-		ostringstream outputVideoStream;
-		outputVideoStream << msg.size() << "_Split" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		//ostringstream outputVideoStream;
+		//outputVideoStream << msg.size() << "_Split" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter("_Split_" + outputVideoFile, framerate, Utilities::getFrameSize());
 		// get the sections
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false, globalROI);
@@ -76,9 +76,9 @@ public:
 			
 			Mat img;
 			// create the video writer
-			ostringstream outputVideoStream;
-			outputVideoStream << msg.size() << "_Split" << sections << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
+			//ostringstream outputVideoStream;
+			//outputVideoStream << msg.size() << "_Split" << sections << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter("_Split_" + outputVideoFile, fps, Utilities::getFrameSize());
 			int framesForSymbol = (fps * 1000) / symbol_time;
 
 			int inputFrameUsageFrames = fps / framerate;

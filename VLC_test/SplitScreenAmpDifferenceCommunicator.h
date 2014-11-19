@@ -24,9 +24,9 @@ public:
 		vector<float> amplitudes2 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 		int framesForSymbol = (frequency * 1000) / symbol_time;
 		// create the video writer
-		ostringstream outputVideoStream;
-		outputVideoStream << msg.size() << "_SplitAmp" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		//ostringstream outputVideoStream;
+		//outputVideoStream << msg.size() << "_SplitAmp" << sections << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter("_SplitAmp_" + outputVideoFile, framerate, Utilities::getFrameSize());
 		// get the sections
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false,globalROI);
@@ -72,9 +72,9 @@ public:
 			vector<float> amplitudes2 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 			Mat img;
 			// create the video writer
-			ostringstream outputVideoStream;
-			outputVideoStream << msg.size() << "_SplitAmp" << sections << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
+			//ostringstream outputVideoStream;
+			//outputVideoStream << msg.size() << "_SplitAmp" << sections << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter("_SplitAmp_" + outputVideoFile, fps, Utilities::getFrameSize());
 			int framesForSymbol = (fps * 1000) / symbol_time;
 
 			int inputFrameUsageFrames = fps / framerate;

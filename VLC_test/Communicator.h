@@ -196,9 +196,9 @@ public:
 		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
 		vector<float> amplitudes = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 		// create the video writer
-		ostringstream outputVideoStream;
-		outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), framerate, Utilities::getFrameSize());
+		//ostringstream outputVideoStream;
+		//outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
+		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoFile, framerate, Utilities::getFrameSize());
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 		Utilities::addDummyFramesToVideo(vidWriter, framerate);
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
@@ -327,9 +327,9 @@ public:
 			int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 			Mat frame;
 			// create the video writer
-			ostringstream outputVideoStream;
-			outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoStream.str(), fps, Utilities::getFrameSize());
+			//ostringstream outputVideoStream;
+			//outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
+			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoFile, fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
 			vector<float> amplitudes = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);

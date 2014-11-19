@@ -323,16 +323,19 @@ public:
 	}
 
 	// this method is combining the system parameters into a string to be used in the output video name
-	static string createOuputVideoName(int symbol_time,string inputVideoFile,string outputVideoFile)
+	static string createOuputVideoName(string inputMessage,int symbol_time,string inputVideoFile,string outputVideoFile)
 	{
 		ostringstream outputVideoStream;
-		outputVideoStream << "_" << FREQ[ZERO] << "Hz_" << FREQ[ONE] << "Hz_";
-		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0] - LUMINANCE[1]) << "levels_" << codec << "_" << inputVideoFile << "_" << outputVideoFile;
+		outputVideoStream << inputMessage << "_" << FREQ[ZERO] << "Hz_" << FREQ[ONE] << "Hz_";
+		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0] - LUMINANCE[1]) << "levels_" << codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
 		str.erase(end_pos, str.end());
-
-		return str;
+		end_pos = std::remove(str.begin(), str.end(), '.');
+		str.erase(end_pos, str.end());
+		end_pos = std::remove(str.begin(), str.end(), '\\');
+		str.erase(end_pos, str.end());
+		return str + outputVideoFile;
 	}
 
 	

@@ -5,6 +5,7 @@
 #include "SpatialFrequencyCommunicator.h"
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
+#include "Hamming.h"
 
 enum
 {
@@ -27,6 +28,7 @@ struct Properties
 	int mode; // 0 for send and 1 for receive, 2 for converting video
 	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
 	string outputFileName; // used in send only
+	string msgFileName; // the message file Name
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> spatial
 	bool realVideo; // true means real video and false means not
@@ -34,6 +36,7 @@ struct Properties
 	vector<short> msg; // the message after conversion to vector<short>
 	double fps;
 	int extendN;
+	bool errorCorrection;
 	Properties()
 	{
 		mode = SEND;
@@ -43,7 +46,7 @@ struct Properties
 		ROI = 1;
 		type = 0;
 		text = "";
-		
+		errorCorrection = false;
 	}
 	int returnError()
 	{
@@ -124,8 +127,8 @@ struct Properties
 				// get the file name
 				if (i < argc - 1)
 				{
-					string fileName = argv[++i];
-					ifstream ifs(fileName);
+					msgFileName = argv[++i];
+					ifstream ifs(msgFileName);
 					if (ifs.is_open())
 					{
 						// assume the text inside
@@ -135,7 +138,7 @@ struct Properties
 					else					
 					{
 						// assume the file name is the text
-						text = fileName;
+						text = msgFileName;
 					}
 					// convert the message to vector of short
 					msg = Utilities::getBinaryMessage(text);
@@ -197,6 +200,11 @@ struct Properties
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-ec"))
+			{
+				// error correction enabled
+				errorCorrection = true;
+			}
 		}
 		if (inputFileName == "")
 		{
@@ -233,14 +241,20 @@ struct Properties
 		switch (mode)
 		{
 		case SEND:
+			if (errorCorrection){
+				MyHamming hamming;
+				msg = hamming.EncodeMessage(msg);
+			}
 			if (realVideo)
 			{
-				communicator->sendVideo(inputFileName, msg, outputFileName, 1000);
+				communicator->sendVideo(inputFileName, msg, 
+					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000);
 			}
 			else
 			{
 				communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
-					inputFileName, msg, outputFileName, 1000);
+					inputFileName, msg, 
+					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000);
 			}
 			break;
 		case RECV:
@@ -252,6 +266,10 @@ struct Properties
 				for (int i = 0; i < msg.size(); i++)
 				{
 					cout << msg[i];
+				}
+				if (errorCorrection){
+					MyHamming hamming;
+					received = hamming.DecodeMessage(received);
 				}
 				cout << endl;
 				for (int i = 0; i < received.size(); i++)

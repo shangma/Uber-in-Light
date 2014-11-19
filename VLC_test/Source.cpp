@@ -1,6 +1,5 @@
 #include "Properties.h"
 #include "BCH.h"
-#include "Hamming.h"
 #include "background_subtractor.h"
 
 int main(int argc, char** argv)
@@ -31,7 +30,42 @@ int main(int argc, char** argv)
 	//-createHalfAndHalfImage();
 	//BCH bch;
 	//bch.testBCH();
-	//testHamming();
+	//MyHamming myHamming;
+	//vector<short> msg;
+	//for (int i = 0; i < 40; i++)
+	//{
+	//	msg.push_back(rand() & 1);
+	//	//cout << msg[i];
+	//}
+	//cout << endl;
+	//vector<short> result = myHamming.EncodeMessage(msg);
+	//for (int i = 0; i < result.size(); i++)
+	//{
+	//	cout << result[i];
+	//}
+	//cout << endl;
+	//for (int i = 0; i < 10; i++)
+	//{
+	//	result[i % result.size()] = ((~result[i % 40]) & 1);
+	//}
+	//for (int i = 0; i < result.size(); i++)
+	//{
+	//	cout << result[i];
+	//}
+	//cout << endl;
+	//vector<short> decoded = myHamming.DecodeMessage(result);
+	//for (int i = 0; i < 40; i++)
+	//{
+	//	cout << msg[i];
+	//}
+	//cout << endl;
+
+	//for (int i = 0; i < 40; i++)
+	//{
+	//	cout <<decoded[i];
+	//}
+	//cout << endl;
+	//Utilities::LCS_greedy(msg, decoded);
 	//Mat test = VLCCalibration::createChessBoard(0.9, cv::Size(4,4));
 	//imshow("test", test);
 	//cv::waitKey(0);
