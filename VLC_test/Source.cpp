@@ -38,7 +38,7 @@ int main(int argc, char** argv)
 	//	//cout << msg[i];
 	//}
 	//cout << endl;
-	//vector<short> result = myHamming.EncodeMessage(msg);
+	//vector<short> result = myHamming.EncodeMessage(msg,true);
 	//for (int i = 0; i < result.size(); i++)
 	//{
 	//	cout << result[i];
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
 	//	cout << result[i];
 	//}
 	//cout << endl;
-	//vector<short> decoded = myHamming.DecodeMessage(result);
+	//vector<short> decoded = myHamming.DecodeMessage(result,true);
 	//for (int i = 0; i < 40; i++)
 	//{
 	//	cout << msg[i];

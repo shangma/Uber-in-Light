@@ -37,6 +37,7 @@ struct Properties
 	double fps;
 	int extendN;
 	bool errorCorrection;
+	bool interleave;
 	Properties()
 	{
 		mode = SEND;
@@ -47,6 +48,7 @@ struct Properties
 		type = 0;
 		text = "";
 		errorCorrection = false;
+		interleave = false;
 	}
 	int returnError()
 	{
@@ -205,6 +207,12 @@ struct Properties
 				// error correction enabled
 				errorCorrection = true;
 			}
+			else if (!strcmp(argv[i], "-interleave"))
+			{
+				// error correction enabled and interleave enabled
+				// doesn't mean anything if error correction is not enabled
+				interleave = true;
+			}
 		}
 		if (inputFileName == "")
 		{
@@ -243,7 +251,12 @@ struct Properties
 		case SEND:
 			if (errorCorrection){
 				MyHamming hamming;
-				msg = hamming.EncodeMessage(msg);
+				msg = hamming.EncodeMessage(msg,interleave);
+				msgFileName = "Hamming_" + msgFileName;
+				if (interleave)
+				{
+					msgFileName = "Interleave_" + msgFileName;
+				}
 			}
 			if (realVideo)
 			{
@@ -269,7 +282,7 @@ struct Properties
 				}
 				if (errorCorrection){
 					MyHamming hamming;
-					received = hamming.DecodeMessage(received);
+					received = hamming.DecodeMessage(received, interleave);
 				}
 				cout << endl;
 				for (int i = 0; i < received.size(); i++)

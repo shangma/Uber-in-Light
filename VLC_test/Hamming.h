@@ -556,7 +556,7 @@ public:
 	*   Parameters : vector<short> original message of zeros and ones
 	*   Returned   : vector<short> with the encoded message
 	***************************************************************************/
-	vector<short> EncodeMessage(vector<short> msg)
+	vector<short> EncodeMessage(vector<short> msg,bool interleave)
 	{
 		vector<short> result;
 		// assume the message is multiple of 4
@@ -574,6 +574,20 @@ public:
 				result.push_back((output >> j) & 1);
 			}
 		}
+		if (interleave)
+		{
+			vector<short> temp = result;
+			// each two codes 7x2 bits should be combined together
+			for (int i = 0; i < temp.size(); i += 14)
+			{
+				for (int j = 0; j < 7; j++)
+				{
+					result[i + (j * 2)] = temp[i + j];
+					result[i + (j * 2) + 1] = temp[i + j + 7];
+				}
+			}
+		}
+
 		return result;
 	}
 	/***************************************************************************
@@ -584,11 +598,27 @@ public:
 	*   Parameters : vector<short> received message of zeros and ones
 	*   Returned   : vector<short> with the dencoded message
 	***************************************************************************/
-	vector<short> DecodeMessage(vector<short> msg)
+	vector<short> DecodeMessage(vector<short> msg,bool interleave)
 	{
 		vector<short> result;
 		// assume the message is multiple of 7
 		// take each four bits
+		if (interleave)
+		{
+			vector<short> temp = msg;
+			// each two codes 7x2 bits should be combined together
+			for (int i = 0; i < temp.size(); i += 14)
+			{
+				if (temp.size() - 14 >= i)
+				{
+					for (int j = 0; j < 7; j++)
+					{
+						msg[i + j] = temp[i + (j * 2)];
+						msg[i + j + 7] = temp[i + (j * 2) + 1];
+					}
+				}
+			}
+		}
 		for (int i = 0; i < msg.size() - (msg.size() % 7);)
 		{
 			unsigned char input = 0;

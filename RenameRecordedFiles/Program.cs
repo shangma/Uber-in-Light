@@ -36,6 +36,21 @@ namespace RenameRecordedFiles
                 }
                 sw.WriteLine(@"VLC_tester.exe -r -zero 12 -one 8 -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} > {0}\\{1}.txt", dinf.Name, new_name, mode);
             }
+            if(mp4Files.Length == 0)
+            {
+                // then use the original AVI files as the test
+                for(int i = 0;i < aviFiles.Length;i++)
+                {
+                    FileInfo finf = new FileInfo(aviFiles[i]);
+                    string new_name = finf.Name;
+                    int mode = 0; /// 0 -  normal, 1 -> AmpDifference
+                    if (new_name.ToLower().Contains("ampdiff"))
+                    {
+                        mode = 1;
+                    }
+                    sw.WriteLine(@"VLC_tester.exe -r -zero 12 -one 8 -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} > {0}\\{1}.txt", dinf.Name, new_name, mode);
+                }
+            }
             sw.Close();
         }
     }
