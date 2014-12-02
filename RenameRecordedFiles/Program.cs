@@ -19,7 +19,7 @@ namespace RenameRecordedFiles
             Array.Sort(mp4Files);
             DirectoryInfo dinf = new DirectoryInfo(currentDirectory);
             StreamWriter sw = new StreamWriter("r_" + dinf.Name + ".bat");
-            for(int i = 0;i < mp4Files.Length;i++)
+            for (int i = 0; i < mp4Files.Length; i++)
             {
                 FileInfo avif = new FileInfo(aviFiles[i % aviFiles.Length]);
                 FileInfo mp4f = new FileInfo(mp4Files[i]);
@@ -30,16 +30,53 @@ namespace RenameRecordedFiles
                 File.Copy(mp4Files[i], new_name);
                 //File.Delete(mp4Files[i]);
                 int mode = 0; /// 0 -  normal, 1 -> AmpDifference
-                if(new_name.ToLower().Contains("ampdiff"))
+                if (new_name.ToLower().Contains("ampdiff"))
                 {
                     mode = 1;
                 }
-                sw.WriteLine(@"VLC_tester.exe -r -zero 12 -one 8 -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} > {0}\\{1}.txt", dinf.Name, new_name, mode);
+                int correction_code = 0;
+                if (new_name.ToLower().Contains("hamming"))
+                {
+                    correction_code = 1;
+                }
+                else if (new_name.ToLower().Contains("solomon"))
+                {
+                    correction_code = 2;
+                }
+                int zero = 12;
+                int one = 8;
+                string[] parts = new_name.ToLower().Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+                // get zero
+                int j = 0;
+                for (; j < parts.Length;j++ )
+                {
+                    if(parts[j].EndsWith("hz"))
+                    {
+                        if(int.TryParse(parts[j].Substring(0,parts[j].Length - 2),out zero))
+                        {
+                            j++;
+                            break;
+                        }
+                    }
+                }
+                // get one 
+                for (; j < parts.Length; j++)
+                {
+                    if (parts[j].EndsWith("hz"))
+                    {
+                        if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out one))
+                        {
+                            break;
+                        }
+                    }
+                }
+                sw.WriteLine(@"VLC_tester.exe -r -zero {4} -one {5} -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} -ec {3} > {0}\\{1}.txt",
+                    dinf.Name, new_name, mode, correction_code, zero, one);
             }
-            if(mp4Files.Length == 0)
+            if (mp4Files.Length == 0)
             {
                 // then use the original AVI files as the test
-                for(int i = 0;i < aviFiles.Length;i++)
+                for (int i = 0; i < aviFiles.Length; i++)
                 {
                     FileInfo finf = new FileInfo(aviFiles[i]);
                     string new_name = finf.Name;
@@ -48,7 +85,44 @@ namespace RenameRecordedFiles
                     {
                         mode = 1;
                     }
-                    sw.WriteLine(@"VLC_tester.exe -r -zero 12 -one 8 -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} > {0}\\{1}.txt", dinf.Name, new_name, mode);
+                    int correction_code = 0;
+                    if (new_name.ToLower().Contains("hamming"))
+                    {
+                        correction_code = 1;
+                    }
+                    else if (new_name.ToLower().Contains("solomon"))
+                    {
+                        correction_code = 2;
+                    }
+                    int zero = 12;
+                    int one = 8;
+                    string[] parts = new_name.ToLower().Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+                    // get zero
+                    int j = 0;
+                    for (; j < parts.Length; j++)
+                    {
+                        if (parts[j].EndsWith("hz"))
+                        {
+                            if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out zero))
+                            {
+                                j++;
+                                break;
+                            }
+                        }
+                    }
+                    // get one 
+                    for (; j < parts.Length; j++)
+                    {
+                        if (parts[j].EndsWith("hz"))
+                        {
+                            if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out one))
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    sw.WriteLine(@"VLC_tester.exe -r -zero {4} -one {5} -t {0}\\test.rand -if {0}\\{1} -roi 1 -m {2} -ec {3} > {0}\\{1}.txt",
+                   dinf.Name, new_name, mode, correction_code, zero, one);
                 }
             }
             sw.Close();

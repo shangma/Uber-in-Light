@@ -201,31 +201,36 @@ public:
 	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius)
 	{
 		// save the ROI
-		Mat tmp, hsv1, hsv2;
-		vector<Mat> HSV1, HSV2;
-		Mat tmp1, tmp2;
+		//Mat tmp, hsv1, hsv2;
+		//vector<Mat> HSV1, HSV2;
+		Mat tmp1, tmp2, tmp;
 
-		cv::cvtColor(prev, hsv1, CV_BGR2HSV);
-		cv::split(hsv1, HSV1);
-		HSV1[2].convertTo(tmp1, CV_32F);
-		
-		cv::cvtColor(frame, hsv2, CV_BGR2HSV);
-
-		cv::split(hsv2, HSV2);
-
-		HSV2[2].convertTo(tmp2, CV_32F);
+		//cv::cvtColor(prev, hsv1, CV_BGR2HSV);
+		//cv::split(hsv1, HSV1);
+		//HSV1[2].convertTo(tmp1, CV_32F);
+		//cv::cvtColor(frame, hsv2, CV_BGR2HSV);
+		//cv::split(hsv2, HSV2);
+		//HSV2[2].convertTo(tmp2, CV_32F);
+		//cv::subtract(tmp2, tmp1, tmp);
+		vector<Mat> BGR1, BGR2;
+		cv::split(prev, BGR1);
+		cv::split(frame, BGR2);
+		cv::max(BGR1[0], BGR1[1], BGR1[1]);
+		cv::max(BGR1[1], BGR1[2], BGR1[2]);
+		BGR1[2].convertTo(tmp1, CV_32F);
+		cv::max(BGR2[0], BGR2[1], BGR2[1]);
+		cv::max(BGR2[1], BGR2[2], BGR2[2]);
+		BGR2[2].convertTo(tmp2, CV_32F);
 		cv::subtract(tmp2, tmp1, tmp);
-
 		return tmp;
 	}
 
 	// convert video fps to certain given fps
-	static void convertVideo(string inputVideo, string outputVideo, double newFPS)
+	static void convertVideo(string inputVideo, string outputVideo, double newFPS, double starting_second, double ending_second)
 	{
 		VideoCapture videoReader(inputVideo);
 		if (videoReader.isOpened())
 		{
-			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -234,10 +239,15 @@ public:
 				frame_width /= 2;
 				frame_height /= 2;
 			}
+			int starting_frame = starting_second * framerate;
+			int ending_frame = ending_second * framerate - 1;
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame); //Set index to last frame
+
 			VideoWriter vidWriter;
 			vidWriter.open(outputVideo, CV_FOURCC('D', 'I', 'V', 'X'), newFPS, cv::Size(frame_width, frame_height));
 			Mat frame;
-			while (videoReader.read(frame))
+			int currrentFrame = starting_frame;
+			while (videoReader.read(frame) && currrentFrame++ < ending_frame)
 			{
 				Mat tmp;
 				cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
@@ -246,12 +256,11 @@ public:
 		}
 	}
 	// convert video fps to certain given fps
-	static void repeatVideo(string inputVideo, string outputVideo, double fps, int numberOfRepetitions)
+	static void repeatVideo(string inputVideo, string outputVideo, double fps, int numberOfRepetitions, double starting_second, double ending_second)
 	{
 		VideoCapture videoReader(inputVideo);
 		if (videoReader.isOpened())
 		{
-			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
 			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
@@ -261,6 +270,10 @@ public:
 				frame_width /= 2;
 				frame_height /= 2;
 			}
+			int starting_frame = starting_second * framerate;
+			int ending_frame = ending_second * framerate - 1;
+			
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame); //Set index to last frame
 			VideoWriter vidWriter;
 			vidWriter.open(outputVideo, CV_FOURCC('D', 'I', 'V', 'X'), fps, cv::Size(frame_width, frame_height));
 			Mat frame;
@@ -269,7 +282,7 @@ public:
 				if (i & 1)
 				{
 					// move backward
-					for (int j = numberOfFrames - 1; j >= 0; j--)
+					for (int j = ending_frame; j >= starting_frame; j--)
 					{
 						videoReader.set(CV_CAP_PROP_POS_FRAMES, j);
 						videoReader >> frame;
@@ -281,8 +294,8 @@ public:
 				else
 				{
 					// move forward
-					videoReader.set(CV_CAP_PROP_POS_FRAMES, 0);
-					for (int j = 0; j < numberOfFrames; j++)
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame);
+					for (int j = starting_frame; j <= ending_frame; j++)
 					{
 						videoReader >> frame;
 						Mat tmp;
@@ -344,9 +357,9 @@ public:
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROI,double fps,bool useChessBoard)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI)
 	{
-		vector<vector<float> > frames(ROI.size());
+		vector<vector<float> > frames(ROIs.size());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
 		cap.read(prev);
@@ -362,37 +375,38 @@ public:
 			//cv::waitKey(30);
 			nextIndex += fps / 30;;
 			bool flag = true;
-			
+
 			while ((int)nextIndex > count + 1)
 			{
 				++count;
 				flag = cap.read(frame);
-			} 
+			}
 			if (!flag)
 			{
 				break;
 			}
 			//cout << count << endl;
 			//mask = getBinaryMask(frame);
-			if (useChessBoard && (count % 10) == 0 && canDetectMyBoard(frame))
+			if (useChessBoard && (count % 5) == 0)
 			{
-				break;
+				Mat temp;
+				cv::resize(frame, temp, getFrameSize());
+				if (canDetectMyBoard(frame))
+				{
+					break;
+				}
 			}
-			
-			Mat add_mask = MaskFactory::getBackgroundMask(prev, frame);// prev_mask & mask;
-			//imshow("mask", mask);
-			//imshow("prev_mask", prev_mask);
-			//imshow("add_mask", add_mask);
-			//cv::waitKey(0);
+
+			Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
 			Mat tmp_frame;
-			frame.copyTo(tmp_frame, add_mask);
+			frame(globalROI).copyTo(tmp_frame, add_mask);
 			Mat tmp_prev;
-			prev.copyTo(tmp_prev, add_mask);
-			for (int i = 0; i < ROI.size(); i++)
+			prev(globalROI).copyTo(tmp_prev, add_mask);
+			for (int i = 0; i < ROIs.size(); i++)
 			{
-				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROI[i]), tmp_frame(ROI[i]), 0);
+				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROIs[i]), tmp_frame(ROIs[i]), 0);
 				float luminance = cv::sum(tmp).val[0];
-				float summation = ((cv::sum(add_mask(ROI[i])).val[0]) / 255.0) + 1;
+				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
 				luminance /= summation;
 				//float luminance = getLuminance(tmp, ROI);
 				if (abs(luminance) < 0.001 && frames[i].size())
@@ -405,9 +419,7 @@ public:
 				}
 			}
 			prev = frame.clone();
-			//prev_mask = mask.clone();
 		}
-		// the camera will be deinitialized automatically in VideoCapture destructor
 		return frames;
 	}
 
@@ -417,8 +429,9 @@ public:
 	// frame_height: frame Height
 	// percent: percentage to crop from the image
 	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
-	static vector<cv::Rect> getDivisions(int divisions,int frame_width,int frame_height,double percent,bool cropInclusive,cv::Rect globalROI)
+	static vector<cv::Rect> getDivisions(int divisions,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal)
 	{
+		int frame_width, frame_height;
 		frame_width = globalROI.width;
 		frame_height = globalROI.height;
 		int sectionsPerWidth = sqrt(divisions);
@@ -482,15 +495,65 @@ public:
 				}
 			}
 		}
-		// shift to the global ROI
-		for (int i = 0; i < ROIs.size();i++)
+		if (translateToOriginal)
 		{
-			ROIs[i].x += globalROI.x;
-			ROIs[i].y + globalROI.y;
+			// shift to the global ROI
+			for (int i = 0; i < ROIs.size(); i++)
+			{
+				ROIs[i].x += globalROI.x;
+				ROIs[i].y + globalROI.y;
+			}
 		}
 		return ROIs;
 	}
 
+	// this function is trying to find athe chess board and detect the last frame with the chess board and to detect the global ROI as well
+	static cv::Rect getGlobalROI(string videoName, int &starting_index)
+	{
+		cv::Rect globalROI(0, 0, 1, 1);
+		VideoCapture cap(videoName); // open the default camera
+		if (!cap.isOpened())  // check if we succeeded
+			return globalROI;
+		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+		// try to detect the chess board
+		Mat frame;
+		globalROI.width = frame_width;
+		globalROI.height = frame_height;
+		starting_index = 0;
+		for (; cap.read(frame); starting_index++)
+		{
+			cv::resize(frame, frame, getFrameSize());
+			// this loop to detect the first chess board
+			//cout << index << endl;
+			//imshow("frame", frame);
+			//cv::waitKey(0);
+			if (canDetectMyBoard(frame))
+			{
+				break;
+			}
+		}
+		int countChess = 0;
+		int countErrors = 0;
+		for (; cap.read(frame) && countErrors < 10; starting_index++, countChess++)
+		{
+			// this loop to detect the last chess board
+			if (canDetectMyBoard(frame))
+			{
+				globalROI = detectMyBoard(frame);
+				countErrors = 0;
+			}
+			else
+			{
+				countErrors++;
+			}
+		}
+		starting_index -= (countErrors + 1);
+		cap.release();
+		return globalROI;
+	}
 	/// get video frames luminance (this is the split version which splits the image into two)
 	// video name as input
 	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
@@ -503,50 +566,19 @@ public:
 		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
-		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 		// try to detect the chess board
 		int index = 0;
-		Mat frame;
-		cv::Rect globalROI(0,0,frame_width,frame_height);
+		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		if (useGlobalROI)
 		{
-			for (; cap.read(frame); index++)
-			{
-				// this loop to detect the first chess board
-				//cout << index << endl;
-				//imshow("frame", frame);
-				//cv::waitKey(0);
-				if (canDetectMyBoard(frame))
-				{
-					break;
-				}
-			}
-			int countChess = 0;
-			for (; cap.read(frame); index++, countChess++)
-			{
-				// this loop to detect the last chess board
-				if (canDetectMyBoard(frame))
-				{
-					globalROI = detectMyBoard(frame);
-				}
-				else
-				{
-					break;
-				}
-			}
+			globalROI = getGlobalROI(videoName, index);
+			cap.set(CV_CAP_PROP_POS_FRAMES, index);
 		}
+		cout << "Index = " << index << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(divisions, frame_width, frame_height, percent, false,globalROI);
-		frames = getVideoFrameLuminances(cap, ROIs, framerate,true);
-		if (frames.size() != divisions || frames[0].size() <= 200)
-		{
-			cap.set(CV_CAP_PROP_POS_FRAMES, -1); //Set index to first frame
-			frames = getVideoFrameLuminances(cap, ROIs, framerate,false);
-		}
+		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, globalROI,false);
+		frames = getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI);
 		return frames;
 	}
 
@@ -623,7 +655,8 @@ public:
 			return frames;
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-
+		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
+		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 		cout << count << endl;
 		//Mat edges;
 		//namedWindow("edges", 1);
@@ -644,7 +677,7 @@ public:
 		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
 		vector<cv::Rect> ROIs;
 		ROIs.push_back(ROI);
-		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate,false)[0];
+		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate, false, cv::Rect(0, 0, frame_width, frame_height))[0];
 	}
 
 	/// get video frames luminance
@@ -671,7 +704,7 @@ public:
 		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 		vector<cv::Rect> ROI;
 		ROI.push_back(cv::Rect(lowerX, lowerY, width, height));
-		return Utilities::getVideoFrameLuminances(cap, ROI,framerate,false)[0];
+		return Utilities::getVideoFrameLuminances(cap, ROI, framerate, false, cv::Rect(0, 0, frame_width, frame_height))[0];
 	}
 
 	// open a video writer to use the same codec with every one
@@ -740,23 +773,38 @@ public:
 		int t_sz = test_msg.size();
 		int o_sz = orig_msg.size();
 		int best_i;
+		vector<int> errors;
 		for (int i = -t_sz + 1; i < o_sz; i++)
 		{
 			int sum = 0;
-			for (int j = std::max(0,i); j < std::min(o_sz, t_sz + i); j++)
+			vector<int> tempErrors;
+			for (int j = std::max(0, i); j < std::min(o_sz, t_sz + i); j++)
 			{
-				sum += 1 & (~(orig_msg[j] ^ test_msg[j - i]));
+				if (orig_msg[j] ^ test_msg[j - i])
+				{
+					tempErrors.push_back(j - i);
+				}
+				else
+				{
+					++sum;
+				}
 			}
 			//cout << i << "\t" << sum << endl;
 			if (sum > lcs)
 			{
 				lcs = sum;
 				best_i = i;
+				errors = tempErrors;
 			}
 		}
 		double percent = lcs;
 		percent /= orig_msg.size();
 		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
+		/*puts("Errors:");
+		for (int i = 0; i < errors.size(); i++)
+		{
+			printf("%d\t%d\n", errors[i], 30 * errors[i]);
+		}*/
 	}
 
 	// create binary message from string message
@@ -889,7 +937,7 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat img)
+	static bool canDetectMyBoard(Mat img, cv::Size myPattern = patternsize)
 	{
 		// create the gray image
 		Mat gray; //source image
@@ -905,8 +953,69 @@ public:
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
 		//that do not contain any chessboard corners
-		return findChessboardCorners(gray, patternsize, corners,
+		return findChessboardCorners(gray, myPattern, corners,
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
+	}
+
+	/*
+	* I am using this function for testing
+	* trying to explore the video frames and see what are the parts with the major source of error
+	*/
+	static void exploreVideo(string videoName)
+	{
+		VideoCapture cap(videoName);
+		
+		if (cap.isOpened())
+		{
+			Mat frame;
+			int index = 0;
+			bool flag = true;
+			while (true)
+			{
+				cap.set(CV_CAP_PROP_POS_FRAMES, index);
+				cap >> frame;
+				imshow("frame", frame);
+				cout << index << endl;
+				int key = cv::waitKey(0);
+				int new_index = 0;
+				switch (key)
+				{
+				case 27:
+					flag = false;
+					break;
+				case 2555904:
+					index++;
+					break;
+				case 2424832:
+					index--;
+					break;
+				default:
+					while (key >= '0' && key <= '9')
+					{
+						new_index = (new_index * 10) + (key - '0');
+						key = cv::waitKey(0);
+					}
+					index = new_index;
+					break;
+				}
+			}
+		}
+		else
+		{
+			puts("Can not open the video file!");
+		}
+	}
+	// this method is used to get the video frames as if it was at some required frame rate like 30fps
+	static vector<int> getFrameIndeces(double original_fps, double fps, int number_frames)
+	{
+		vector<int> result;
+		double diff = original_fps / fps;
+		double index = 0;
+		for (int i = 0; i < number_frames; i++, index += diff)
+		{
+			result.push_back(index);
+		}
+		return result;
 	}
 };

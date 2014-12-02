@@ -34,7 +34,7 @@ public:
 		VideoWriter vidWriter = Utilities::getVideoWriter("_Split_" + outputVideoFile, framerate, Utilities::getFrameSize());
 		// get the sections
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false, globalROI);
+		ROIs = Utilities::getDivisions(sections, 1, false, globalROI,true);
 		// add dummy seconds in the beginning of the video
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 		Utilities::addDummyFramesToVideo(vidWriter, framerate);
@@ -84,13 +84,13 @@ public:
 			int inputFrameUsageFrames = fps / framerate;
 			// get the sections
 			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			vector<cv::Rect> ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false,globalROI);
+			vector<cv::Rect> ROIs = Utilities::getDivisions(sections, 1, false,globalROI,true);
 			// add dummy frames
 			videoReader.read(img);
 			cv::resize(img, img, Utilities::getFrameSize());
 			// add dummy seconds in the beginning of the video
-			Utilities::addDummyFramesToVideo(vidWriter, fps / 2, Utilities::createChessBoard());
-			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			for (int i = 0; i < amplitudes1.size(); i += (sections * framesForSymbol))
 			{
 				for (int k = 0; k < framesForSymbol; k++)
@@ -110,9 +110,9 @@ public:
 				}
 			}
 			// add dummy frames
-			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			// end of sending chess
-			Utilities::addDummyFramesToVideo(vidWriter, fps / 2, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -171,19 +171,11 @@ public:
 				{
 					// this first frame and zero
 					starting_indeces[k] = i;
-					//result.push_back(0);
 					break;
 				}
-				//else if (one_detected[k][i] * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
-				//{
-					// this first frame and one
-					//starting_indeces[k] = i;
-					//result.push_back(1);
-					//break;
-				//}
 			}
 		}
-		int starting_index = std::max(fps,*(std::min_element(starting_indeces.begin(), starting_indeces.end())));
+		int starting_index = std::max((frames_per_symbol * 3) / 2, *(std::min_element(starting_indeces.begin(), starting_indeces.end())));
 		// for the rest of the symbols
 		// just follow the same rule
 		for (int i = starting_index; i < frames[0].size() - frames_per_symbol; i += frames_per_symbol)

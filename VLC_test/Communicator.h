@@ -381,6 +381,7 @@ public:
 		vector<int> other_detected(frames.size(), 0);
 		for (int i = 0; i < frames.size() - frames_per_symbol; i++)
 		{
+			//cout << frames[i] << endl;
 			vector<Frequency> temp = Utilities::myft(frames, fps, i, frames_per_symbol);
 			// get the maximum frequency for this set of frames
 			int maxi = 0;
@@ -410,24 +411,17 @@ public:
 		}
 		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 
 		// and the symbol should have enough time (at least after the first FRAMES_PER_SYMBOL have been passed)
-		int starting_index = 0;
-		for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
-		{
-			if ((zero_detected[i] + one_detected[i]) * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
-			{
-				// this first frame and zero
-				starting_index = i;
-				//result.push_back(0);
-				break;
-			}
-			/*else if (one_detected[i] * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 5)
-			{
-				// this first frame and one
-				starting_index = i;
-				result.push_back(1);
-				break;
-			}*/
-		}
+		int starting_index = (frames_per_symbol * 3) / 2; // to be in the middle of the first symbol as we have the first symbol time empty
+		//for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
+		//{
+		//	if ((zero_detected[i] + one_detected[i]) * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
+		//	{
+		//		// this first frame
+		//		starting_index = i;
+		//		break;
+		//	}
+		//}
+		cout << "Starting Index Inside loaded frames = " << starting_index << endl;
 		// for the rest of the symbols
 		// just follow the same rule
 		for (int i = starting_index; i < frames.size() - frames_per_symbol; i += frames_per_symbol)
@@ -437,16 +431,22 @@ public:
 				// this first frame and zero
 				result.push_back(0);
 			}
-			else// if (one_detected[i] > zero_detected[i])
+			else if (one_detected[i] > zero_detected[i])
 			{
 				// this first frame and one
-				starting_index = i;
 				result.push_back(1);
-			}/*
+			}
 			else
 			{
-				i = (i + 1 - frames_per_symbol);
-			}*/
+				if (result.size() == 0)
+				{
+					result.push_back(1);
+				}
+				else
+				{
+					result.push_back((~result[result.size() - 1]) & 1);
+				}
+			}
 		}
 		return result;
 	}

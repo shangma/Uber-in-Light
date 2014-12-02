@@ -26,7 +26,7 @@ public:
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 		Utilities::addDummyFramesToVideo(vidWriter, framerate);
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-		vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
+		vector<Rect> ROIs = Utilities::getDivisions(2, 1, false, globalROI,true);
 		for (int i = 0; i < amplitudes1.size();i++)
 		{
 			Mat frame = img.clone();
@@ -70,7 +70,7 @@ public:
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			vector<Rect> ROIs = Utilities::getDivisions(2, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false, globalROI);
+			vector<Rect> ROIs = Utilities::getDivisions(2, 1, false, globalROI,true);
 			for (int k = 0; k < amplitudes1.size(); k++)
 			{
 				if (k%inputFrameUsageFrames == 0)

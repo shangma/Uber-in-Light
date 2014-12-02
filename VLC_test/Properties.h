@@ -6,6 +6,7 @@
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 #include "Hamming.h"
+#include "ReedSolomon.h"
 
 enum
 {
@@ -23,6 +24,13 @@ enum
 	FREQ_AMP_DIFF
 };
 
+enum
+{
+	NO_ERROR_CORRECTION = 0,
+	HAMMING,
+	REED_SOLOMON
+};
+
 struct Properties
 {
 	int mode; // 0 for send and 1 for receive, 2 for converting video
@@ -36,8 +44,9 @@ struct Properties
 	vector<short> msg; // the message after conversion to vector<short>
 	double fps;
 	int extendN;
-	bool errorCorrection;
+	int errorCorrection;
 	bool interleave;
+	double starting_second, ending_second; // starting and ending times for processing, currently in the conversion only
 	Properties()
 	{
 		mode = SEND;
@@ -47,8 +56,10 @@ struct Properties
 		ROI = 1;
 		type = 0;
 		text = "";
-		errorCorrection = false;
+		errorCorrection = 0;
 		interleave = false;
+		starting_second = 0;
+		ending_second = 0;
 	}
 	int returnError()
 	{
@@ -205,13 +216,48 @@ struct Properties
 			else if (!strcmp(argv[i], "-ec"))
 			{
 				// error correction enabled
-				errorCorrection = true;
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					errorCorrection = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
 			}
 			else if (!strcmp(argv[i], "-interleave"))
 			{
 				// error correction enabled and interleave enabled
 				// doesn't mean anything if error correction is not enabled
 				interleave = true;
+			}
+			else if (!strcmp(argv[i], "-start"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					starting_second = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-end"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					ending_second = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
 			}
 		}
 		if (inputFileName == "")
@@ -237,7 +283,7 @@ struct Properties
 			communicator = new SplitScreenCommunicator(2);
 			break;
 		case 5:
-			communicator = new SplitScreenAmpDifferenceCommunicator(1);
+			communicator = new SplitScreenAmpDifferenceCommunicator(2);
 			break;
 		case 6:
 			communicator = new SpatialFrequencyCommunicator;
@@ -249,14 +295,20 @@ struct Properties
 		switch (mode)
 		{
 		case SEND:
-			if (errorCorrection){
+			if (errorCorrection == HAMMING){
 				MyHamming hamming;
-				msg = hamming.EncodeMessage(msg,interleave);
+				msg = hamming.EncodeMessage(msg,false);
 				msgFileName = "Hamming_" + msgFileName;
 				if (interleave)
 				{
 					msgFileName = "Interleave_" + msgFileName;
 				}
+			}
+			else if (errorCorrection == REED_SOLOMON)
+			{
+				ReedSolomon reedSolomon;
+				msg = reedSolomon.encode_bit_stream(msg);
+				msgFileName = "ReedSolomon_" + msgFileName;
 			}
 			if (realVideo)
 			{
@@ -280,10 +332,16 @@ struct Properties
 				{
 					cout << msg[i];
 				}
-				if (errorCorrection){
+				if (errorCorrection == HAMMING){
 					MyHamming hamming;
-					received = hamming.DecodeMessage(received, interleave);
+					received = hamming.DecodeMessage(received, false);
 				}
+				else if (errorCorrection == REED_SOLOMON)
+				{
+					ReedSolomon reedSolomon;
+					received = reedSolomon.decode_bit_stream(received);
+				}
+				
 				cout << endl;
 				for (int i = 0; i < received.size(); i++)
 				{
@@ -300,11 +358,11 @@ struct Properties
 		case CNVRT:
 			// convert argv2 video to argv3 as a video with the framerate in argv4
 			// argv3 must end with .avi
-			Utilities::convertVideo(inputFileName, outputFileName, fps);
+			Utilities::convertVideo(inputFileName, outputFileName, fps,starting_second,ending_second);
 			break;
 		case EXTEND:
 			// extend the video by repeating
-			Utilities::repeatVideo(inputFileName, outputFileName, fps, extendN);
+			Utilities::repeatVideo(inputFileName, outputFileName, fps, extendN,starting_second,ending_second);
 			break;
 		}
 		

@@ -29,9 +29,10 @@ public:
 		VideoWriter vidWriter = Utilities::getVideoWriter("_SplitAmp_" + outputVideoFile, framerate, Utilities::getFrameSize());
 		// get the sections
 		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-		ROIs = Utilities::getDivisions(sections, frame_width, frame_height, 1, false,globalROI);
+		ROIs = Utilities::getDivisions(sections, 1, false,globalROI,true);
 		// add dummy seconds in the beginning of the video
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
 		for (int i = 0; i < amplitudes1.size(); i += (sections * framesForSymbol))
 		{
 			for (int k = 0; k < framesForSymbol; k++)
@@ -49,7 +50,8 @@ public:
 			}
 		}
 		// adding one dummy black second to the end of the video
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate);
+		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
 	}
 
 	// symbol_time: how many milliseconds will the symbol last
@@ -80,11 +82,12 @@ public:
 			int inputFrameUsageFrames = fps / framerate;
 			// get the sections
 			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			ROIs = Utilities::getDivisions(sections, Utilities::getFrameSize().width, Utilities::getFrameSize().height, 1, false,globalROI);
+			ROIs = Utilities::getDivisions(sections, 1, false,globalROI,true);
 			// add dummy frames
 			videoReader.read(img);
 			cv::resize(img, img, Utilities::getFrameSize());
-			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			for (int i = 0; i < amplitudes1.size(); i += (sections * framesForSymbol))
 			{
 				for (int k = 0; k < framesForSymbol; k++)
@@ -107,7 +110,9 @@ public:
 				}
 			}
 			// add dummy frames
-			Utilities::addDummyFramesToVideo(vidWriter, fps, img.clone() * 0);
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			// end of sending chess
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
 		cout << endl;
 	}
@@ -119,43 +124,21 @@ public:
 		VideoCapture cap(fileName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return results;
-		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		int fps = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+		double framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
 		// try to detect the chess board
 		int index = 0;
-		Mat frame;
-		cv::Rect globalROI;
-		for (; cap.read(frame); index++)
-		{
-			// this loop to detect the first chess board
-			if (Utilities::canDetectMyBoard(frame))
-			{
-				break;
-			}
-		}
-		int countChess = 0;
-		for (; cap.read(frame); index++, countChess++)
-		{
-			// this loop to detect the last chess board
-			if (Utilities::canDetectMyBoard(frame))
-			{
-				globalROI = Utilities::detectMyBoard(frame);
-			}
-			else
-			{
-				break;
-			}
-		}
-		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, frame_width, frame_height, ROI_Ratio, false,globalROI);
+		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+		globalROI = Utilities::getGlobalROI(fileName, index);
+		cap.set(CV_CAP_PROP_POS_FRAMES, index);
+		cout << "Index = " << index << endl;
+		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, ROI_Ratio, false,globalROI,false);
 		vector<cv::Rect> ROIs2;
 		for (int i = 0; i < ROIs.size(); i++)
 		{
 			ROIs2.push_back(cv::Rect(ROIs[i].x, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
 			ROIs2.push_back(cv::Rect(ROIs[i].x + ROIs[i].width / 2, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
 		}
-		vector<vector<float> > frames2 = Utilities::getVideoFrameLuminances(cap, ROIs2, fps,true);
+		vector<vector<float> > frames2 = Utilities::getVideoFrameLuminances(cap, ROIs2, framerate, true, globalROI);
 		vector<vector<float> > frames(ROIs.size());
 		for (int i = 0; i < frames2.size(); i += 2)
 		{

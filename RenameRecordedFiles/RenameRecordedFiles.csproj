@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{23CD53DE-0CE3-472C-BA10-8E24E656F26A}</ProjectGuid>
+    <ProjectGuid>{86A65DBF-4E55-478C-BCD2-FCF01EC8B1B7}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RenameRecordedFiles</RootNamespace>
