@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Header.h"
+#include <queue>
 
 class MaskFactory
 {
@@ -46,5 +47,92 @@ public:
 		cv::waitKey(0);*/
 
 		return dst;
+	}
+
+
+	/*
+	* create binary mask for the image based on the colors
+	* currently assume that the color is greater than or equal to certain value for each channel R,G,B
+	*/
+	static Mat getColorMask(Mat img, cv::Scalar color,bool connect4 = true,bool display = false)
+	{
+		// split into 3 channels
+		vector<Mat> bgr;
+		cv::split(img, bgr);
+		Mat mask = bgr[0].clone() * 0;
+		// search for points with the needed colors with large steps
+		long size = img.rows * img.cols;
+		int step = img.cols / 11;
+		int test = 0;
+		for (; test < size; test += step)
+		{
+			// check if we have those colors
+			if (bgr[0].data[test] >= color.val[0] && bgr[1].data[test] >= color.val[1] && bgr[2].data[test] >= color.val[2])
+			{
+				break;
+			}
+		}
+		if (test < size)
+		{
+			// then do bfs from this point to add all the points
+			queue<int> qu;
+			vector<bool> flags(size, 0);
+			qu.push(test);
+			mask.data[test] = 255;
+			flags[test] = true;
+			int connected_4[] = { 1, -1, img.cols, -img.cols };
+			int connected_8[] = { 1, -1, img.cols, -img.cols, 1 + img.cols, 1 - img.cols, -1 + img.cols, -1 - img.cols };
+			while (qu.size())
+			{
+				int temp = qu.front();
+				qu.pop();
+				// check the surroundings
+				if (connect4)
+				{
+					// 4-connected: +1 , -1 , +cols , -cols
+					for (int i = 0; i < 4; i++)
+					{
+						test = temp + connected_4[i];
+						if (test >= 0 && test < size && !flags[test])
+						{
+							flags[test] = true;
+							if (bgr[0].data[test] >= color.val[0] && bgr[1].data[test] >= color.val[1] && bgr[2].data[test] >= color.val[2])
+							{
+								qu.push(test);
+								mask.data[test] = 255;
+							}
+						}
+					}
+				}
+				else
+				{
+					// 8-connected: +1 + cols , +1 - cols , -1 + cols, -1 - cols
+					for (int i = 0; i < 8; i++)
+					{
+						test = temp + connected_8[i];
+						if (test >= 0 && test < size && !flags[test])
+						{
+							flags[test] = true;
+							if (bgr[0].data[test] >= color.val[0] && bgr[1].data[test] >= color.val[1] && bgr[2].data[test] >= color.val[2])
+							{
+								qu.push(test);
+								mask.data[test] = 255;
+							}
+						}
+					}
+				}
+			}
+		}
+		if (display)
+		{
+			Mat temp;
+			bgr[2].copyTo(temp, mask);
+			imshow("red", temp);
+			bgr[1].copyTo(temp, mask);
+			imshow("green", temp);
+			bgr[0].copyTo(temp, mask);
+			imshow("blue", temp);
+		}
+		return mask;
 	}
 };

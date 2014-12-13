@@ -64,8 +64,8 @@ class ReedSolomon
 	{
 		/* Instantiate Finite Field and Generator Polynomials */
 		schifra::galois::field field(field_descriptor,
-			schifra::galois::primitive_polynomial_size01,
-			schifra::galois::primitive_polynomial01);
+			schifra::galois::primitive_polynomial_size06,
+			schifra::galois::primitive_polynomial06);
 
 		schifra::galois::field_polynomial generator_polynomial(field);
 
@@ -111,6 +111,10 @@ class ReedSolomon
 	// the return value is also in the same format
 	vector<int> decode(vector<int> data)
 	{
+		if (data.size() <= fec_length)
+		{
+			return vector<int>();
+		}
 		/* Instantiate Finite Field and Generator Polynomials */
 		schifra::galois::field field(field_descriptor,
 			schifra::galois::primitive_polynomial_size01,

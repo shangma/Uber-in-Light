@@ -5,6 +5,7 @@
 #include "SpatialFrequencyCommunicator.h"
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
+#include "OldCommunicator.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 
@@ -13,7 +14,8 @@ enum
 	SEND = 1,
 	RECV,
 	CNVRT,
-	EXTEND
+	EXTEND,
+	CORRELEATION
 };
 
 enum
@@ -38,7 +40,8 @@ struct Properties
 	string outputFileName; // used in send only
 	string msgFileName; // the message file Name
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
-	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> spatial
+	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude
+	int side; // number of cells per side
 	bool realVideo; // true means real video and false means not
 	string text; // text to send
 	vector<short> msg; // the message after conversion to vector<short>
@@ -46,7 +49,9 @@ struct Properties
 	int extendN;
 	int errorCorrection;
 	bool interleave;
+	bool color;
 	double starting_second, ending_second; // starting and ending times for processing, currently in the conversion only
+	int correlation;
 	Properties()
 	{
 		mode = SEND;
@@ -55,11 +60,14 @@ struct Properties
 		inputFileName = "";
 		ROI = 1;
 		type = 0;
+		side = 1;
 		text = "";
 		errorCorrection = 0;
 		interleave = false;
 		starting_second = 0;
 		ending_second = 0;
+		color = false;
+		correlation = 0;
 	}
 	int returnError()
 	{
@@ -128,7 +136,7 @@ struct Properties
 				// get the file name
 				if (i < argc - 1)
 				{
-					type = (argv[++i][0] - '0');
+					type = stoi(argv[++i]);
 				}
 				else
 				{
@@ -259,6 +267,39 @@ struct Properties
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-side"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					side = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-color"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				color = true;
+			}
+			else if (!strcmp(argv[i], "-corr"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					mode = CORRELEATION;
+					correlation = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 		}
 		if (inputFileName == "")
 		{
@@ -280,13 +321,16 @@ struct Properties
 			communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
 		case 4:
-			communicator = new SplitScreenCommunicator(2);
+			communicator = new SplitScreenCommunicator(side);
 			break;
 		case 5:
-			communicator = new SplitScreenAmpDifferenceCommunicator(2);
+			communicator = new SplitScreenAmpDifferenceCommunicator(side);
 			break;
 		case 6:
 			communicator = new SpatialFrequencyCommunicator;
+			break;
+		case -1:
+			communicator = new OldCommunicator;
 			break;
 		default:
 			communicator = new Communicator;
@@ -326,8 +370,17 @@ struct Properties
 
 			if (ROI > 0 && ROI <= 1)
 			{
+				
 				// then we have ROI
-				vector<short> received = communicator->receive(inputFileName, 30, ROI);
+				vector<short> received;
+				if (!color)
+				{
+					received = communicator->receive(inputFileName, 30, ROI);
+				}
+				else
+				{
+					received = communicator->receiveColor(inputFileName, 30, ROI,cv::Scalar(0,0,230));
+				}
 				for (int i = 0; i < msg.size(); i++)
 				{
 					cout << msg[i];
@@ -363,6 +416,9 @@ struct Properties
 		case EXTEND:
 			// extend the video by repeating
 			Utilities::repeatVideo(inputFileName, outputFileName, fps, extendN,starting_second,ending_second);
+			break;
+		case CORRELEATION:
+			Utilities::correlateVideoDifference(inputFileName, starting_second, ending_second, correlation);
 			break;
 		}
 		

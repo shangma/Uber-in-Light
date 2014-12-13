@@ -22,8 +22,8 @@ public:
 			int clnWidth = frame_width / 20;
 			for (int i = 0; i < frame_width - clnWidth; i += clnWidth)
 			{
-				Utilities::updateFrameWithAlpha(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
-				Utilities::updateFrameWithAlpha(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
+				Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
+				Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
 			}
 			for (int i = 0; i < 300; i++)
 			{
@@ -71,8 +71,8 @@ public:
 					{
 						for (int i = 0; i < frame_width - clnWidth; i += clnWidth)
 						{
-							Utilities::updateFrameWithAlpha(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
-							Utilities::updateFrameWithAlpha(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
+							Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
+							Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
 						}
 					}
 					vidWriter << frame;

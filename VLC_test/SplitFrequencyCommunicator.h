@@ -30,8 +30,8 @@ public:
 		{
 			Mat frame;
 			cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameWithAlpha(frame, ROIs[0], amplitudes1[i]);
-			Utilities::updateFrameWithAlpha(frame, ROIs[1], amplitudes2[i]);
+			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes1[i]);
+			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes2[i]);
 			vidWriter << frame;
 		}
 		Utilities::addDummyFramesToVideo(vidWriter, framerate, img.clone() * 0);
@@ -72,8 +72,8 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, ROIs[0], amplitudes1[k]);
-				Utilities::updateFrameWithAlpha(tmp, ROIs[1], amplitudes2[k]);
+				Utilities::updateFrameLuminance(tmp, ROIs[0], amplitudes1[k]);
+				Utilities::updateFrameLuminance(tmp, ROIs[1], amplitudes2[k]);
 				vidWriter << tmp;
 			}
 			Utilities::addDummyFramesToVideo(vidWriter, fps);

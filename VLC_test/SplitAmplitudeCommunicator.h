@@ -30,8 +30,8 @@ public:
 		for (int i = 0; i < amplitudes1.size();i++)
 		{
 			Mat frame = img.clone();
-			Utilities::updateFrameWithAlpha(frame, ROIs[0], amplitudes1[i]);
-			Utilities::updateFrameWithAlpha(frame, ROIs[1], amplitudes2[i]);
+			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes1[i]);
+			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes2[i]);
 			vidWriter << frame;
 		}
 		Utilities::addDummyFramesToVideo(vidWriter, framerate);
@@ -70,7 +70,7 @@ public:
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			vector<Rect> ROIs = Utilities::getDivisions(2, 1, false, globalROI,true);
+			vector<Rect> ROIs = Utilities::getDivisions(2, 1, false, globalROI, true);
 			for (int k = 0; k < amplitudes1.size(); k++)
 			{
 				if (k%inputFrameUsageFrames == 0)
@@ -79,8 +79,8 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, ROIs[0], amplitudes1[k]);
-				Utilities::updateFrameWithAlpha(tmp, ROIs[1], amplitudes2[k]);
+				Utilities::updateFrameLuminance(tmp, ROIs[0], amplitudes1[k]);
+				Utilities::updateFrameLuminance(tmp, ROIs[1], amplitudes2[k]);
 				vidWriter << tmp;
 			}
 			Utilities::addDummyFramesToVideo(vidWriter, fps);

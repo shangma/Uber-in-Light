@@ -71,87 +71,87 @@ protected:
 		}
 	}
 
-	void sendMessage(string imagefile, string msg)
-	{
-		Mat new_image1;
-		Mat new_image2;
-		Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-		Rect ROI = Rect(0, 0, image.cols, image.rows);
-		new_image1 = image.clone();
-		Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-		new_image2 = image.clone();
-		Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
+	//void sendMessage(string imagefile, string msg)
+	//{
+	//	Mat new_image1;
+	//	Mat new_image2;
+	//	Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
+	//	Rect ROI = Rect(0, 0, image.cols, image.rows);
+	//	new_image1 = image.clone();
+	//	Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
+	//	new_image2 = image.clone();
+	//	Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
 
-		// convert the message into sequence of bits
+	//	// convert the message into sequence of bits
 
-		for (int i = 0; i < msg.length(); i++)
-		{
-			char c = msg[i];
-			char x = 0;
+	//	for (int i = 0; i < msg.length(); i++)
+	//	{
+	//		char c = msg[i];
+	//		char x = 0;
 
-			for (int j = 0; j < 8; j++)
-			{
-				x = (x << 1) | ((c >> (7 - j)) & 1);
-				typedef std::chrono::high_resolution_clock Clock;
-				typedef std::chrono::milliseconds milliseconds;
-				Clock::time_point t0 = Clock::now();
-				// work done here
-				diplay24FramesWithSomeFrequency(ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, 1000);
-				// end work
-				Clock::time_point t1 = Clock::now();
-				milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-				std::cout << ms.count() << "ms\n";
-			}
-			printf("%c", x);
-		}
-	}
+	//		for (int j = 0; j < 8; j++)
+	//		{
+	//			x = (x << 1) | ((c >> (7 - j)) & 1);
+	//			typedef std::chrono::high_resolution_clock Clock;
+	//			typedef std::chrono::milliseconds milliseconds;
+	//			Clock::time_point t0 = Clock::now();
+	//			// work done here
+	//			diplay24FramesWithSomeFrequency(ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, 1000);
+	//			// end work
+	//			Clock::time_point t1 = Clock::now();
+	//			milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+	//			std::cout << ms.count() << "ms\n";
+	//		}
+	//		printf("%c", x);
+	//	}
+	//}
 
 	// symbol_time: how many milliseconds will the symbol last
-	void createOfflineVideo(string imagefile, string msg, string outputVideoFile, int symbol_time, bool createVid = true)
-	{
-		if (createVid)
-		{
-			Mat new_image1;
-			Mat new_image2;
-			Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-			Rect ROI = Rect(0, 0, image.cols, image.rows);
-			new_image1 = image.clone();
-			Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-			new_image2 = image.clone();
-			Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
+	//void createOfflineVideo(string imagefile, string msg, string outputVideoFile, int symbol_time, bool createVid = true)
+	//{
+	//	if (createVid)
+	//	{
+	//		Mat new_image1;
+	//		Mat new_image2;
+	//		Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
+	//		Rect ROI = Rect(0, 0, image.cols, image.rows);
+	//		new_image1 = image.clone();
+	//		Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
+	//		new_image2 = image.clone();
+	//		Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
 
 
-			// convert the message into sequence of bits
+	//		// convert the message into sequence of bits
 
-			// get greatest common divisor for both fps
-			int gcdFreq = gcd((int)FREQ[ZERO], (int)FREQ[ONE]);
-			int lcmFreq = FREQ[ZERO] * FREQ[ONE] / gcdFreq;
-			VideoWriter vidWriter;
-			vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), lcmFreq * 2, image.size());
-			for (int i = 0; i < msg.length(); i++)
-			{
-				char c = msg[i];
-				char x = 0;
+	//		// get greatest common divisor for both fps
+	//		int gcdFreq = gcd((int)FREQ[ZERO], (int)FREQ[ONE]);
+	//		int lcmFreq = FREQ[ZERO] * FREQ[ONE] / gcdFreq;
+	//		VideoWriter vidWriter;
+	//		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), lcmFreq * 2, image.size());
+	//		for (int i = 0; i < msg.length(); i++)
+	//		{
+	//			char c = msg[i];
+	//			char x = 0;
 
-				for (int j = 7; j >= 0; j--)
-				{
-					x = (x << 1) | ((c >> (7 - j)) & 1);
-					typedef std::chrono::high_resolution_clock Clock;
-					typedef std::chrono::milliseconds milliseconds;
-					Clock::time_point t0 = Clock::now();
-					// work done here
-					addFramesWithSomeFrequency(vidWriter, ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, symbol_time, lcmFreq * 2 / FREQ[(c >> (7 - j)) & 1]);
-					//for (int k = 0;k < )
-					// end work
-					Clock::time_point t1 = Clock::now();
-					milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-					//std::cout << ms.count() << "ms\n";
-					cout << (int)((c >> (7 - j)) & 1);
-				}
-				//printf("%c", x);
-			}
-		}
-	}
+	//			for (int j = 7; j >= 0; j--)
+	//			{
+	//				x = (x << 1) | ((c >> (7 - j)) & 1);
+	//				typedef std::chrono::high_resolution_clock Clock;
+	//				typedef std::chrono::milliseconds milliseconds;
+	//				Clock::time_point t0 = Clock::now();
+	//				// work done here
+	//				addFramesWithSomeFrequency(vidWriter, ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, symbol_time, lcmFreq * 2 / FREQ[(c >> (7 - j)) & 1]);
+	//				//for (int k = 0;k < )
+	//				// end work
+	//				Clock::time_point t1 = Clock::now();
+	//				milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+	//				//std::cout << ms.count() << "ms\n";
+	//				cout << (int)((c >> (7 - j)) & 1);
+	//			}
+	//			//printf("%c", x);
+	//		}
+	//	}
+	//}
 
 	// symbol_time: how many milliseconds will the symbol last
 	vector<float> createWaveGivenFPS(double frequency, vector<short> msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance[2])
@@ -206,7 +206,7 @@ public:
 		{
 			Mat frame;
 			cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameWithAlpha(frame, globalROI, amplitudes[i]);
+			Utilities::updateFrameLuminance(frame, globalROI, amplitudes[i]);
 			//frame.convertTo(frame, CV_32F);
 			vidWriter << frame;
 		}
@@ -288,25 +288,25 @@ public:
 		return -1;
 	}
 
-	void send()
-	{
-		string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg";
-		string msg = "";// "This is a test message, I am trying to send bits";
-		char a = 0xec;
-		for (int i = 0; i < 5; i++)
-		{
-			msg += a;
-		}
-		sendMessage(fileName, msg);
-		//createOfflineVideo(fileName, msg, "output.avi",1000);
-	}
+	//void send()
+	//{
+	//	string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg";
+	//	string msg = "";// "This is a test message, I am trying to send bits";
+	//	char a = 0xec;
+	//	for (int i = 0; i < 5; i++)
+	//	{
+	//		msg += a;
+	//	}
+	//	sendMessage(fileName, msg);
+	//	//createOfflineVideo(fileName, msg, "output.avi",1000);
+	//}
 
 	// msg: will be converted to binary
-	void send(string msg, string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg")
+	/*void send(string msg, string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg")
 	{
 		createOfflineVideo(fileName, msg, "output.avi", 1000);
 	}
-
+*/
 
 	// symbol_time: how many milliseconds will the symbol last
 	virtual void sendVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
@@ -346,7 +346,7 @@ public:
 				}
 				Mat tmp;
 				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameWithAlpha(tmp, globalROI, amplitudes[k]);
+				Utilities::updateFrameLuminance(tmp, globalROI, amplitudes[k]);
 				vidWriter << tmp;
 			}
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
@@ -456,6 +456,15 @@ public:
 	{
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true)[0];
+		return receive2(frames, 30, frames_per_symbol);
+	}
+
+	// receive with a certain ROI ratio
+	virtual vector<short> receiveColor(string fileName, int frames_per_symbol, double ROI_Ratio, cv::Scalar color)
+	{
+		puts("color");
+		int fps = 0;
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, color)[0];
 		return receive2(frames, 30, frames_per_symbol);
 	}
 

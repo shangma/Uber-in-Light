@@ -20,9 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="background_subtractor.h" />
-    <ClInclude Include="BCH.h" />
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
+    <ClInclude Include="OldCommunicator.h" />
     <ClInclude Include="Properties.h" />
     <ClInclude Include="ReedSolomon.h" />
     <ClInclude Include="schifra_crc.hpp" />

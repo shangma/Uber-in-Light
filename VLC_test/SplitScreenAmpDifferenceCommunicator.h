@@ -38,12 +38,12 @@ public:
 			for (int k = 0; k < framesForSymbol; k++)
 			{
 				Mat frame = img.clone();
-				for (int j = 0; j < sections; j++)
+				for (int j = 0; j < sections && (i + (j * framesForSymbol) + k) < amplitudes1.size(); j++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameWithAlpha(frame, cv::Rect(ROIs[j].x,ROIs[j].y,ROIs[j].width/2,ROIs[j].height), 
+					Utilities::updateFrameLuminance(frame, cv::Rect(ROIs[j].x, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
 						amplitudes1[i + (j * framesForSymbol) + k]);
-					Utilities::updateFrameWithAlpha(frame, cv::Rect(ROIs[j].x + ROIs[j].width / 2, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height), 
+					Utilities::updateFrameLuminance(frame, cv::Rect(ROIs[j].x + ROIs[j].width / 2, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
 						amplitudes2[i + (j * framesForSymbol) + k]);
 				}
 				vidWriter << frame;
@@ -98,12 +98,12 @@ public:
 						cv::resize(img, img, Utilities::getFrameSize());
 					}
 					Mat frame = img.clone();
-					for (int j = 0; j < sections; j++)
+					for (int j = 0; j < sections && (i + (j * framesForSymbol) + k) < amplitudes1.size(); j++)
 					{
 						// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-						Utilities::updateFrameWithAlpha(frame, cv::Rect(ROIs[j].x, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
+						Utilities::updateFrameLuminance(frame, cv::Rect(ROIs[j].x, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
 							amplitudes1[i + (j * framesForSymbol) + k]);
-						Utilities::updateFrameWithAlpha(frame, cv::Rect(ROIs[j].x + ROIs[j].width / 2, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
+						Utilities::updateFrameLuminance(frame, cv::Rect(ROIs[j].x + ROIs[j].width / 2, ROIs[j].y, ROIs[j].width / 2, ROIs[j].height),
 							amplitudes2[i + (j * framesForSymbol) + k]);
 					}
 					vidWriter << frame;

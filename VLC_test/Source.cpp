@@ -4,7 +4,7 @@
 int main(int argc, char** argv)
 {
 	Properties prop;
-	//Utilities::exploreVideo("..\\Release\\long_reed_solomon\\20141125_085820_3823632744_ReedSolomon_long_testtestrand_12Hz_8Hz_1000ms_001levels_I420_Helicopter24avi_output.mp4");
+	//Utilities::exploreVideo("..\\Release\\red2.mp4");
 	return prop.testSendReceive(argc, argv);
 	//BCH bch;
 	//bch.testBCH();

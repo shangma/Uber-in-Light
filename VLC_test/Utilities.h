@@ -26,31 +26,38 @@ class Utilities
 public:
 	/// This function will not check the range for the ROI
 	/// this function adds alpha to the value channel in the selected ROI
-	static void updateFrameWithAlpha(Mat &frame, Rect ROI, double alpha)
+	static void updateFrameLuminance(Mat &frame, Rect ROI, double percentage, bool useAlpha = true)
 	{
-		//Mat tmp;
-		//cv::cvtColor(frame, tmp, CV_BGR2HSV);
-		//vector<Mat> HSV(3);
-		//split(tmp, HSV);
-		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << "\t";
-		//HSV[2] = 0 * HSV[2] + (alpha / 100.0) * 255;
-		// convert to float and add the difference as percentage
-		//HSV[2].convertTo(HSV[2], CV_32F);
-		// normalize
-		//HSV[2] /= 255.0;
-		//Mat aux = HSV[2](ROI);
+		if (useAlpha)
+		{
+			updateFrameWithAlpha(frame, ROI, percentage);
+		}
+		else
+		{
+			updateFrameWithVchannel(frame, ROI, percentage);
+		}
+	}
+
+	static void updateFrameWithVchannel(Mat &frame, Rect ROI, double percentage)
+	{
 		Mat aux = frame(ROI);
-		// add the alpha value (which should be percentage)
-		aux = (aux + alpha*255);
-		//puts("here");
-		// convert back to unsigned char
-		//HSV[2] *= 255;
-		//HSV[2].convertTo(HSV[2], CV_8U);
-		//cout << (int)(HSV[2].at<unsigned char>(0, 0)) << endl;
-		//merge(HSV, tmp);
-		//imshow("image", frame);
-		//cv::waitKey(0);
-		//cv::cvtColor(tmp, frame, CV_HSV2BGR);
+		aux = (aux + percentage * 255);
+	}
+	static void updateFrameWithAlpha(Mat &frame, Rect ROI, double percentage)
+	{
+		Mat aux = frame(ROI);
+		Mat tmp = aux.clone() * 0;
+		
+		if (percentage < 0)
+		{
+			percentage = 0.99;
+		}
+		else
+		{
+			percentage = 1;
+		}
+		double beta = 1 - percentage;
+		addWeighted(aux, percentage, tmp, beta, 0.0, aux);
 	}
 	static int gcd(int a, int b)
 	{
@@ -197,6 +204,29 @@ public:
 		return minimum;
 	}
 
+	static Mat getVchannel(Mat &frame)
+	{
+		vector<Mat> BGR1;
+		cv::split(frame, BGR1);
+		cv::max(BGR1[0], BGR1[1], BGR1[1]);
+		cv::max(BGR1[1], BGR1[2], BGR1[2]);
+
+		return BGR1[2];
+	}
+	static Mat getIntensity(Mat &frame)
+	{
+		// save the ROI
+		Mat tmp;
+		/*frame.convertTo(tmp, CV_32F);
+		vector<Mat> BGR;
+		cv::split(frame, BGR);
+		BGR[0] = BGR[0] + BGR[1];
+		BGR[0] = BGR[0] + BGR[2];
+		return BGR[0];*/
+		
+		cv::cvtColor(frame, tmp, CV_BGR2GRAY);
+		return tmp;
+	}
 	// the input frames here are the original frames
 	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius)
 	{
@@ -224,6 +254,7 @@ public:
 		cv::subtract(tmp2, tmp1, tmp);
 		return tmp;
 	}
+
 
 	// convert video fps to certain given fps
 	static void convertVideo(string inputVideo, string outputVideo, double newFPS, double starting_second, double ending_second)
@@ -279,32 +310,95 @@ public:
 			Mat frame;
 			for (int i = 0; i < numberOfRepetitions;i++)
 			{
+				printf("%d\n", i);
 				if (i & 1)
 				{
 					// move backward
-					for (int j = ending_frame; j >= starting_frame; j--)
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, ending_frame);
+					for (int j = ending_frame; j >= starting_frame && videoReader.read(frame); j--)
 					{
-						videoReader.set(CV_CAP_PROP_POS_FRAMES, j);
 						videoReader >> frame;
 						Mat tmp;
 						cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
 						vidWriter << tmp;
+						videoReader.set(CV_CAP_PROP_POS_FRAMES, j - 1);
 					}
 				}
 				else
 				{
 					// move forward
 					videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame);
-					for (int j = starting_frame; j <= ending_frame; j++)
+					for (int j = starting_frame; j <= ending_frame && videoReader.read(frame); j++)
 					{
-						videoReader >> frame;
+						//printf("%d\n", j);
 						Mat tmp;
 						cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
-						vidWriter << tmp;
+						//for (int k = 0; k < 5; k++)
+						{
+							vidWriter << tmp;
+						}
 					}
 				}
 				
 			}
+		}
+	}
+
+	// calculate correlation in video frames
+	static void correlateVideoDifference(string inputVideo, double starting_second, double ending_second, int n)
+	{
+		VideoCapture videoReader(inputVideo);
+		if (videoReader.isOpened())
+		{
+			Mat frame, next;
+			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
+			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			int starting_frame = starting_second * framerate;
+			int ending_frame = ending_second * framerate - 1;
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame); //Set index to last frame
+			vector<double> correlations(n + 1, 0);
+			vector<double> correlations_RGB(n + 1, 0);
+			vector<int> count(n + 1, 0);
+			for (int i = 1; i <= n; i++)
+			{
+				cout << i << endl;
+				videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame);
+				for (int j = starting_frame; j <= ending_frame && videoReader.read(frame); j++)
+				{
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, j + i);
+					if (videoReader.read(next))
+					{
+						Mat diff = getDiffInVchannelHSV(frame, next, 0);
+						correlations[i] += abs(cv::mean(diff).val[0]);
+						
+						frame.convertTo(frame, CV_32F);
+						vector<Mat> BGR1;
+						cv::split(frame, BGR1);
+						BGR1[0] = BGR1[0] + BGR1[1];
+						BGR1[0] = BGR1[0] + BGR1[2];
+						next.convertTo(next, CV_32F);
+						vector<Mat> BGR2;
+						cv::split(next, BGR2);
+						BGR2[0] = BGR2[0] + BGR2[1];
+						BGR2[0] = BGR2[0] + BGR2[2];
+						correlations_RGB[i] += abs(cv::mean(BGR2[0] - BGR1[0]).val[0]);
+						
+						count[i]++;
+					}
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, j+1);
+				}
+			}
+			ofstream ofstr_RGB("correlation_RGB.txt");
+			ofstream ofstr("correlation.txt");
+			for (int i = 1; i <= n; i++)
+			{
+				ofstr << 100*correlations[i] / (count[i]*255) << endl;
+				ofstr_RGB << 100*correlations_RGB[i] / (count[i] * 255 * 3) << endl;
+			}
+			ofstr.close();
+			ofstr_RGB.close();
 		}
 	}
 	// compare two videos that should be identical
@@ -357,7 +451,7 @@ public:
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
 	{
 		vector<vector<float> > frames(ROIs.size());
 		cout << "Processing Frames..." << endl;
@@ -390,7 +484,7 @@ public:
 			if (useChessBoard && (count % 5) == 0)
 			{
 				Mat temp;
-				cv::resize(frame, temp, getFrameSize());
+				cv::resize(frame, temp, cv::Size(640,480));
 				if (canDetectMyBoard(frame))
 				{
 					break;
@@ -398,6 +492,93 @@ public:
 			}
 
 			Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
+			Mat tmp_frame;
+			frame(globalROI).copyTo(tmp_frame, add_mask);
+			Mat tmp_prev;
+			prev(globalROI).copyTo(tmp_prev, add_mask);
+			for (int i = 0; i < ROIs.size(); i++)
+			{
+				Mat tmp;
+				if (oldMethod)
+				{
+					if (useAlpha)
+					{
+						tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
+					}
+					else
+					{
+						tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
+					}
+					add_mask = add_mask * 0 + 255;
+				}
+				else
+				{
+					tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROIs[i]), tmp_frame(ROIs[i]), 0);
+				}
+				float luminance = cv::sum(tmp).val[0];
+				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
+				luminance /= summation;
+				//float luminance = getLuminance(tmp, ROI);
+				if (abs(luminance) < 0.001 && frames[i].size())
+				{
+					frames[i].push_back(frames[i][frames[i].size() - 1]);
+				}
+				else
+				{
+					frames[i].push_back(luminance);
+				}
+			}
+			prev = frame.clone();
+		}
+		return frames;
+	}
+
+	/// get video frames luminance with tracking color
+	// VideoCapture as input
+	// ROI as input
+	// returns vector<float> with the luminances 
+	static vector<vector<float> > getVideoFrameLuminancesWithColorTracking(
+		VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI,cv::Scalar color)
+	{
+		vector<vector<float> > frames(ROIs.size());
+		cout << "Processing Frames..." << endl;
+		Mat frame, prev;
+		cap.read(prev);
+		//cap.read(prev);
+		//prev = prev(ROI);
+		double nextIndex = 0;
+		int count = 1;
+		//Mat mask, prev_mask; = getBinaryMask(prev);
+		frame = prev.clone();
+		while (true)
+		{
+			//imshow("prev", prev);
+			//cv::waitKey(30);
+			nextIndex += fps / 30;;
+			bool flag = true;
+
+			while ((int)nextIndex > count + 1)
+			{
+				++count;
+				flag = cap.read(frame);
+			}
+			if (!flag)
+			{
+				break;
+			}
+			//cout << count << endl;
+			//mask = getBinaryMask(frame);
+			if (useChessBoard && (count % 5) == 0)
+			{
+				Mat temp;
+				cv::resize(frame, temp, cv::Size(640, 480));
+				if (canDetectMyBoard(frame))
+				{
+					break;
+				}
+			}
+
+			Mat add_mask = MaskFactory::getColorMask(frame(globalROI),color);// prev_mask & mask;
 			Mat tmp_frame;
 			frame(globalROI).copyTo(tmp_frame, add_mask);
 			Mat tmp_prev;
@@ -501,7 +682,7 @@ public:
 			for (int i = 0; i < ROIs.size(); i++)
 			{
 				ROIs[i].x += globalROI.x;
-				ROIs[i].y + globalROI.y;
+				ROIs[i].y += globalROI.y;
 			}
 		}
 		return ROIs;
@@ -525,7 +706,7 @@ public:
 		starting_index = 0;
 		for (; cap.read(frame); starting_index++)
 		{
-			cv::resize(frame, frame, getFrameSize());
+			cv::resize(frame, frame, cv::Size(640, 480));
 			// this loop to detect the first chess board
 			//cout << index << endl;
 			//imshow("frame", frame);
@@ -560,7 +741,8 @@ public:
 	// int &framerate: is output parameter
 	// divisions: supports 2 and 4 only for now
 	// ROI: is the area of interest only for the whole image
-	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions,bool useGlobalROI)
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions,bool useGlobalROI,
+		cv::Scalar color = cv::Scalar(-1,-1,-1))
 	{
 		vector<vector<float> > frames;
 		VideoCapture cap(videoName); // open the default camera
@@ -578,8 +760,46 @@ public:
 		cout << "Index = " << index << endl;
 		// the ROI		
 		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, globalROI,false);
-		frames = getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI);
+		if (color == cv::Scalar(-1, -1, -1))
+		{
+			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI);
+		}
+		else
+		{
+			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, globalROI, color);
+		}
 		return frames;
+	}
+
+	static vector<float> getVideoFrameLuminancesOLd(string videoName, int &framerate, bool useGlobalROI,bool useAlpha)
+	{
+		cout << "Old method" << endl;
+		VideoCapture cap(videoName); // open the default camera
+		if (!cap.isOpened())  // check if we succeeded
+			return vector<float>();
+		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		// try to detect the chess board
+		int index = 0;
+		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+		vector<cv::Rect> ROIs;
+		
+		if (useGlobalROI)
+		{
+			globalROI = getGlobalROI(videoName, index);
+			cap.set(CV_CAP_PROP_POS_FRAMES, index);
+		}
+		ROIs.push_back(globalROI);
+		ROIs[0].x = ROIs[0].y = 0;
+		cout << "Index = " << index << endl;
+		if (useAlpha)
+		{
+			cout << "Alpha" << endl;
+		}
+		else
+		{
+			cout << "V-channel" << endl;
+		}
+		return getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI, true, useAlpha)[0];
 	}
 
 	float getLuminanceWithMaskFromGray(Mat& frame, cv::Rect& ROI)
@@ -774,7 +994,7 @@ public:
 		int o_sz = orig_msg.size();
 		int best_i;
 		vector<int> errors;
-		for (int i = -t_sz + 1; i < o_sz; i++)
+		for (int i = 0; i < 1; i++)
 		{
 			int sum = 0;
 			vector<int> tempErrors;
@@ -975,7 +1195,10 @@ public:
 			{
 				cap.set(CV_CAP_PROP_POS_FRAMES, index);
 				cap >> frame;
+				cv::resize(frame, frame, getFrameSize());
 				imshow("frame", frame);
+				// check the color mask as well
+				MaskFactory::getColorMask(frame, cv::Scalar(0, 0, 230));
 				cout << index << endl;
 				int key = cv::waitKey(0);
 				int new_index = 0;
