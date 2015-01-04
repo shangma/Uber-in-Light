@@ -8,8 +8,8 @@
 double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
-const double EPSILON = 1e-10;
-const double M_PI = 3.14159265359;
+const double EPSILON = (1e-10);
+//const double M_PI = 3.14159265359;
 const string codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size DefaultFrameSize(640, 480);
 Size patternsize(11, 11);
@@ -26,7 +26,7 @@ class Utilities
 public:
 	/// This function will not check the range for the ROI
 	/// this function adds alpha to the value channel in the selected ROI
-	static void updateFrameLuminance(Mat &frame, Rect ROI, double percentage, bool useAlpha = true)
+	static void updateFrameLuminance(Mat &frame, Rect ROI, double percentage, bool useAlpha = false)
 	{
 		if (useAlpha)
 		{
@@ -204,7 +204,7 @@ public:
 		return minimum;
 	}
 
-	static Mat getVchannel(Mat &frame)
+	static Mat getVchannel(Mat frame)
 	{
 		vector<Mat> BGR1;
 		cv::split(frame, BGR1);
@@ -213,7 +213,7 @@ public:
 
 		return BGR1[2];
 	}
-	static Mat getIntensity(Mat &frame)
+	static Mat getIntensity(Mat frame)
 	{
 		// save the ROI
 		Mat tmp;
@@ -228,7 +228,7 @@ public:
 		return tmp;
 	}
 	// the input frames here are the original frames
-	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius)
+	static Mat getDiffInVchannelHSV(Mat prev,Mat frame,int radius)
 	{
 		// save the ROI
 		//Mat tmp, hsv1, hsv2;
