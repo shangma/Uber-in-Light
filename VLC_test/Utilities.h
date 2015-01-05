@@ -9,7 +9,7 @@ double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = (1e-10);
-//const double M_PI = 3.14159265359;
+const double MM_PI = 3.14159265359;
 const string codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size DefaultFrameSize(640, 480);
 Size patternsize(11, 11);
@@ -80,7 +80,7 @@ public:
 		Mat inp = Mat::zeros(1, L, CV_32F);
 		for (int i = 0; i < L; i++)
 		{
-			((float*)inp.data)[i] = sin(2 * M_PI * 14 * (i*T));// +sin(2 * M_PI * 30 * (i*T));
+			((float*)inp.data)[i] = sin(2 * MM_PI * 14 * (i*T));// +sin(2 * M_PI * 30 * (i*T));
 		}
 
 		Mat planes[] = { Mat_<float>(inp), Mat::zeros(inp.size(), CV_32F) };
