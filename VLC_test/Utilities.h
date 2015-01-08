@@ -9,7 +9,7 @@ double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = (1e-10);
-const double MM_PI = 3.14159265359;
+//const double MM_PI = 3.14159265359;
 const string codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size DefaultFrameSize(640, 480);
 Size patternsize(11, 11);
@@ -69,7 +69,7 @@ public:
 	{
 		return (a * (b / gcd(a, b)));
 	}
-
+	/*
 	static void myft()
 	{
 		double Fs = 30;                    // Sampling frequency
@@ -101,7 +101,7 @@ public:
 				}
 		}
 		cout << endl;
-	}
+	}*/
 
 	// take array of inputs: luminance
 	// sampling frequency: Fs
