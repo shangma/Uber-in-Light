@@ -6,70 +6,70 @@ class Communicator
 {
 protected:
 	// display the given image in the given window name for the given millisecionds
-	void displayImageForCertainPeriod(Mat img, string winName, int displayTime)
-	{
-		typedef std::chrono::high_resolution_clock Clock;
-		typedef std::chrono::milliseconds milliseconds;
-		Clock::time_point t0 = Clock::now();
-		// start work
-		imshow(winName, img);
-		// end work
-		Clock::time_point t1 = Clock::now();
-		milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-		// wait for some time 
-		cvWaitKey(max(1, (int)(displayTime - ms.count())));
-	}
+	//void displayImageForCertainPeriod(Mat img, string winName, int displayTime)
+	//{
+	//	typedef std::chrono::high_resolution_clock Clock;
+	//	typedef std::chrono::milliseconds milliseconds;
+	//	Clock::time_point t0 = Clock::now();
+	//	// start work
+	//	imshow(winName, img);
+	//	// end work
+	//	Clock::time_point t1 = Clock::now();
+	//	milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
+	//	// wait for some time 
+	//	cvWaitKey(max(1, (int)(displayTime - ms.count())));
+	//}
 
 	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
 	/// frequency is in Hz
 	/// int bitTime in millisecond
-	void diplay24FramesWithSomeFrequency(Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime)
-	{
-		//printf("%d", (int)frequency);
-		// screen frequency
-		double screen_refresh_rate = 60; // 60Hz
-		int duty_cycle = (int)ceil(1000 / frequency); // seconds
-		if (duty_cycle & 1)
-		{
-			// make it even
-			++duty_cycle;
-		}
-		double time_for_the_high_amplitude = duty_cycle / 2; // in milli seconds
-		// the time needed for one bit is bittime milliseconds
-		int number_of_iterations = bitTime / (time_for_the_high_amplitude * 2);
+	//void diplay24FramesWithSomeFrequency(Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime)
+	//{
+	//	//printf("%d", (int)frequency);
+	//	// screen frequency
+	//	double screen_refresh_rate = 60; // 60Hz
+	//	int duty_cycle = (int)ceil(1000 / frequency); // seconds
+	//	if (duty_cycle & 1)
+	//	{
+	//		// make it even
+	//		++duty_cycle;
+	//	}
+	//	double time_for_the_high_amplitude = duty_cycle / 2; // in milli seconds
+	//	// the time needed for one bit is bittime milliseconds
+	//	int number_of_iterations = bitTime / (time_for_the_high_amplitude * 2);
 
-		for (int i = 0; i < number_of_iterations; i++)
-		{
-			displayImageForCertainPeriod(new_image1, "video", time_for_the_high_amplitude);
-			displayImageForCertainPeriod(new_image2, "video", duty_cycle - time_for_the_high_amplitude);
-		}
-	}
+	//	for (int i = 0; i < number_of_iterations; i++)
+	//	{
+	//		displayImageForCertainPeriod(new_image1, "video", time_for_the_high_amplitude);
+	//		displayImageForCertainPeriod(new_image2, "video", duty_cycle - time_for_the_high_amplitude);
+	//	}
+	//}
 
 	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
 	/// frequency is in Hz
 	/// int bitTime in millisecond
 	/// number of frames for each cycle
-	void addFramesWithSomeFrequency(VideoWriter & vidWriter, Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime, int frames_cycle)
-	{
-		//double screen_refresh_rate = 60; // 60Hz
-		double duty_cycle = 1000 / frequency; // seconds
-		// the time needed for one bit is 400 milliseconds
-		int number_of_iterations = bitTime / duty_cycle;
+	//void addFramesWithSomeFrequency(VideoWriter & vidWriter, Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime, int frames_cycle)
+	//{
+	//	//double screen_refresh_rate = 60; // 60Hz
+	//	double duty_cycle = 1000 / frequency; // seconds
+	//	// the time needed for one bit is 400 milliseconds
+	//	int number_of_iterations = bitTime / duty_cycle;
 
-		for (int i = 0; i < number_of_iterations; i++)
-		{
-			for (int j = 0; j < frames_cycle / 2; j++)
-			{
-				vidWriter << new_image1;
-				//cout << 1;
-			}
-			for (int j = 0; j < frames_cycle / 2; j++)
-			{
-				vidWriter << new_image2;
-				//cout << 0;
-			}
-		}
-	}
+	//	for (int i = 0; i < number_of_iterations; i++)
+	//	{
+	//		for (int j = 0; j < frames_cycle / 2; j++)
+	//		{
+	//			vidWriter << new_image1;
+	//			//cout << 1;
+	//		}
+	//		for (int j = 0; j < frames_cycle / 2; j++)
+	//		{
+	//			vidWriter << new_image2;
+	//			//cout << 0;
+	//		}
+	//	}
+	//}
 
 	//void sendMessage(string imagefile, string msg)
 	//{
@@ -215,78 +215,78 @@ public:
 	}
 
 	// 
-	int getFirstFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index = 0)
-	{
-		vector<Frequency> temp;
-		for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
-		{
-			temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
-			//cout << "test " << i << endl;
-			// test the needed two frequencies for 60% correct
-			int maxi = 0;
-			for (int j = 1; j < temp.size(); j++)
-			{
-				if (temp[j].percent > temp[maxi].percent)
-				{
-					maxi = j;
-				}
-			}
-			if (temp[maxi].percent > 0.25)
-			{
-				if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
-				{
-					//cout << start_index + i << "\tFound Zero" << endl;
-					printf("0");
-					return start_index + i;
-				}
-				if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
-				{
-					//cout << start_index + i << "\tFound One" << endl;
-					printf("1");
-					return start_index + i;
-				}
-			}
-		}
-		return -1;
-	}
+	//int getFirstFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index = 0)
+	//{
+	//	vector<Frequency> temp;
+	//	for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
+	//	{
+	//		temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
+	//		//cout << "test " << i << endl;
+	//		// test the needed two frequencies for 60% correct
+	//		int maxi = 0;
+	//		for (int j = 1; j < temp.size(); j++)
+	//		{
+	//			if (temp[j].percent > temp[maxi].percent)
+	//			{
+	//				maxi = j;
+	//			}
+	//		}
+	//		if (temp[maxi].percent > 0.25)
+	//		{
+	//			if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
+	//			{
+	//				//cout << start_index + i << "\tFound Zero" << endl;
+	//				printf("0");
+	//				return start_index + i;
+	//			}
+	//			if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
+	//			{
+	//				//cout << start_index + i << "\tFound One" << endl;
+	//				printf("1");
+	//				return start_index + i;
+	//			}
+	//		}
+	//	}
+	//	return -1;
+	//}
 
 
-	int getNextFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index)
-	{
-		vector<Frequency> temp;
-		for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
-		{
-			temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
-			//cout << "test " << i << endl;
-			// test the needed two frequencies for 60% correct
-			int ZEROIndex = 0;
-			int ONEIndex = 0;
-			for (int j = 1; j < temp.size(); j++)
-			{
-				if (abs(temp[j].freq - FREQ[ZERO]) < abs(temp[ZEROIndex].freq - FREQ[ZERO]))
-				{
-					ZEROIndex = j;
-				}
-				if (abs(temp[j].freq - FREQ[ONE]) < abs(temp[ONEIndex].freq - FREQ[ONE]))
-				{
-					ONEIndex = j;
-				}
-			}
-			if (temp[ZEROIndex].percent > temp[ONEIndex].percent)
-			{
-				//cout << start_index + i << "\tFound Zero" << endl;
-				printf("0");
-				return start_index + i;
-			}
-			else if (temp[ZEROIndex].percent < temp[ONEIndex].percent)
-			{
-				//cout << start_index + i << "\tFound One" << endl;
-				printf("1");
-				return start_index + i;
-			}
-		}
-		return -1;
-	}
+	//int getNextFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index)
+	//{
+	//	vector<Frequency> temp;
+	//	for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
+	//	{
+	//		temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
+	//		//cout << "test " << i << endl;
+	//		// test the needed two frequencies for 60% correct
+	//		int ZEROIndex = 0;
+	//		int ONEIndex = 0;
+	//		for (int j = 1; j < temp.size(); j++)
+	//		{
+	//			if (abs(temp[j].freq - FREQ[ZERO]) < abs(temp[ZEROIndex].freq - FREQ[ZERO]))
+	//			{
+	//				ZEROIndex = j;
+	//			}
+	//			if (abs(temp[j].freq - FREQ[ONE]) < abs(temp[ONEIndex].freq - FREQ[ONE]))
+	//			{
+	//				ONEIndex = j;
+	//			}
+	//		}
+	//		if (temp[ZEROIndex].percent > temp[ONEIndex].percent)
+	//		{
+	//			//cout << start_index + i << "\tFound Zero" << endl;
+	//			printf("0");
+	//			return start_index + i;
+	//		}
+	//		else if (temp[ZEROIndex].percent < temp[ONEIndex].percent)
+	//		{
+	//			//cout << start_index + i << "\tFound One" << endl;
+	//			printf("1");
+	//			return start_index + i;
+	//		}
+	//	}
+	//	return -1;
+	//}
 
 	//void send()
 	//{
@@ -355,34 +355,100 @@ public:
 		cout << endl;
 	}
 
-	void receive(string fileName)
+	//void receive(string fileName)
+	//{
+	//	vector<float> frames;
+	//	int fps;
+	//	frames = Utilities::getVideoFrameLuminances(fileName, 1, fps);
+	//	//int count = 0;
+	//	//cout << ++count << "\t";
+	//	//int frames_per_symbol = 30;
+	//	int index = getFirstFrameIndex(frames, ReceiveParameters::framesPerSymbol, 0);
+	//	for (; index > 0 && index < frames.size() - ReceiveParameters::framesPerSymbol;)
+	//	{
+	//		//cout << ++count << "\t";
+	//		index = getNextFrameIndex(frames, ReceiveParameters::framesPerSymbol, index + ReceiveParameters::framesPerSymbol);
+	//	}
+	//	puts("");
+	//	//myft(frames,30,180);
+	//	//myft();
+	//}
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
 	{
-		vector<float> frames;
-		int fps;
-		frames = Utilities::getVideoFrameLuminances(fileName, 1, fps);
-		//int count = 0;
-		//cout << ++count << "\t";
-		int frames_per_symbol = 30;
-		int index = getFirstFrameIndex(frames, frames_per_symbol, 0);
-		for (; index > 0 && index < frames.size() - frames_per_symbol;)
+		if (useCrossCorrelation)
 		{
-			//cout << ++count << "\t";
-			index = getNextFrameIndex(frames, frames_per_symbol, index + frames_per_symbol);
+			return receiveCrossCorrelation(frames, fps, frames_per_symbol);
 		}
-		puts("");
-		//myft(frames,30,180);
-		//myft();
+		return receiveFFT(frames, fps, frames_per_symbol);
 	}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol)
+	double calcCrossCorrelate(vector<float> &signal, vector<float> &test)
 	{
+		double bestVal = 0;
+		int best_i = 0;
+		int tsz = test.size();
+		int ssz = signal.size();
+		for (int i = 1 - tsz; i < ssz - 1;i++)
+		{	
+			double sum = 0;
+			for (int j = std::max(0, i); j < std::min(ssz, tsz + i); j++)
+			{
+				sum += signal[j] * test[j - i];
+			}
+			//cout << i << "\t" << sum << endl;
+			if (sum > bestVal)
+			{
+				bestVal = sum;
+				best_i = i;
+			}
+		}
+		//cout << bestVal << endl;
+		return bestVal;
+	}
+	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol)
+	{
+		// return array
+		vector<short> result;
+		// create the signals to use in correlation
+		vector<float> zeroSignal, oneSignal;
+		for (int i = 0; i < frames_per_symbol; i++)
+		{
+			zeroSignal.push_back(sin(2 * MM_PI * FREQ[ZERO] * i / fps));
+			oneSignal.push_back(sin(2 * MM_PI * FREQ[ONE] * i / fps));
+		}
+		int window_size = frames_per_symbol;
+		int end = frames.size() - 2 * window_size;
+		for (int i = window_size; i < end; i += window_size)
+		{
+			vector<float> test(frames.begin() + i, frames.begin() + i + window_size);
+			double oneDetected = calcCrossCorrelate(oneSignal, test);
+			double zeroDetected = calcCrossCorrelate(zeroSignal, test);
+			if (oneDetected > zeroDetected)
+			{
+				result.push_back(1);
+			}
+			else// if (zeroDetected > oneDetected)
+			{
+				result.push_back(0);
+			}
+			//else
+			//{
+			//	result.push_back(2);
+			//}
+		}
+		return result;
+	}
+	vector<short> receiveFFT(vector<float> frames, int fps, int frames_per_symbol)
+	{
+		ReceiveParameters::amplitudes = frames;
 		vector<short> result;
 		vector<int> zero_detected(frames.size(), 0);
 		vector<int> one_detected(frames.size(), 0);
 		vector<int> other_detected(frames.size(), 0);
-		for (int i = 0; i < frames.size() - frames_per_symbol; i++)
+		int window_size = frames_per_symbol;
+		for (int i = 0; i < frames.size() - window_size; i++)
 		{
 			//cout << frames[i] << endl;
-			vector<Frequency> temp = Utilities::myft(frames, fps, i, frames_per_symbol);
+			vector<Frequency> temp = Utilities::myft(frames, fps, i, window_size);
 			// get the maximum frequency for this set of frames
 			int maxi = 0;
 			for (int j = 1; j < temp.size(); j++)
@@ -395,17 +461,17 @@ public:
 			if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
 			{
 				// ZERO detectd
-				for (int j = 0; j < frames_per_symbol; j++) zero_detected[i + j]++;
+				for (int j = 0; j < window_size; j++) zero_detected[i + j]++;
 			}
 			else if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
 			{
 				// one detected
-				for (int j = 0; j < frames_per_symbol; j++) one_detected[i + j]++;
+				for (int j = 0; j < window_size; j++) one_detected[i + j]++;
 			}
 			else
 			{
 				// other detected
-				for (int j = 0; j < frames_per_symbol; j++) other_detected[i + j]++;
+				for (int j = 0; j < window_size; j++) other_detected[i + j]++;
 			}
 			
 		}
@@ -438,6 +504,8 @@ public:
 			}
 			else
 			{
+				result.push_back(2);
+				/*
 				if (result.size() == 0)
 				{
 					result.push_back(1);
@@ -446,6 +514,7 @@ public:
 				{
 					result.push_back((~result[result.size() - 1]) & 1);
 				}
+				*/
 			}
 		}
 		return result;
@@ -477,36 +546,36 @@ public:
 	}
 
 	/// get video frames luminance
-	void extractAllVideoFrames(string videoName)
-	{
-		VideoCapture cap(videoName); // open the default camera
-		if (!cap.isOpened())  // check if we succeeded
-			return;
-		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		cout << count << endl;
-		//Mat edges;
-		//namedWindow("edges", 1);
-		cout << "Processing Frames..." << endl;
-		Mat frame;
-		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-		int ind = 0;
-		while (1)
-		{
-			Mat frame;
-			//cap >> frame;
-			bool success = cap.read(frame);
-			ind++;
-			if (!success){
-				cout << "End frame processing." << endl;
-				break;
-			}
-			if (ind > 8000 && !(ind % 50))
-			{
-				ostringstream ostr;
-				ostr << std::setfill('0') << std::setw(10);
-				ostr << ind << ".jpg";
-				imwrite(ostr.str(), frame);
-			}
-		}
-	}
+	//void extractAllVideoFrames(string videoName)
+	//{
+	//	VideoCapture cap(videoName); // open the default camera
+	//	if (!cap.isOpened())  // check if we succeeded
+	//		return;
+	//	double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+	//	cout << count << endl;
+	//	//Mat edges;
+	//	//namedWindow("edges", 1);
+	//	cout << "Processing Frames..." << endl;
+	//	Mat frame;
+	//	cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+	//	int ind = 0;
+	//	while (1)
+	//	{
+	//		Mat frame;
+	//		//cap >> frame;
+	//		bool success = cap.read(frame);
+	//		ind++;
+	//		if (!success){
+	//			cout << "End frame processing." << endl;
+	//			break;
+	//		}
+	//		if (ind > 8000 && !(ind % 50))
+	//		{
+	//			ostringstream ostr;
+	//			ostr << std::setfill('0') << std::setw(10);
+	//			ostr << ind << ".jpg";
+	//			imwrite(ostr.str(), frame);
+	//		}
+	//	}
+	//}
 };

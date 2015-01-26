@@ -375,11 +375,11 @@ struct Properties
 				vector<short> received;
 				if (!color)
 				{
-					received = communicator->receive(inputFileName, 30, ROI);
+					received = communicator->receive(inputFileName, ReceiveParameters::framesPerSymbol, ROI);
 				}
 				else
 				{
-					received = communicator->receiveColor(inputFileName, 30, ROI,cv::Scalar(0,0,230));
+					received = communicator->receiveColor(inputFileName, ReceiveParameters::framesPerSymbol, ROI,cv::Scalar(0,0,230));
 				}
 				for (int i = 0; i < msg.size(); i++)
 				{
@@ -401,11 +401,11 @@ struct Properties
 					cout << received[i];
 				}
 				cout << endl;
-				Utilities::LCS_greedy(msg, received);
+				Utilities::LCS_greedy(msg, received);// , inputFileName);
 			}
 			else
 			{
-				communicator->receiveWithSelectionByHand(inputFileName, 30);
+				communicator->receiveWithSelectionByHand(inputFileName, ReceiveParameters::framesPerSymbol);
 			}
 			break;
 		case CNVRT:

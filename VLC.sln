@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RenameRecordedFiles", "Rena
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RandomBitsGenerator", "RandomBitsGenerator\RandomBitsGenerator.csproj", "{B380F530-DC52-47F6-B20A-C278D4F15EAD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompareSignals", "CompareSignals\CompareSignals.csproj", "{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{B380F530-DC52-47F6-B20A-C278D4F15EAD}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{B380F530-DC52-47F6-B20A-C278D4F15EAD}.Release|Win32.ActiveCfg = Release|Any CPU
 		{B380F530-DC52-47F6-B20A-C278D4F15EAD}.Release|x64.ActiveCfg = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|Win32.ActiveCfg = Release|Any CPU
+		{66D68AB1-8B8F-47EF-8331-6BB3D55012B1}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

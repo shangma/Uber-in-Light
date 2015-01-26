@@ -3,6 +3,14 @@
 
 int main(int argc, char** argv)
 {
+	// create the signals to use in correlation
+	/*vector<float> zeroSignal, oneSignal;
+	for (int i = 0; i < 30; i++)
+	{
+		zeroSignal.push_back(sin(2 * MM_PI * FREQ[ZERO] * i / 30));
+		oneSignal.push_back(sin(2 * MM_PI * FREQ[ONE] * i / 30));
+		cout << zeroSignal[i] << "\t" << oneSignal[i] << endl;
+	}*/
 	Properties prop;
 	//Utilities::exploreVideo("..\\Release\\red2.mp4");
 	return prop.testSendReceive(argc, argv);

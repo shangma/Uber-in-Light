@@ -3,13 +3,14 @@
 #include "Header.h"
 #include "SelectByMouse.h"
 #include "background_subtractor.h"
+#include "ReceiveParameters.h"
 
 // 0 means 20 hz and 1 is 30 hz
 double FREQ[] = { 12, 8 };
 const double LUMINANCE[] = { 0.005, -0.005};
 enum{ ZERO = 0, ONE };
 const double EPSILON = (1e-10);
-//const double MM_PI = 3.14159265359;
+const double MM_PI = 3.14159265359;
 const string codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size DefaultFrameSize(640, 480);
 Size patternsize(11, 11);
@@ -467,7 +468,7 @@ public:
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / 30;;
+			nextIndex += fps / ReceiveParameters::framesPerSymbol;;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -554,7 +555,7 @@ public:
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / 30;;
+			nextIndex += fps / ReceiveParameters::framesPerSymbol;;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -750,23 +751,22 @@ public:
 			return frames;
 		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
 		// try to detect the chess board
-		int index = 0;
-		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+		ReceiveParameters::globalROI = cv::Rect(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		if (useGlobalROI)
 		{
-			globalROI = getGlobalROI(videoName, index);
-			cap.set(CV_CAP_PROP_POS_FRAMES, index);
+			ReceiveParameters::globalROI = getGlobalROI(videoName, ReceiveParameters::startingIndex);
+			cap.set(CV_CAP_PROP_POS_FRAMES, ReceiveParameters::startingIndex);
 		}
-		cout << "Index = " << index << endl;
+		cout << "Index = " << ReceiveParameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, globalROI,false);
+		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, ReceiveParameters::globalROI, false);
 		if (color == cv::Scalar(-1, -1, -1))
 		{
-			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI);
+			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, ReceiveParameters::globalROI);
 		}
 		else
 		{
-			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, globalROI, color);
+			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, ReceiveParameters::globalROI, color);
 		}
 		return frames;
 	}
@@ -986,7 +986,7 @@ public:
 	}
 
 	// calculate best greedy match
-	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg)
+	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg,string videoName = "")
 	{
 		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
 		int lcs = 0;
@@ -1020,11 +1020,58 @@ public:
 		double percent = lcs;
 		percent /= orig_msg.size();
 		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
-		/*puts("Errors:");
-		for (int i = 0; i < errors.size(); i++)
+		if (videoName.size() > 0)
 		{
-			printf("%d\t%d\n", errors[i], 30 * errors[i]);
-		}*/
+			VideoCapture videoReader;
+			videoReader.open(videoName);
+			if (videoReader.isOpened())
+			{
+				Mat frame;
+				int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
+				int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+				int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+				int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+
+				puts("Errors:");
+				
+				// for testing the correctness of this only
+				errors.clear();
+				int err[] = { 16, 21, 22, 24, 25, 27, 29, 30, 31, 36, 45, 56, 70, 71, 76, 77, 78, 81, 82, 86, 129, 133, 134, 136, 137, 138, 139, 144, 145, 153, 168, 170, 178, 184, 185, 186, 189, 190, 193, 194 };
+				for (int i = 0; i < 40; i++)
+				{
+					errors.push_back(err[i]);
+				}
+				for (int i = 0; i < errors.size(); i++)
+				{
+					ostringstream outputName;
+					outputName << std::setfill('0') << std::setw(10);
+					int start_data = ReceiveParameters::framesPerSymbol * (errors[i] + 1);
+					int end_data = start_data + ReceiveParameters::framesPerSymbol;
+					int start_second = framerate * (errors[i] + 1);
+					int end_second = start_second + framerate;
+					outputName << start_second / framerate << "_" << end_second / framerate << "_" << orig_msg[errors[i]] << "_" << test_msg[errors[i]];
+					VideoWriter vidWriter;
+					string outVideo = outputName.str() + ".avi";
+					string outFrameValues = outputName.str() + ".frames";
+					//cout << "ROI: (" << ReceiveParameters::globalROI.x << "," << ReceiveParameters::globalROI.y << ")\t(";
+					//cout << ReceiveParameters::globalROI.width << "," << ReceiveParameters::globalROI.height << ")\n";
+					videoReader.set(CV_CAP_PROP_POS_FRAMES, start_second + ReceiveParameters::startingIndex);
+					vidWriter.open(outVideo, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(ReceiveParameters::globalROI.width, ReceiveParameters::globalROI.height));
+					for (int j = 0; j <= framerate; j++)
+					{
+						videoReader >> frame;
+						vidWriter << frame(ReceiveParameters::globalROI);
+					}
+					ofstream outFrames(outFrameValues);
+					for (int j = start_data; j <= end_data; j++)
+					{
+						outFrames << ReceiveParameters::amplitudes[j] << endl;
+					}
+					outFrames.close();
+					printf("%d\n", errors[i]);
+				}
+			}
+		}
 	}
 
 	// create binary message from string message
@@ -1126,7 +1173,7 @@ public:
 		if (patternfound)
 		{
 			cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
-				TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
+				TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, ReceiveParameters::framesPerSymbol, 0.1));
 		}
 		else
 		{

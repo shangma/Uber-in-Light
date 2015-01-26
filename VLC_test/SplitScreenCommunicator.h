@@ -126,76 +126,16 @@ public:
 		vector<short> result;
 		if (frames.size() == 0)
 			return result;
-		vector<vector<int> > zero_detected(sections,vector<int>(frames[0].size(),0));
-		vector<vector<int> > one_detected(sections, vector<int>(frames[0].size(), 0));
-		vector<vector<int> > other_detected(sections, vector<int>(frames[0].size(), 0));
+		vector<vector<short>> vt;
 		for (int k = 0; k < sections; k++)
 		{
-			for (int i = 0; i < frames[k].size() - frames_per_symbol; i++)
-			{
-				vector<Frequency> temp = Utilities::myft(frames[k], fps, i, frames_per_symbol);
-				// get the maximum frequency for this set of frames
-				int maxi = 0;
-				for (int j = 1; j < temp.size(); j++)
-				{
-					if (temp[j].percent > temp[maxi].percent)
-					{
-						maxi = j;
-					}
-				}
-				if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
-				{
-					// ZERO detectd
-					for (int j = 0; j < frames_per_symbol; j++) zero_detected[k][i + j]++;
-				}
-				else if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
-				{
-					// one detected
-					for (int j = 0; j < frames_per_symbol; j++) one_detected[k][i + j]++;
-				}
-				else
-				{
-					// other detected
-					for (int j = 0; j < frames_per_symbol; j++) other_detected[k][i + j]++;
-				}
-			}
+			vt.push_back(receive2(frames[k], fps, frames_per_symbol));
 		}
-		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 
-		// and the symbol should have enough time (at least after the first FRAMES_PER_SYMBOL have been passed)
-		vector<int> starting_indeces(sections,0);
-		for (int k = 0; k < sections; k++)
+		for (int i = 0; i < vt[0].size(); i++)
 		{
-			for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
+			for (int j = 0; j < vt.size(); j++)
 			{
-				if ((zero_detected[k][i] + one_detected[k][i]) * 10 >= (zero_detected[k][i] + one_detected[k][i] + other_detected[k][i]) * 6)
-				{
-					// this first frame and zero
-					starting_indeces[k] = i;
-					break;
-				}
-			}
-		}
-		int starting_index = std::max((frames_per_symbol * 3) / 2, *(std::min_element(starting_indeces.begin(), starting_indeces.end())));
-		// for the rest of the symbols
-		// just follow the same rule
-		for (int i = starting_index; i < frames[0].size() - frames_per_symbol; i += frames_per_symbol)
-		{
-			for (int k = 0; k < sections; k++)
-			{
-				if (zero_detected[k][i] > one_detected[k][i])
-				{
-					// this first frame and zero
-					result.push_back(0);
-				}
-				else// if (one_detected[k][i] > zero_detected[k][i])
-				{
-					// this first frame and one
-					result.push_back(1);
-				}
-				/*else
-				{
-					result.push_back(2);
-				}*/
+				result.push_back(vt[j][i]);
 			}
 		}
 		return result;
