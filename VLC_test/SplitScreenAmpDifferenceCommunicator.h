@@ -19,9 +19,9 @@ public:
 		int frame_height = img.rows;
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		vector<float> amplitudes1 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+		vector<float> amplitudes1 = WaveGenerator::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
 		double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		vector<float> amplitudes2 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
+		vector<float> amplitudes2 = WaveGenerator::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 		int framesForSymbol = (frequency * 1000) / symbol_time;
 		// create the video writer
 		//ostringstream outputVideoStream;
@@ -69,9 +69,9 @@ public:
 			int fps = Utilities::lcm((int)framerate, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
 			//int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 			double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-			vector<float> amplitudes1 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+			vector<float> amplitudes1 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
 			double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-			vector<float> amplitudes2 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
+			vector<float> amplitudes2 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
 			Mat img;
 			// create the video writer
 			//ostringstream outputVideoStream;

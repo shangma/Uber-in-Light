@@ -21,10 +21,10 @@ public:
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
 		double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		vector<float> amplitudes11 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
-		vector<float> amplitudes12 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1);
-		vector<float> amplitudes21 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
-		vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
+		vector<float> amplitudes11 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+		vector<float> amplitudes12 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1);
+		vector<float> amplitudes21 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
+		vector<float> amplitudes22 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 		// create the video writer
 		//ostringstream outputVideoStream;
 		//outputVideoStream << msg.size() << "_FreqAmpDiff" << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
@@ -60,10 +60,10 @@ public:
 			//int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 			double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
 			double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-			vector<float> amplitudes11 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
-			vector<float> amplitudes12 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1);
-			vector<float> amplitudes21 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
-			vector<float> amplitudes22 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
+			vector<float> amplitudes11 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+			vector<float> amplitudes12 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1);
+			vector<float> amplitudes21 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2);
+			vector<float> amplitudes22 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2);
 			Mat frame;
 			// create the video writer
 			//ostringstream outputVideoStream;

@@ -23,7 +23,7 @@ public:
 		int frame_height = img.rows;
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		vector<float> amplitudes1 = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+		vector<float> amplitudes1 = WaveGenerator::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
 		int framesForSymbol = (frequency * 1000) / symbol_time;
 		/*int sectionsPerLength = sqrt(sections);
 		int sectionWidth = Utilities::getFrameSize().width / sectionsPerLength;
@@ -72,7 +72,7 @@ public:
 			int fps = Utilities::lcm((int)framerate, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
 			//int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 			double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-			vector<float> amplitudes1 = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
+			vector<float> amplitudes1 = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1);
 			
 			Mat img;
 			// create the video writer

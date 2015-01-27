@@ -21,6 +21,15 @@
 using namespace cv;
 using namespace std;
 
+// 0 means 20 hz and 1 is 30 hz
+double FREQ[] = { 12, 8 };
+const double LUMINANCE[] = { 0.005, -0.005 };
+enum{ ZERO = 0, ONE };
+const double EPSILON = (1e-10);
+const double MM_PI = 3.14159265359;
+const string codec = "I420"; //I420, DIB ,DIVX, XVID
+cv::Size DefaultFrameSize(640, 480);
+Size patternsize(11, 11);
 
 Mat getGradient(Mat src)
 {

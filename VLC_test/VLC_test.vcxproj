@@ -59,6 +59,7 @@
     <ClInclude Include="SplitScreenCommunicator.h" />
     <ClInclude Include="Utilities.h" />
     <ClInclude Include="VideoStabilizer.h" />
+    <ClInclude Include="WaveGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />

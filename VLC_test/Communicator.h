@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Utilities.h"
+#include "WaveGenerator.h"
 
 class Communicator
 {
@@ -153,35 +154,6 @@ protected:
 	//	}
 	//}
 
-	// symbol_time: how many milliseconds will the symbol last
-	vector<float> createWaveGivenFPS(double frequency, vector<short> msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance[2])
-	{
-		vector<float> amplitudes;
-		int framerate = frequency; //get the frame rate
-		int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-		int frequencies[] = { ZeroFrequency, OneFrequency };
-		// create the video writer
-		VideoWriter vidWriter;
-		for (int i = 0; i < msg.size(); i++)
-		{
-			int needed_frequency = frequencies[msg[i]];
-			int frames_per_half_cycle = framerate / (needed_frequency * 2);
-			// start high
-			int luminance_index = 0;
-			for (int k = 0; k < frames_per_symbol; k++)
-			{
-				if ((k%frames_per_half_cycle) == 0)
-				{
-					luminance_index ^= 1;
-				}
-				//cout << luminance_index;
-				amplitudes.push_back(luminance[luminance_index]);
-			}
-			cout << msg[i];
-		}
-		cout << endl;
-		return amplitudes;
-	}
 
 public:
 	// symbol_time: how many milliseconds will the symbol last
@@ -194,7 +166,7 @@ public:
 		int frame_height = img.rows;
 		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
 		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
-		vector<float> amplitudes = createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
+		vector<float> amplitudes = WaveGenerator::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 		// create the video writer
 		//ostringstream outputVideoStream;
 		//outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
@@ -332,7 +304,7 @@ public:
 			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoFile, fps, Utilities::getFrameSize());
 			int inputFrameUsageFrames = fps / framerate;
 			double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
-			vector<float> amplitudes = createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
+			vector<float> amplitudes = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
 			int InputFrameCounter = 0;
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
@@ -373,7 +345,7 @@ public:
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = false)
 	{
 		if (useCrossCorrelation)
 		{
@@ -381,6 +353,7 @@ public:
 		}
 		return receiveFFT(frames, fps, frames_per_symbol);
 	}
+	// calculate the best fit between two signals based on cross-correlation and return the peek value
 	double calcCrossCorrelate(vector<float> &signal, vector<float> &test)
 	{
 		double bestVal = 0;
@@ -404,17 +377,16 @@ public:
 		//cout << bestVal << endl;
 		return bestVal;
 	}
+	
+
+	// receive using cross-correlation as classifier
 	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol)
 	{
 		// return array
 		vector<short> result;
 		// create the signals to use in correlation
-		vector<float> zeroSignal, oneSignal;
-		for (int i = 0; i < frames_per_symbol; i++)
-		{
-			zeroSignal.push_back(sin(2 * MM_PI * FREQ[ZERO] * i / fps));
-			oneSignal.push_back(sin(2 * MM_PI * FREQ[ONE] * i / fps));
-		}
+		vector<float> zeroSignal = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, FREQ[ZERO]);
+		vector<float> oneSignal = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, FREQ[ONE]);
 		int window_size = frames_per_symbol;
 		int end = frames.size() - 2 * window_size;
 		for (int i = window_size; i < end; i += window_size)
