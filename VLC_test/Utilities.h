@@ -60,6 +60,11 @@ public:
 	{
 		return (a * (b / gcd(a, b)));
 	}
+
+	static int getOuputVideoFrameRate(int inputFps)
+	{
+		return lcm(inputFps, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
+	}
 	/*
 	static void myft()
 	{

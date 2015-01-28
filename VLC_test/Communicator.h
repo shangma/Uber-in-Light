@@ -153,38 +153,20 @@ protected:
 	//		}
 	//	}
 	//}
-
-
+protected:
+	int frame_width;
+	int frame_height;
+	double fps;
+	int inputFrameUsageFrames; // used for videos
+	Mat img;
+	int symbol_time;
+	cv::Rect globalROI;
+	vector<vector<float> > amplitudes;
+	vector<cv::Rect> ROIs;
+	vector<short> msg;
+	VideoCapture videoReader;
+	VideoWriter vidWriter;
 public:
-	// symbol_time: how many milliseconds will the symbol last
-	virtual void sendImage(double frequency, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
-	{
-		Mat img = imread(inputImage);
-
-		int framerate = frequency; //get the frame rate
-		int frame_width = img.cols;
-		int frame_height = img.rows;
-		//int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
-		vector<float> amplitudes = WaveGenerator::createWaveGivenFPS(frequency, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
-		// create the video writer
-		//ostringstream outputVideoStream;
-		//outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, "image", outputVideoFile);
-		VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoFile, framerate, Utilities::getFrameSize());
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
-		Utilities::addDummyFramesToVideo(vidWriter, framerate);
-		cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-		for (int i = 0; i < amplitudes.size(); i++)
-		{
-			Mat frame;
-			cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(frame, globalROI, amplitudes[i]);
-			//frame.convertTo(frame, CV_32F);
-			vidWriter << frame;
-		}
-		Utilities::addDummyFramesToVideo(vidWriter, framerate);
-		Utilities::addDummyFramesToVideo(vidWriter, framerate, Utilities::createChessBoard());
-	}
 
 	// 
 	//int getFirstFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index = 0)
@@ -276,55 +258,112 @@ public:
 	// msg: will be converted to binary
 	/*void send(string msg, string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg")
 	{
-		createOfflineVideo(fileName, msg, "output.avi", 1000);
+	createOfflineVideo(fileName, msg, "output.avi", 1000);
 	}
-*/
-
-	// symbol_time: how many milliseconds will the symbol last
-	virtual void sendVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
+	*/
+	bool initImage(double fps, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
 	{
-		VideoCapture videoReader(inputVideoFile);
+		this->fps = fps;
+		this->symbol_time = symbol_time;
+		this->msg = msg;
+		img = imread(inputImage);
+		cv::resize(img, img, Utilities::getFrameSize());
+		frame_width = img.cols;
+		frame_height = img.rows;
+		Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+		globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		return true;
+	}
+	bool initVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
+	{
+		videoReader.open(inputVideoFile);
 		if (videoReader.isOpened())
 		{
+			this->symbol_time = symbol_time;
+			this->msg = msg;
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
-			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
-			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
-			while (frame_height > 1000)
-			{
-				frame_height >>= 1;
-				frame_width >>= 1;
-			}
-			int fps = Utilities::lcm((int)framerate, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
-			int frames_per_symbol = (fps * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-			Mat frame;
-			// create the video writer
-			//ostringstream outputVideoStream;
-			//outputVideoStream << msg.size() << Utilities::createOuputVideoName(symbol_time, inputVideoFile, outputVideoFile);
-			VideoWriter vidWriter = Utilities::getVideoWriter(outputVideoFile, fps, Utilities::getFrameSize());
-			int inputFrameUsageFrames = fps / framerate;
-			double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
-			vector<float> amplitudes = WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin);
-			int InputFrameCounter = 0;
-			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
-			Utilities::addDummyFramesToVideo(vidWriter, fps);
-			cv::Rect globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			for (int k = 0; k < amplitudes.size(); k++)
-			{
-				if (k%inputFrameUsageFrames == 0)
-				{
-					videoReader.read(frame);
-					//cout << (amplitudes[k]) << endl;
-				}
-				Mat tmp;
-				cv::resize(frame, tmp, Utilities::getFrameSize());
-				Utilities::updateFrameLuminance(tmp, globalROI, amplitudes[k]);
-				vidWriter << tmp;
-			}
+			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			fps = Utilities::getOuputVideoFrameRate((int)framerate);
+
+			inputFrameUsageFrames = fps / framerate;
+
+			Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+			globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			return true;
+		}
+		return false;
+	}
+	void addSynchFrames(bool end)
+	{
+		if (end)
+		{
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
 		}
-		cout << endl;
+		else
+		{
+			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, fps);
+		}
+	}
+
+	virtual string getVideoName(string outputVideoFile)
+	{
+		return outputVideoFile;
+	}
+	virtual void initCommunication()
+	{
+		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin));
+	}
+	virtual void sendImageMainLoop()
+	{
+		for (int i = 0; i < amplitudes.size(); i++)
+		{
+			Mat frame = img.clone();
+			//cv::resize(img, frame, Utilities::getFrameSize());
+			Utilities::updateFrameLuminance(frame, globalROI, amplitudes[0][i]);
+			//frame.convertTo(frame, CV_32F);
+			vidWriter << frame;
+		}
+	}
+	virtual void sendVideoMainLoop()
+	{
+		Mat frame;
+		for (int k = 0; k < amplitudes.size(); k++)
+		{
+			if (k%inputFrameUsageFrames == 0)
+			{
+				videoReader.read(frame);
+				//cout << (amplitudes[k]) << endl;
+			}
+			Mat tmp;
+			cv::resize(frame, tmp, Utilities::getFrameSize());
+			Utilities::updateFrameLuminance(tmp, globalROI, amplitudes[0][k]);
+			vidWriter << tmp;
+		}
+	}
+	// symbol_time: how many milliseconds will the symbol last
+	void sendImage()
+	{
+		initCommunication();
+		addSynchFrames(false);
+		sendImageMainLoop();
+		addSynchFrames(true);
+	}
+
+	// symbol_time: how many milliseconds will the symbol last
+	void sendVideo()
+	{
+		if (videoReader.isOpened())
+		{
+			initCommunication();
+			addSynchFrames(false);
+			sendVideoMainLoop();
+			addSynchFrames(true);
+		}
 	}
 
 	//void receive(string fileName)
@@ -345,7 +384,7 @@ public:
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = false)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
 	{
 		if (useCrossCorrelation)
 		{

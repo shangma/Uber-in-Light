@@ -356,14 +356,18 @@ struct Properties
 			}
 			if (realVideo)
 			{
-				communicator->sendVideo(inputFileName, msg, 
-					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000);
+				if (communicator->initVideo(inputFileName, msg,
+					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000))
+				{
+					communicator->sendVideo();
+				}
 			}
 			else
 			{
-				communicator->sendImage(Utilities::lcm(2 * FREQ[ONE], 2 * FREQ[ZERO]),
-					inputFileName, msg, 
+				communicator->initImage(Utilities::getOuputVideoFrameRate(1),
+					inputFileName, msg,
 					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000);
+				communicator->sendImage();
 			}
 			break;
 		case RECV:
