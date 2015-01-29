@@ -33,25 +33,10 @@ enum
 	REED_SOLOMON
 };
 
-struct Properties
+class Properties
 {
-	int mode; // 0 for send and 1 for receive, 2 for converting video
-	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
-	string outputFileName; // used in send only
-	string msgFileName; // the message file Name
-	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
-	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude
-	int side; // number of cells per side
-	bool realVideo; // true means real video and false means not
-	string text; // text to send
-	vector<short> msg; // the message after conversion to vector<short>
-	double fps;
-	int extendN;
-	int errorCorrection;
-	bool interleave;
-	bool color;
-	double starting_second, ending_second; // starting and ending times for processing, currently in the conversion only
-	int correlation;
+private:
+	static Properties* inst;
 	Properties()
 	{
 		mode = SEND;
@@ -69,6 +54,32 @@ struct Properties
 		color = false;
 		correlation = 0;
 	}
+public:
+	static Properties* getInst()
+	{
+		if (inst == 0)
+		{
+			inst = new Properties();
+		}
+		return inst;
+	}
+	int mode; // 0 for send and 1 for receive, 2 for converting video
+	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
+	string outputFileName; // used in send only
+	string msgFileName; // the message file Name
+	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
+	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude
+	int side; // number of cells per side
+	bool realVideo; // true means real video and false means not
+	string text; // text to send
+	vector<short> msg; // the message after conversion to vector<short>
+	int extendN;
+	int errorCorrection;
+	bool interleave;
+	bool color;
+	double starting_second, ending_second; // starting and ending times for processing, currently in the conversion only
+	int correlation;
+	
 	int returnError()
 	{
 		cout << "Usage: run.exe (-s <message>)|(-r <filename>)\n";
@@ -186,7 +197,7 @@ struct Properties
 				// get the file name
 				if (i < argc - 1)
 				{
-					fps = stod(string(argv[++i]));
+					Parameters::fps = stod(string(argv[++i]));
 				}
 				else
 				{
@@ -364,10 +375,12 @@ struct Properties
 			}
 			else
 			{
-				communicator->initImage(Utilities::getOuputVideoFrameRate(1),
+				if (communicator->initImage(Utilities::getOuputVideoFrameRate(1),
 					inputFileName, msg,
-					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000);
-				communicator->sendImage();
+					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000))
+				{
+					communicator->sendImage();
+				}
 			}
 			break;
 		case RECV:
@@ -379,11 +392,11 @@ struct Properties
 				vector<short> received;
 				if (!color)
 				{
-					received = communicator->receive(inputFileName, ReceiveParameters::framesPerSymbol, ROI);
+					received = communicator->receive(inputFileName, Parameters::framesPerSymbol, ROI);
 				}
 				else
 				{
-					received = communicator->receiveColor(inputFileName, ReceiveParameters::framesPerSymbol, ROI,cv::Scalar(0,0,230));
+					received = communicator->receiveColor(inputFileName, Parameters::framesPerSymbol, ROI,cv::Scalar(0,0,230));
 				}
 				for (int i = 0; i < msg.size(); i++)
 				{
@@ -409,17 +422,17 @@ struct Properties
 			}
 			else
 			{
-				communicator->receiveWithSelectionByHand(inputFileName, ReceiveParameters::framesPerSymbol);
+				communicator->receiveWithSelectionByHand(inputFileName, Parameters::framesPerSymbol);
 			}
 			break;
 		case CNVRT:
 			// convert argv2 video to argv3 as a video with the framerate in argv4
 			// argv3 must end with .avi
-			Utilities::convertVideo(inputFileName, outputFileName, fps,starting_second,ending_second);
+			Utilities::convertVideo(inputFileName, outputFileName, Parameters::fps, starting_second, ending_second);
 			break;
 		case EXTEND:
 			// extend the video by repeating
-			Utilities::repeatVideo(inputFileName, outputFileName, fps, extendN,starting_second,ending_second);
+			Utilities::repeatVideo(inputFileName, outputFileName, Parameters::fps, extendN, starting_second, ending_second);
 			break;
 		case CORRELEATION:
 			Utilities::correlateVideoDifference(inputFileName, starting_second, ending_second, correlation);
@@ -429,3 +442,5 @@ struct Properties
 		return 0;
 	}
 };
+
+Properties* Properties::inst = Properties::getInst();

@@ -157,7 +157,7 @@ protected:
 	int frame_width;
 	int frame_height;
 	double fps;
-	int inputFrameUsageFrames; // used for videos
+	double inputFrameUsageFrames; // used for videos
 	Mat img;
 	int symbol_time;
 	cv::Rect globalROI;
@@ -268,9 +268,11 @@ public:
 		this->msg = msg;
 		img = imread(inputImage);
 		cv::resize(img, img, Utilities::getFrameSize());
+		//imshow("img", img);
+		//cv::waitKey(0);
 		frame_width = img.cols;
 		frame_height = img.rows;
-		Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
 		globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		return true;
 	}
@@ -282,14 +284,14 @@ public:
 			this->symbol_time = symbol_time;
 			this->msg = msg;
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			fps = Utilities::getOuputVideoFrameRate((int)framerate);
 
 			inputFrameUsageFrames = fps / framerate;
 
-			Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+			vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
 			globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 			return true;
 		}
@@ -301,6 +303,7 @@ public:
 		{
 			Utilities::addDummyFramesToVideo(vidWriter, fps);
 			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			vidWriter.release();
 		}
 		else
 		{
@@ -317,11 +320,21 @@ public:
 	{
 		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin));
+		//amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin, true));
+		// compare
+		//for (int i = 0; i < amplitudes[0].size();i++)
+		//{
+		//	//if (amplitudes[0][i] != amplitudes[1][i])
+		//	{
+		//		cout << i << "\t" << amplitudes[0][i] << "\t" << amplitudes[1][i] << endl;
+		//	}
+		//}
 	}
 	virtual void sendImageMainLoop()
 	{
-		for (int i = 0; i < amplitudes.size(); i++)
+		for (int i = 0; i < amplitudes[0].size(); i++)
 		{
+			//cout << i << endl;
 			Mat frame = img.clone();
 			//cv::resize(img, frame, Utilities::getFrameSize());
 			Utilities::updateFrameLuminance(frame, globalROI, amplitudes[0][i]);
@@ -332,10 +345,12 @@ public:
 	virtual void sendVideoMainLoop()
 	{
 		Mat frame;
-		for (int k = 0; k < amplitudes.size(); k++)
+		double frameIndex = 0;
+		for (int k = 0; k < amplitudes[0].size(); k++)
 		{
-			if (k%inputFrameUsageFrames == 0)
+			if (k >= frameIndex)
 			{
+				frameIndex += inputFrameUsageFrames;
 				videoReader.read(frame);
 				//cout << (amplitudes[k]) << endl;
 			}
@@ -374,17 +389,17 @@ public:
 	//	//int count = 0;
 	//	//cout << ++count << "\t";
 	//	//int frames_per_symbol = 30;
-	//	int index = getFirstFrameIndex(frames, ReceiveParameters::framesPerSymbol, 0);
-	//	for (; index > 0 && index < frames.size() - ReceiveParameters::framesPerSymbol;)
+	//	int index = getFirstFrameIndex(frames, Parameters::framesPerSymbol, 0);
+	//	for (; index > 0 && index < frames.size() - Parameters::framesPerSymbol;)
 	//	{
 	//		//cout << ++count << "\t";
-	//		index = getNextFrameIndex(frames, ReceiveParameters::framesPerSymbol, index + ReceiveParameters::framesPerSymbol);
+	//		index = getNextFrameIndex(frames, Parameters::framesPerSymbol, index + Parameters::framesPerSymbol);
 	//	}
 	//	puts("");
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = false)
 	{
 		if (useCrossCorrelation)
 		{
@@ -450,7 +465,7 @@ public:
 	}
 	vector<short> receiveFFT(vector<float> frames, int fps, int frames_per_symbol)
 	{
-		ReceiveParameters::amplitudes = frames;
+		Parameters::amplitudes = frames;
 		vector<short> result;
 		vector<int> zero_detected(frames.size(), 0);
 		vector<int> one_detected(frames.size(), 0);

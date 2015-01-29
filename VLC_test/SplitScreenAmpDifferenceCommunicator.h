@@ -46,12 +46,14 @@ public:
 	}
 	virtual void sendVideoMainLoop()
 	{
+		double frameIndex = 0;
 		for (int i = 0; i < amplitudes[0].size(); i += (sections * framesForSymbol))
 		{
 			for (int k = 0; k < framesForSymbol; k++)
 			{
-				if ((i + k) % inputFrameUsageFrames == 0)
+				if ((i + k) >= frameIndex)
 				{
+					frameIndex += inputFrameUsageFrames;
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}

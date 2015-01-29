@@ -31,20 +31,22 @@ public:
 		{
 			Mat frame = img.clone();
 			//cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(frame, cv::Rect(0, 0, frame.cols / 2, frame.rows / 2), amplitudes[0][i]);
-			Utilities::updateFrameLuminance(frame, cv::Rect(frame.cols / 2, 0, frame.cols / 2, frame.rows / 2), amplitudes[1][i]);
-			Utilities::updateFrameLuminance(frame, cv::Rect(0, frame.rows / 2, frame.cols / 2, frame.rows / 2), amplitudes[2][i]);
-			Utilities::updateFrameLuminance(frame, cv::Rect(frame.cols / 2, frame.rows / 2, frame.cols / 2, frame.rows / 2), amplitudes[3][i]);
+			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes[0][i]);
+			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes[1][i]);
+			Utilities::updateFrameLuminance(frame, ROIs[2], amplitudes[2][i]);
+			Utilities::updateFrameLuminance(frame, ROIs[3], amplitudes[3][i]);
 			vidWriter << frame;
 		}
 	}
 	virtual void sendVideoMainLoop()
 	{
 		Mat frame;
+		double frameIndex = 0;
 		for (int k = 0; k < amplitudes[0].size(); k++)
 		{
-			if (k%inputFrameUsageFrames == 0)
+			if (k >= frameIndex)
 			{
+				frameIndex += inputFrameUsageFrames;
 				videoReader.read(frame);
 			}
 			Mat tmp;

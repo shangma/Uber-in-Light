@@ -11,9 +11,8 @@ int main(int argc, char** argv)
 		oneSignal.push_back(sin(2 * MM_PI * FREQ[ONE] * i / 30));
 		cout << zeroSignal[i] << "\t" << oneSignal[i] << endl;
 	}*/
-	Properties prop;
 	//Utilities::exploreVideo("..\\Release\\red2.mp4");
-	return prop.testSendReceive(argc, argv);
+	return Properties::getInst()->testSendReceive(argc, argv);
 	//BCH bch;
 	//bch.testBCH();
 	//MyHamming myHamming;

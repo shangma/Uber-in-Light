@@ -24,7 +24,7 @@
     <ClInclude Include="Header.h" />
     <ClInclude Include="OldCommunicator.h" />
     <ClInclude Include="Properties.h" />
-    <ClInclude Include="ReceiveParameters.h" />
+    <ClInclude Include="Parameters.h" />
     <ClInclude Include="ReedSolomon.h" />
     <ClInclude Include="schifra_crc.hpp" />
     <ClInclude Include="schifra_ecc_traits.hpp" />

@@ -32,10 +32,12 @@ public:
 	virtual void sendVideoMainLoop()
 	{
 		Mat frame;
+		double frameIndex = 0;
 		for (int k = 0; k < amplitudes[0].size(); k++)
 		{
-			if (k%inputFrameUsageFrames == 0)
+			if (k >= frameIndex)
 			{
+				frameIndex += inputFrameUsageFrames;
 				videoReader.read(frame);
 			}
 			Mat tmp;
