@@ -399,7 +399,7 @@ public:
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = false)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
 	{
 		if (useCrossCorrelation)
 		{
@@ -530,16 +530,16 @@ public:
 			}
 			else
 			{
-				//result.push_back(2);
+				result.push_back(2);
 				
-				if (result.size() == 0)
+				/*if (result.size() == 0)
 				{
 					result.push_back(1);
 				}
 				else
 				{
 					result.push_back((~result[result.size() - 1]) & 1);
-				}
+				}*/
 				
 			}
 		}

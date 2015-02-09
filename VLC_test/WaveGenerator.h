@@ -51,8 +51,8 @@ public:
 		//int frequencies[] = { ZeroFrequency, OneFrequency };
 		// create the video writer
 		vector<float> sample[2];
-		sample[0] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, ZeroFrequency, luminance[0], luminance[1]);
-		sample[1] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, OneFrequency, luminance[0], luminance[1]);
+		sample[0] = WaveGenerator::createSampledTriangleWave(frequency, frames_per_symbol, ZeroFrequency, luminance[0]);
+		sample[1] = WaveGenerator::createSampledTriangleWave(frequency, frames_per_symbol, OneFrequency, luminance[0]);
 		VideoWriter vidWriter;
 		for (int i = 0; i < msg.size(); i++)
 		{
@@ -93,6 +93,18 @@ public:
 			{
 				result.push_back(0);
 			}
+		}
+
+		return result;
+	}
+	// create sampled square wave
+	static vector<float> createSampledTriangleWave(int fps, int frames_per_symbol, float freq, float amp)
+	{
+		vector<float> result;
+		for (int i = 0; i < frames_per_symbol; i++)
+		{
+			float pos = fmod((freq * i) / fps, 1.0);
+			result.push_back((1 - fabs(pos - 0.5) * 4)*amp);
 		}
 
 		return result;
