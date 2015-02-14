@@ -311,6 +311,18 @@ public:
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-decode"))
+			{
+				// the decoding method
+				if (i < argc - 1)
+				{
+					Parameters::DecodingMethod = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 		}
 		if (inputFileName == "")
 		{

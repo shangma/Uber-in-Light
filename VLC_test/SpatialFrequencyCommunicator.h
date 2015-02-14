@@ -103,7 +103,7 @@ public:
 			while (cap.read(frame))
 			{
 				// save the ROI
-				Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0);
+				Mat tmp = Utilities::getDiffInVchannelHSV(prev, frame, 0,cv::Rect(0,0,frame_width,frame_height));
 				imshow("test", tmp);
 				cvWaitKey(0);
 				prev = frame.clone();

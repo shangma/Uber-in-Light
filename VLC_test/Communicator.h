@@ -399,9 +399,9 @@ public:
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol,bool useCrossCorrelation = true)
+	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol)
 	{
-		if (useCrossCorrelation)
+		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
 			return receiveCrossCorrelation(frames, fps, frames_per_symbol);
 		}
@@ -530,16 +530,21 @@ public:
 			}
 			else
 			{
-				result.push_back(2);
-				
-				/*if (result.size() == 0)
+				if (Parameters::DecodingMethod == FFT_NO_RANDOM_GUESS)
 				{
-					result.push_back(1);
+					result.push_back(2);
 				}
-				else
+				else if (Parameters::DecodingMethod == FFT_RANDOM_GUESS)
 				{
-					result.push_back((~result[result.size() - 1]) & 1);
-				}*/
+					if (result.size() == 0)
+					{
+						result.push_back(1);
+					}
+					else
+					{
+						result.push_back((~result[result.size() - 1]) & 1);
+					}
+				}
 				
 			}
 		}

@@ -231,13 +231,12 @@ public:
 		return tmp;
 	}
 	// the input frames here are the original frames
-	static Mat getDiffInVchannelHSV(Mat prev,Mat frame,int radius)
+	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius, cv::Rect roi)
 	{
 		// save the ROI
-		//Mat tmp, hsv1, hsv2;
-		//vector<Mat> HSV1, HSV2;
-		Mat tmp1, tmp2, tmp;
-
+		Mat tmp, tmp1, tmp2;
+		vector<Mat> HSV1, HSV2;
+		
 		//cv::cvtColor(prev, hsv1, CV_BGR2HSV);
 		//cv::split(hsv1, HSV1);
 		//HSV1[2].convertTo(tmp1, CV_32F);
@@ -245,9 +244,63 @@ public:
 		//cv::split(hsv2, HSV2);
 		//HSV2[2].convertTo(tmp2, CV_32F);
 		//cv::subtract(tmp2, tmp1, tmp);
-		vector<Mat> BGR1, BGR2;
-		cv::split(prev, BGR1);
-		cv::split(frame, BGR2);
+		
+
+		// new method
+		Mat ret = Mat::zeros(roi.height, roi.width, CV_32F);
+		float* data = ((float*)ret.data);
+		unsigned char * p = ((unsigned char*)prev.data);
+		unsigned char * f = ((unsigned char*)frame.data);
+		int sz = ret.cols * ret.rows;
+		int rows = roi.y + roi.height;
+		int cols = roi.x + roi.width;
+		int j = 0;
+		int i = roi.y * frame.cols + roi.x;
+		int inc = frame.cols - roi.width;
+		for (int r = roi.y; r < rows; r++)
+		{
+			for (int c = roi.x; c < cols; c++,j++,i++)
+			{
+				// previous
+				int max1 = p[i * 3];
+				if (max1 < p[i * 3 + 1])
+				{
+					max1 = p[i * 3 + 1];
+				}
+				if (max1 < p[i * 3 + 2])
+				{
+					max1 = p[i * 3 + 2];
+				}
+				// frame
+				int max2 = f[i * 3];
+				if (max2 < f[i * 3 + 1])
+				{
+					max2 = f[i * 3 + 1];
+				}
+				if (max2 < f[i * 3 + 2])
+				{
+					max2 = f[i * 3 + 2];
+				}
+				data[j] = (max2 - max1);
+			}
+			i += inc;
+		}
+		/*
+		Mat BGR1[3], BGR2[3];
+		cv::split(prev(roi), BGR1);
+		ofstream ofst("test.txt");
+		for (int i = 0; i < sz; i++)
+		{
+			if (p[i * 3] != ((unsigned char*)BGR1[0].data)[i] || p[i * 3 + 1] != ((unsigned char*)BGR1[1].data)[i] || p[i * 3 + 2] != ((unsigned char*)BGR1[2].data)[i])
+			{
+				ofst << i << "\t";
+				ofst << (int)p[i * 3] << "->" << (int)((unsigned char*)BGR1[0].data)[i] << "," << (int)p[i * 3 + 1] << "->";
+				ofst << (int)((unsigned char*)BGR1[1].data)[i] << "," << (int)p[i * 3 + 2] << "->" << (int)((unsigned char*)BGR1[2].data)[i] << endl;
+				ofst << "error here\n";
+			}
+		}
+		ofst.close();
+		cv::split(frame(roi), BGR2);
 		cv::max(BGR1[0], BGR1[1], BGR1[1]);
 		cv::max(BGR1[1], BGR1[2], BGR1[2]);
 		BGR1[2].convertTo(tmp1, CV_32F);
@@ -255,7 +308,12 @@ public:
 		cv::max(BGR2[1], BGR2[2], BGR2[2]);
 		BGR2[2].convertTo(tmp2, CV_32F);
 		cv::subtract(tmp2, tmp1, tmp);
-		return tmp;
+		
+
+		Mat test = ret - tmp;
+		*/
+
+		return ret;
 	}
 
 
@@ -373,7 +431,7 @@ public:
 					videoReader.set(CV_CAP_PROP_POS_FRAMES, j + i);
 					if (videoReader.read(next))
 					{
-						Mat diff = getDiffInVchannelHSV(frame, next, 0);
+						Mat diff = getDiffInVchannelHSV(frame, next, 0, cv::Rect(0, 0, frame_width,frame_height));
 						correlations[i] += abs(cv::mean(diff).val[0]);
 						
 						frame.convertTo(frame, CV_32F);
@@ -516,7 +574,7 @@ public:
 				}
 				else
 				{
-					tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROIs[i]), tmp_frame(ROIs[i]), 0);
+					tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0, ROIs[i]);
 				}
 				float luminance = cv::sum(tmp).val[0];
 				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
@@ -588,7 +646,7 @@ public:
 			prev(globalROI).copyTo(tmp_prev, add_mask);
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev(ROIs[i]), tmp_frame(ROIs[i]), 0);
+				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0,ROIs[i]);
 				float luminance = cv::sum(tmp).val[0];
 				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
 				luminance /= summation;
@@ -1206,7 +1264,7 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat img, cv::Size myPattern = patternsize)
+	static bool canDetectMyBoard(Mat &img, cv::Size myPattern = patternsize)
 	{
 		// create the gray image
 		Mat gray; //source image
