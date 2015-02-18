@@ -68,14 +68,14 @@ struct AllSymbolsData
 				cout << "symbol " << symbol << "already exists!" << endl;
 				return;
 			}
-			SymbolData obj;
-			obj.symbol = symbol;
-			obj.frequency = frequency;
-			obj.amplitude = amplitude;
-			obj.phase = phase;
-			allData.push_back(obj);
-			cout << "symbol " << symbol << "added successfully!" << endl;
 		}
+		SymbolData obj;
+		obj.symbol = symbol;
+		obj.frequency = frequency;
+		obj.amplitude = amplitude;
+		obj.phase = phase;
+		allData.push_back(obj);
+		cout << "symbol " << symbol << " added successfully!" << endl;
 	}
 	SymbolData* getSymbol(string symbol)
 	{
