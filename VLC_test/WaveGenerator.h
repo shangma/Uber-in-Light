@@ -6,25 +6,25 @@ class WaveGenerator
 {
 public:
 	// symbol_time: how many milliseconds will the symbol last
-	static vector<float> createWaveGivenFPS(vector<short> &msg, double luminance,bool sampling = true)
+	static vector<float> createWaveGivenFPS(vector<SymbolData> &msg,bool sampling = true)
 	{
 		if (sampling)
 		{
-			return createWaveBySampling(Parameters::fps, msg, Parameters::symbolTime, Parameters::FREQ[0], Parameters::FREQ[1], luminance);
+			return createWaveBySampling(Parameters::fps, msg, Parameters::symbolTime);
 		}
-		return createWaveAssumingIntegers(Parameters::fps, msg, Parameters::symbolTime, Parameters::FREQ[0], Parameters::FREQ[1], luminance);
+		return createWaveAssumingIntegers(Parameters::fps, msg, Parameters::symbolTime);
 	}
-	static vector<float> createWaveAssumingIntegers(double frequency, vector<short> &msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance)
+	static vector<float> createWaveAssumingIntegers(double frequency, vector<SymbolData> &msg, int symbol_time)
 	{
 		vector<float> amplitudes;
 		int framerate = frequency; //get the frame rate
 		int frames_per_symbol = (framerate * 1000) / symbol_time; // symbol time in milliseconds and framerate in frames per second
-		int frequencies[] = { ZeroFrequency, OneFrequency };
+		//int frequencies[] = { ZeroFrequency, OneFrequency };
 		// create the video writer
 		VideoWriter vidWriter;
 		for (int i = 0; i < msg.size(); i++)
 		{
-			int needed_frequency = frequencies[msg[i]];
+			int needed_frequency = msg[i].frequency;
 			int frames_per_half_cycle = framerate / (needed_frequency * 2);
 			// start high
 			int luminance_sign = -1;
@@ -35,28 +35,29 @@ public:
 					luminance_sign = -luminance_sign;
 				}
 				//cout << luminance_index;
-				amplitudes.push_back(luminance * luminance_sign);
+				amplitudes.push_back(msg[i].amplitude * luminance_sign);
 			}
-			cout << msg[i];
+			cout << msg[i].symbol;
 		}
 		cout << endl;
 		return amplitudes;
 	}
-	static vector<float> createWaveBySampling(double frequency, vector<short> &msg, int symbol_time, int ZeroFrequency, int OneFrequency, double luminance)
+	static vector<float> createWaveBySampling(double frequency, vector<SymbolData> &msg, int symbol_time)
 	{
 		vector<float> amplitudes;
 		int framerate = frequency; //get the frame rate
 		int frames_per_symbol = (framerate * symbol_time) / 1000; // symbol time in milliseconds and framerate in frames per second
 		//int frequencies[] = { ZeroFrequency, OneFrequency };
 		// create the video writer
-		vector<float> sample[2];
-		sample[0] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, ZeroFrequency, luminance,-luminance);
-		sample[1] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, OneFrequency, luminance, -luminance);
+		//vector<float> sample[2];
+		//sample[0] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, ZeroFrequency, luminance,-luminance);
+		//sample[1] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, OneFrequency, luminance, -luminance);
 		VideoWriter vidWriter;
 		for (int i = 0; i < msg.size(); i++)
 		{
-			amplitudes.insert(amplitudes.end(), sample[msg[i]].begin(), sample[msg[i]].end());
-			cout << msg[i];
+			vector<float> sample = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, msg[i].frequency, msg[i].amplitude, -msg[i].amplitude);
+			amplitudes.insert(amplitudes.end(), sample.begin(), sample.end());
+			cout << msg[i].symbol;
 		}
 		cout << endl;
 		return amplitudes;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SplitFrequencyAmplitudeCommunicator.h"
+//#include "SplitFrequencyAmplitudeCommunicator.h"
 #include "SplitAmplitudeCommunicator.h"
 #include "SpatialFrequencyCommunicator.h"
 #include "SplitScreenCommunicator.h"
@@ -20,10 +20,12 @@ enum
 
 enum
 {
-	NORMAL = 0,
-	AMP_DIFF,
+	TEMPORAL_CORRELATION = 0,
+	SPATIAL_REDUNDANCY,
 	FREQ_DIFF,
-	FREQ_AMP_DIFF
+	FREQ_AMP_DIFF,
+	SPLIT_SCREEN_TEMPORAL_CORRELATION,
+	SPLIT_SCREEN_SPATIAL_REDUNDANCY
 };
 
 enum
@@ -213,7 +215,7 @@ public:
 				// get the file name
 				if (i < argc - 1)
 				{
-					Parameters::FREQ[0] = stod(string(argv[++i]));
+					Parameters::symbolsData.addSymbol("0", stod(string(argv[++i])));
 				}
 				else
 				{
@@ -225,7 +227,7 @@ public:
 				// get the file name
 				if (i < argc - 1)
 				{
-					Parameters::FREQ[1] = stod(string(argv[++i]));
+					Parameters::symbolsData.addSymbol("1", stod(string(argv[++i])));
 				}
 				else
 				{
@@ -358,19 +360,19 @@ public:
 		}
 		switch (type)
 		{
-		case 1:
+		case SPATIAL_REDUNDANCY:
 			communicator = new SplitAmplitudeCommunicator;
 			break;
-		case 2:
-			communicator = new SplitFrequencyCommunicator;
+		case FREQ_DIFF:
+			//communicator = new SplitFrequencyCommunicator;
 			break;
-		case 3:
-			communicator = new SplitFrequencyAmplitudeCommunicator;
+		case FREQ_AMP_DIFF:
+			//communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
-		case 4:
+		case SPLIT_SCREEN_TEMPORAL_CORRELATION:
 			communicator = new SplitScreenCommunicator(side);
 			break;
-		case 5:
+		case SPLIT_SCREEN_SPATIAL_REDUNDANCY:
 			communicator = new SplitScreenAmpDifferenceCommunicator(side);
 			break;
 		case 6:

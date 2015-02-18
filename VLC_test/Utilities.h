@@ -42,7 +42,8 @@ public:
 		int sign = percentage > 0 ? 1 : -1;
 		addVal *= sign;
 		double diff = absVal - addVal;
-		int threshold = diff * 100;
+		int sz = (ROI.width * ROI.height);
+		int threshold = diff * sz;
 		//cout << threshold << endl;
 		unsigned char* data = (unsigned char*)frame.data;
 		int rows = ROI.y + ROI.height;
@@ -50,20 +51,34 @@ public:
 		int j = 0;
 		int i = ROI.y * frame.cols + ROI.x;
 		int inc = frame.cols - ROI.width;
-		//cout << "here" << endl;
+		// make sure there is no overflow or underflow
+		int tmpBGR[3];
+		//std::random_device rd;
+		//std::mt19937 mt(rd());
+		std::mt19937 mt(19937);
+		std::uniform_int_distribution<int> dist(0, sz-1);
 		for (int r = ROI.y; r < rows; r++)
 		{
 			for (int c = ROI.x; c < cols; c++, j++, i++)
 			{
-				data[i * 3] += addVal;
-				data[i * 3 + 1] += addVal;
-				data[i * 3 + 2] += addVal;
-				if ((j % 100) < threshold)
+				// copy to int
+				tmpBGR[0] = data[i * 3];
+				tmpBGR[1] = data[i * 3 + 1];
+				tmpBGR[2] = data[i * 3 + 2];
+				//
+				tmpBGR[0] += addVal;
+				tmpBGR[1] += addVal;
+				tmpBGR[2] += addVal;
+				if (dist(mt) < threshold)
 				{
-					data[i * 3] += sign;
-					data[i * 3 + 1] += sign;
-					data[i * 3 + 2] += sign;
+					tmpBGR[0] += sign;
+					tmpBGR[1] += sign;
+					tmpBGR[2] += sign;
 				}
+				// copy back
+				data[i * 3] = tmpBGR[0] > 255 ? 255 : (tmpBGR[0] < 0) ? 0 : tmpBGR[0];
+				data[i * 3 + 1] = tmpBGR[1] > 255 ? 255 : (tmpBGR[1] < 0) ? 0 : tmpBGR[1];
+				data[i * 3 + 2] = tmpBGR[2] > 255 ? 255 : (tmpBGR[2] < 0) ? 0 : tmpBGR[2];
 			}
 			i += inc;
 		}
@@ -581,7 +596,7 @@ public:
 	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
 		ostringstream outputVideoStream;
-		outputVideoStream << inputMessage << "_" << Parameters::FREQ[0] << "Hz_" << Parameters::FREQ[1] << "Hz_";
+		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "Hz_";
 		outputVideoStream << Parameters::symbolTime << "ms_" << (2 * Parameters::LUMINANCE) << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');

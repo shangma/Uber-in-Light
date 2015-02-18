@@ -1,8 +1,36 @@
 #include "Properties.h"
 
+#include <random>
+#include <iostream>
+
+//int num = 100;
+//int range = 1000;
+//void main1() {
+//	//std::random_device rd;
+//	//std::mt19937 mt(rd());
+//	std::mt19937 mt(19937);
+//	std::uniform_int_distribution<int> dist(1, range);
+//	double sum = 0;
+//	for (int i = 0; i < num; ++i)
+//	{
+//		sum += dist(mt);
+//	}
+//	cout << sum / num << endl;
+//}
+//void main2() {
+//	srand(time(0));
+//	double sum = 0;
+//	for (int i = 0; i < num; ++i)
+//	{
+//		sum += ((rand() % range) + 1);
+//	}
+//	cout << sum / num << endl;
+//}
 
 int main(int argc, char** argv)
 {
+	//main1();
+	//main2();
 	// create the signals to use in correlation
 	/*vector<float> zeroSignal, oneSignal;
 	for (int i = 0; i < 30; i++)

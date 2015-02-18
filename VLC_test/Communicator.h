@@ -163,7 +163,8 @@ protected:
 	cv::Rect globalROI;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
-	vector<short> msg;
+	vector<short> shortMsg;
+	vector<SymbolData> msg;
 	VideoCapture videoReader;
 	VideoWriter vidWriter;
 public:
@@ -263,7 +264,8 @@ public:
 	*/
 	bool initImage(string inputImage, vector<short> msg, string outputVideoFile)
 	{
-		this->msg = msg;
+		this->shortMsg = msg;
+		this->msg = Parameters::symbolsData.getMsgSymbols(msg);
 		img = imread(inputImage);
 		cv::resize(img, img, Utilities::getFrameSize());
 		//imshow("img", img);
@@ -279,7 +281,8 @@ public:
 		videoReader.open(inputVideoFile);
 		if (videoReader.isOpened())
 		{
-			this->msg = msg;
+			this->shortMsg = msg;
+			this->msg = Parameters::symbolsData.getMsgSymbols(msg);
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
@@ -459,8 +462,12 @@ public:
 		vector<short> result;
 		// create the signals to use in correlation
 		vector<vector<float> > signals;
-		signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[0]));
-		signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[1]));
+		//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[0]));
+		//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[1]));
+		for (int i = 0; i < Parameters::symbolsData.allData.size(); i++)
+		{
+			signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency));
+		}
 		int window_size = frames_per_symbol;
 		int end = frames.size() - fps - window_size;
 		
@@ -469,21 +476,32 @@ public:
 			//vector<float> test(frames.begin() + i, frames.begin() + i + window_size);
 			
 			vector<double> Detected = calcCrossCorrelate(signals, frames, i - 2, i + window_size + 2);
-			if (Detected[1] > Detected[0])
+			// get maximum response
+			int maxIdx = 0;
+			for (int j = 1; j < signals.size(); j++)
 			{
-				//cout << oneDetected << endl;
-				result.push_back(1);
+				if (Detected[j] > Detected[maxIdx])
+				{
+					maxIdx = j;
+				}
 			}
-			else// if (zeroDetected > oneDetected)
-			{
-				//cout << zeroDetected << endl;
-				result.push_back(0);
-			}
-			//cout << endl;
-			//else
+			vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
+			result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
+			//if (Detected[1] > Detected[0])
 			//{
-			//	result.push_back(2);
+			//	//cout << oneDetected << endl;
+			//	result.push_back(1);
 			//}
+			//else// if (zeroDetected > oneDetected)
+			//{
+			//	//cout << zeroDetected << endl;
+			//	result.push_back(0);
+			//}
+			////cout << endl;
+			////else
+			////{
+			////	result.push_back(2);
+			////}
 		}
 		return result;
 	}
@@ -491,8 +509,9 @@ public:
 	{
 		Parameters::amplitudes = frames;
 		vector<short> result;
-		vector<int> zero_detected(frames.size(), 0);
-		vector<int> one_detected(frames.size(), 0);
+		vector<vector<int> > detection(Parameters::symbolsData.allData.size(), vector<int>(frames.size(), 0));
+		//vector<int> zero_detected(frames.size(), 0);
+		//vector<int> one_detected(frames.size(), 0);
 		vector<int> other_detected(frames.size(), 0);
 		int window_size = frames_per_symbol;
 		for (int i = 0; i < frames.size() - fps; i++)
@@ -508,21 +527,38 @@ public:
 					maxi = j;
 				}
 			}
-			if (abs(temp[maxi].freq - Parameters::FREQ[0]) < EPSILON)
+			bool foundFreq = false;
+			for (int j = 0; j < Parameters::symbolsData.allData.size(); j++)
 			{
-				// ZERO detectd
-				for (int j = 0; j < window_size; j++) zero_detected[i + j]++;
+				if (abs(temp[maxi].freq - Parameters::symbolsData.allData[j].frequency) < EPSILON)
+				{
+					for (int k = 0; k < window_size; k++)
+					{
+						detection[j][i + k]++;
+					}
+					foundFreq = true;
+					break;
+				}
 			}
-			else if (abs(temp[maxi].freq - Parameters::FREQ[1]) < EPSILON)
+			if (!foundFreq)
 			{
-				// one detected
-				for (int j = 0; j < window_size; j++) one_detected[i + j]++;
-			}
-			else
-			{
-				// other detected
 				for (int j = 0; j < window_size; j++) other_detected[i + j]++;
 			}
+			//if (abs(temp[maxi].freq - Parameters::FREQ[0]) < EPSILON)
+			//{
+			//	// ZERO detectd
+			//	for (int j = 0; j < window_size; j++) zero_detected[i + j]++;
+			//}
+			//else if (abs(temp[maxi].freq - Parameters::FREQ[1]) < EPSILON)
+			//{
+			//	// one detected
+			//	for (int j = 0; j < window_size; j++) one_detected[i + j]++;
+			//}
+			//else
+			//{
+			//	// other detected
+			//	for (int j = 0; j < window_size; j++) other_detected[i + j]++;
+			//}
 			
 		}
 		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 
@@ -542,31 +578,59 @@ public:
 		// just follow the same rule
 		for (int i = starting_index; i < frames.size() - fps; i += frames_per_symbol)
 		{
-			if (zero_detected[i] > one_detected[i])
+			//if (zero_detected[i] > one_detected[i])
+			//{
+			//	// this first frame and zero
+			//	result.push_back(0);
+			//}
+			//else if (one_detected[i] > zero_detected[i])
+			//{
+			//	// this first frame and one
+			//	result.push_back(1);
+			//}
+			int maxIdx = 0;
+			for (int j = 1; j < Parameters::symbolsData.allData.size(); j++)
 			{
-				// this first frame and zero
-				result.push_back(0);
+				if (detection[j][i] > detection[maxIdx][i])
+				{
+					maxIdx = j;
+				}
 			}
-			else if (one_detected[i] > zero_detected[i])
+			bool foundSymbol = true;
+			for (int j = 1; j < Parameters::symbolsData.allData.size(); j++)
 			{
-				// this first frame and one
-				result.push_back(1);
+				if (j != maxIdx && detection[maxIdx][i] > detection[j][i])
+				{
+					foundSymbol = false;
+					break;
+				}
+			}
+			if (foundSymbol)
+			{
+				vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
+				result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
 			}
 			else
 			{
 				if (Parameters::DecodingMethod == FFT_NO_RANDOM_GUESS)
 				{
-					result.push_back(2);
+					for (int j = 0; j < Parameters::symbolsData.allData[0].symbol.size(); j++)
+					{
+						result.push_back(2);
+					}
 				}
 				else if (Parameters::DecodingMethod == FFT_RANDOM_GUESS)
 				{
-					if (result.size() == 0)
+					for (int j = 0; j < Parameters::symbolsData.allData[0].symbol.size(); j++)
 					{
-						result.push_back(1);
-					}
-					else
-					{
-						result.push_back((~result[result.size() - 1]) & 1);
+						if (result.size() == 0)
+						{
+							result.push_back(1);
+						}
+						else
+						{
+							result.push_back((~result[result.size() - 1]) & 1);
+						}
 					}
 				}
 				
