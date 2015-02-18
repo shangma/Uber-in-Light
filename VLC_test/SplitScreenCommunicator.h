@@ -22,10 +22,10 @@ public:
 
 	virtual void initCommunication()
 	{
-		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1));
+		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
 		
-		framesForSymbol = (fps * 1000) / symbol_time;
+		framesForSymbol = (Parameters::fps * 1000) / Parameters::symbolTime;
 		
 		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true);
 	}
@@ -52,9 +52,9 @@ public:
 		{
 			for (int k = 0; k < framesForSymbol; k++)
 			{
-				if ((i + k) >= frameIndex)
+				if ((i + k*sections) >= frameIndex)
 				{
-					frameIndex += inputFrameUsageFrames;
+					frameIndex += inputFrameUsageFrames*sections;
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}
@@ -178,7 +178,7 @@ public:
 		vector<vector<short>> vt;
 		for (int k = 0; k < sections; k++)
 		{
-			vt.push_back(receive2(frames[k], fps, frames_per_symbol));
+			vt.push_back(receive2(frames[k], fps));
 		}
 		for (int i = 0; i < vt[0].size(); i++)
 		{
@@ -195,7 +195,7 @@ public:
 	{
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength,true);
-		return receiveN(frames, 30, frames_per_symbol);
+		return receiveN(frames, fps, frames_per_symbol);
 	}
 };
 

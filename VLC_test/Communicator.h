@@ -156,10 +156,10 @@ protected:
 protected:
 	int frame_width;
 	int frame_height;
-	double fps;
+	//double fps;
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
-	int symbol_time;
+	//int symbol_time;
 	cv::Rect globalROI;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
@@ -261,10 +261,8 @@ public:
 	createOfflineVideo(fileName, msg, "output.avi", 1000);
 	}
 	*/
-	bool initImage(double fps, string inputImage, vector<short> msg, string outputVideoFile, int symbol_time)
+	bool initImage(string inputImage, vector<short> msg, string outputVideoFile)
 	{
-		this->fps = fps;
-		this->symbol_time = symbol_time;
 		this->msg = msg;
 		img = imread(inputImage);
 		cv::resize(img, img, Utilities::getFrameSize());
@@ -272,26 +270,25 @@ public:
 		//cv::waitKey(0);
 		frame_width = img.cols;
 		frame_height = img.rows;
-		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
 		globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 		return true;
 	}
-	bool initVideo(string inputVideoFile, vector<short> msg, string outputVideoFile, int symbol_time)
+	bool initVideo(string inputVideoFile, vector<short> msg, string outputVideoFile)
 	{
 		videoReader.open(inputVideoFile);
 		if (videoReader.isOpened())
 		{
-			this->symbol_time = symbol_time;
 			this->msg = msg;
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
-			fps = Utilities::getOuputVideoFrameRate((int)framerate);
+			Parameters::fps = Utilities::getOuputVideoFrameRate((int)framerate);
 
-			inputFrameUsageFrames = fps / framerate;
+			inputFrameUsageFrames = Parameters::fps / framerate;
 
-			vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), fps, Utilities::getFrameSize());
+			vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
 			globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 			return true;
 		}
@@ -301,14 +298,14 @@ public:
 	{
 		if (end)
 		{
-			Utilities::addDummyFramesToVideo(vidWriter, fps);
-			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
 			vidWriter.release();
 		}
 		else
 		{
-			Utilities::addDummyFramesToVideo(vidWriter, fps, Utilities::createChessBoard());
-			Utilities::addDummyFramesToVideo(vidWriter, fps);
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
 		}
 	}
 
@@ -318,17 +315,7 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		double lumin[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin));
-		//amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin, true));
-		// compare
-		//for (int i = 0; i < amplitudes[0].size();i++)
-		//{
-		//	//if (amplitudes[0][i] != amplitudes[1][i])
-		//	{
-		//		cout << i << "\t" << amplitudes[0][i] << "\t" << amplitudes[1][i] << endl;
-		//	}
-		//}
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -399,8 +386,9 @@ public:
 	//	//myft(frames,30,180);
 	//	//myft();
 	//}
-	vector<short> receive2(vector<float> frames, int fps, int frames_per_symbol)
+	vector<short> receive2(vector<float> frames, int fps)
 	{
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
 			return receiveCrossCorrelation(frames, fps, frames_per_symbol);
@@ -408,30 +396,61 @@ public:
 		return receiveFFT(frames, fps, frames_per_symbol);
 	}
 	// calculate the best fit between two signals based on cross-correlation and return the peek value
-	double calcCrossCorrelate(vector<float> &signal, vector<float> &test)
+	vector<double> calcCrossCorrelate(vector< vector<float> > &signals, vector<float> &test,int start, int end)
 	{
-		double bestVal = 0;
-		int best_i = 0;
-		int tsz = test.size();
-		int ssz = signal.size();
-		for (int i = 1 - tsz; i < ssz - 1;i++)
+		//double totalBestVal = 0;
+		vector<double> bestVal(signals.size(), 0);
+		vector<double> avgAmplitude(signals.size(), 0);
+		vector<int> count(signals.size(), 0);
+		int tsz = end - start + 1;
+		int ssz = signals[0].size();
+		for (int i = -(tsz >> 1); i < (ssz >> 1);i++)
 		{	
-			double sum = 0;
+			vector<double> sum(signals.size(), 0);
+			vector<double> sumAmp(signals.size(), 0);
+			vector<int> cntAmp(signals.size(), 0);
+			//double totalSum = 0;
 			for (int j = std::max(0, i); j < std::min(ssz, tsz + i); j++)
 			{
-				sum += signal[j] * test[j - i];
+				for (int k = 0; k < signals.size(); k++)
+				{
+					sum[k] += signals[k][j] * test[j - i + start];
+					if (test[j - i + start] > test[j - i + start - 1] && test[j - i + start] > test[j - i + start + 1])
+					{
+						sumAmp[k] += abs(test[j - i + start]);
+						cntAmp[k]++;
+					}
+					else if (test[j - i + start] < test[j - i + start - 1] && test[j - i + start] < test[j - i + start + 1])
+					{
+						sumAmp[k] += abs(test[j - i + start]);
+						cntAmp[k]++;
+					}
+				}
 			}
+			//sum /= cnt;
 			//cout << i << "\t" << sum << endl;
-			if (sum > bestVal)
+			for (int k = 0; k < sum.size(); k++)
 			{
-				bestVal = sum;
-				best_i = i;
+				if (sum[k] > bestVal[k])
+				{
+					bestVal[k] = sum[k];
+					avgAmplitude[k] = sumAmp[k] / cntAmp[k];
+				}
 			}
 		}
-		//cout << bestVal << endl;
+		int maxID = 0;
+		for (int i = 1; i < bestVal.size(); i++)
+		{
+			if(bestVal[i] > bestVal[maxID])
+			{
+				maxID = i;
+			}
+		}
+		cout << avgAmplitude[maxID] << "\t";
+		
+		cout << endl;
 		return bestVal;
 	}
-	
 
 	// receive using cross-correlation as classifier
 	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol)
@@ -439,23 +458,28 @@ public:
 		// return array
 		vector<short> result;
 		// create the signals to use in correlation
-		vector<float> zeroSignal = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, FREQ[ZERO]);
-		vector<float> oneSignal = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, FREQ[ONE]);
+		vector<vector<float> > signals;
+		signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[0]));
+		signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[1]));
 		int window_size = frames_per_symbol;
-		int end = frames.size() - 2 * window_size;
-		for (int i = window_size; i < end; i += window_size)
+		int end = frames.size() - fps - window_size;
+		
+		for (int i = fps; i < end; i += window_size)
 		{
-			vector<float> test(frames.begin() + i, frames.begin() + i + window_size);
-			double oneDetected = calcCrossCorrelate(oneSignal, test);
-			double zeroDetected = calcCrossCorrelate(zeroSignal, test);
-			if (oneDetected > zeroDetected)
+			//vector<float> test(frames.begin() + i, frames.begin() + i + window_size);
+			
+			vector<double> Detected = calcCrossCorrelate(signals, frames, i - 2, i + window_size + 2);
+			if (Detected[1] > Detected[0])
 			{
+				//cout << oneDetected << endl;
 				result.push_back(1);
 			}
 			else// if (zeroDetected > oneDetected)
 			{
+				//cout << zeroDetected << endl;
 				result.push_back(0);
 			}
+			//cout << endl;
 			//else
 			//{
 			//	result.push_back(2);
@@ -471,7 +495,7 @@ public:
 		vector<int> one_detected(frames.size(), 0);
 		vector<int> other_detected(frames.size(), 0);
 		int window_size = frames_per_symbol;
-		for (int i = 0; i < frames.size() - window_size; i++)
+		for (int i = 0; i < frames.size() - fps; i++)
 		{
 			//cout << frames[i] << endl;
 			vector<Frequency> temp = Utilities::myft(frames, fps, i, window_size);
@@ -484,12 +508,12 @@ public:
 					maxi = j;
 				}
 			}
-			if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
+			if (abs(temp[maxi].freq - Parameters::FREQ[0]) < EPSILON)
 			{
 				// ZERO detectd
 				for (int j = 0; j < window_size; j++) zero_detected[i + j]++;
 			}
-			else if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
+			else if (abs(temp[maxi].freq - Parameters::FREQ[1]) < EPSILON)
 			{
 				// one detected
 				for (int j = 0; j < window_size; j++) one_detected[i + j]++;
@@ -503,7 +527,7 @@ public:
 		}
 		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 
 		// and the symbol should have enough time (at least after the first FRAMES_PER_SYMBOL have been passed)
-		int starting_index = (frames_per_symbol * 3) / 2; // to be in the middle of the first symbol as we have the first symbol time empty
+		int starting_index = fps + frames_per_symbol / 2; // to be in the middle of the first symbol as we have the first symbol time empty
 		//for (int i = frames_per_symbol; i < frames.size() - frames_per_symbol; i++)
 		//{
 		//	if ((zero_detected[i] + one_detected[i]) * 10 >= (zero_detected[i] + one_detected[i] + other_detected[i]) * 6)
@@ -516,7 +540,7 @@ public:
 		cout << "Starting Index Inside loaded frames = " << starting_index << endl;
 		// for the rest of the symbols
 		// just follow the same rule
-		for (int i = starting_index; i < frames.size() - frames_per_symbol; i += frames_per_symbol)
+		for (int i = starting_index; i < frames.size() - fps; i += frames_per_symbol)
 		{
 			if (zero_detected[i] > one_detected[i])
 			{
@@ -552,28 +576,28 @@ public:
 	}
 
 	// receive with a certain ROI ratio
-	virtual vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	virtual vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true)[0];
-		return receive2(frames, 30, frames_per_symbol);
+		return receive2(frames, fps);
 	}
 
 	// receive with a certain ROI ratio
-	virtual vector<short> receiveColor(string fileName, int frames_per_symbol, double ROI_Ratio, cv::Scalar color)
+	virtual vector<short> receiveColor(string fileName, double ROI_Ratio, cv::Scalar color)
 	{
 		puts("color");
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, color)[0];
-		return receive2(frames, 30, frames_per_symbol);
+		return receive2(frames, fps);
 	}
 
 	// receive with a certain ROI ratio
-	void receiveWithSelectionByHand(string fileName, int frames_per_symbol)
+	void receiveWithSelectionByHand(string fileName)
 	{
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, fps);
-		receive2(frames, fps, frames_per_symbol);
+		receive2(frames, fps);
 	}
 
 	/// get video frames luminance

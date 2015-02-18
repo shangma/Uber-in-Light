@@ -213,7 +213,7 @@ public:
 				// get the file name
 				if (i < argc - 1)
 				{
-					FREQ[ZERO] = stod(string(argv[++i]));
+					Parameters::FREQ[0] = stod(string(argv[++i]));
 				}
 				else
 				{
@@ -225,7 +225,7 @@ public:
 				// get the file name
 				if (i < argc - 1)
 				{
-					FREQ[ONE] = stod(string(argv[++i]));
+					Parameters::FREQ[1] = stod(string(argv[++i]));
 				}
 				else
 				{
@@ -323,6 +323,30 @@ public:
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-amp"))
+			{
+				// the amplitude
+				if (i < argc - 1)
+				{
+					Parameters::LUMINANCE = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-time"))
+			{
+				// the amplitude
+				if (i < argc - 1)
+				{
+					Parameters::symbolTime = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 		}
 		if (inputFileName == "")
 		{
@@ -358,7 +382,6 @@ public:
 		default:
 			communicator = new Communicator;
 		}
-		
 		switch (mode)
 		{
 		case SEND:
@@ -380,16 +403,15 @@ public:
 			if (realVideo)
 			{
 				if (communicator->initVideo(inputFileName, msg,
-					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000))
+					Utilities::createOuputVideoName(msgFileName, inputFileName, outputFileName)))
 				{
 					communicator->sendVideo();
 				}
 			}
 			else
 			{
-				if (communicator->initImage(Utilities::getOuputVideoFrameRate(1),
-					inputFileName, msg,
-					Utilities::createOuputVideoName(msgFileName, 1000, inputFileName, outputFileName), 1000))
+				if (communicator->initImage(inputFileName, msg,
+					Utilities::createOuputVideoName(msgFileName, inputFileName, outputFileName)))
 				{
 					communicator->sendImage();
 				}
@@ -404,11 +426,11 @@ public:
 				vector<short> received;
 				if (!color)
 				{
-					received = communicator->receive(inputFileName, Parameters::framesPerSymbol, ROI);
+					received = communicator->receive(inputFileName, ROI);
 				}
 				else
 				{
-					received = communicator->receiveColor(inputFileName, Parameters::framesPerSymbol, ROI,cv::Scalar(0,0,230));
+					received = communicator->receiveColor(inputFileName, ROI,cv::Scalar(0,0,230));
 				}
 				for (int i = 0; i < msg.size(); i++)
 				{
@@ -434,7 +456,7 @@ public:
 			}
 			else
 			{
-				communicator->receiveWithSelectionByHand(inputFileName, Parameters::framesPerSymbol);
+				communicator->receiveWithSelectionByHand(inputFileName);
 			}
 			break;
 		case CNVRT:

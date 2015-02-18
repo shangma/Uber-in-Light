@@ -11,7 +11,8 @@ int main(int argc, char** argv)
 		oneSignal.push_back(sin(2 * MM_PI * FREQ[ONE] * i / 30));
 		cout << zeroSignal[i] << "\t" << oneSignal[i] << endl;
 	}*/
-	//Utilities::exploreVideo("..\\Release\\red2.mp4");
+	//Utilities::testVideoBackGround("..\\Release\\revised\\20141216_101410_1275875420_long_testtestrand_12Hz_9Hz_1000ms_001levels_I420_Tree24avi_output.mp4",
+	//	"masks.avi",15,10,20);
 	return Properties::getInst()->testSendReceive(argc, argv);
 	//BCH bch;
 	//bch.testBCH();

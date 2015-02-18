@@ -34,8 +34,39 @@ public:
 
 	static void updateFrameWithVchannel(Mat &frame, Rect ROI, double percentage)
 	{
-		Mat aux = frame(ROI);
-		aux = (aux + percentage * 255);
+		//Mat aux = frame(ROI);
+		//aux = (aux + percentage * 255);
+		double val = percentage * 255;
+		double absVal = abs(val);
+		int addVal = floor(absVal);
+		int sign = percentage > 0 ? 1 : -1;
+		addVal *= sign;
+		double diff = absVal - addVal;
+		int threshold = diff * 100;
+		//cout << threshold << endl;
+		unsigned char* data = (unsigned char*)frame.data;
+		int rows = ROI.y + ROI.height;
+		int cols = ROI.x + ROI.width;
+		int j = 0;
+		int i = ROI.y * frame.cols + ROI.x;
+		int inc = frame.cols - ROI.width;
+		//cout << "here" << endl;
+		for (int r = ROI.y; r < rows; r++)
+		{
+			for (int c = ROI.x; c < cols; c++, j++, i++)
+			{
+				data[i * 3] += addVal;
+				data[i * 3 + 1] += addVal;
+				data[i * 3 + 2] += addVal;
+				if ((j % 100) < threshold)
+				{
+					data[i * 3] += sign;
+					data[i * 3 + 1] += sign;
+					data[i * 3 + 2] += sign;
+				}
+			}
+			i += inc;
+		}
 	}
 	static void updateFrameWithAlpha(Mat &frame, Rect ROI, double percentage)
 	{
@@ -66,11 +97,11 @@ public:
 
 	static int getOuputVideoFrameRate(int inputFps)
 	{
-		if (Parameters::fps)
-		{
+		//if (Parameters::fps)
+		//{
 			return Parameters::fps;
-		}
-		return lcm(inputFps, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
+		//}
+		//return lcm(inputFps, Utilities::lcm(2 * FREQ[ZERO], 2 * FREQ[ONE]));
 	}
 	/*
 	static void myft()
@@ -405,6 +436,62 @@ public:
 		}
 	}
 
+	// convert video fps to certain given fps
+	static void testVideoBackGround(string inputVideo, string outputVideo, double fps, double starting_second, double ending_second)
+	{
+		VideoCapture videoReader(inputVideo);
+		if (videoReader.isOpened())
+		{
+			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
+			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			while (frame_height > 1000)
+			{
+				frame_width /= 2;
+				frame_height /= 2;
+			}
+			int starting_frame = starting_second * framerate;
+			int ending_frame = ending_second * framerate - 1;
+
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame); //Set index to last frame
+			VideoWriter vidWriter;
+			vidWriter.open(outputVideo, CV_FOURCC('D', 'I', 'V', 'X'), fps, cv::Size(frame_width * 2, frame_height * 2));
+			Mat frame;
+			videoReader.set(CV_CAP_PROP_POS_FRAMES, starting_frame);
+			Mat prev;
+			if (videoReader.read(prev))
+			{
+				cv::resize(prev, prev, cv::Size(frame_width, frame_height));
+				for (int j = starting_frame; j <= ending_frame && videoReader.read(frame); j++)
+				{
+					//printf("%d\n", j);
+					Mat tmp;
+					cv::resize(frame, tmp, cv::Size(frame_width, frame_height));
+
+					Mat output = Mat::zeros(frame_height * 2, frame_width * 2, prev.type());
+					prev.copyTo(output(cv::Rect(0, 0, frame_width, frame_height)));
+					cv::putText(output, "Previous Frame", cv::Point(30, 30), FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0), 2);
+					tmp.copyTo(output(cv::Rect(frame_width, 0, frame_width, frame_height)));
+					cv::putText(output, "Current Frame", cv::Point(30 + frame_width, 30), FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0), 2);
+					Mat old_mask = MaskFactory::getBackgroundMaskAlgo(prev, tmp);
+					cvtColor(old_mask, output(cv::Rect(0, frame_height, frame_width, frame_height)), CV_GRAY2BGR);
+					Mat new_mask = MaskFactory::getBackgroundMask(prev, tmp);
+					cvtColor(new_mask, output(cv::Rect(frame_width, frame_height, frame_width, frame_height)), CV_GRAY2BGR);
+					cv::putText(output, "Old Mask", cv::Point(30, 30 + frame_height), FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0), 2);
+					cv::putText(output, "New Mask", cv::Point(30 + frame_width, 30 + frame_height), FONT_HERSHEY_PLAIN, 2, cv::Scalar(255, 0, 0), 2);
+					Mat tmp2;
+					cv::resize(output, tmp2, getFrameSize());
+					//imshow("output", tmp2);
+					//cv::waitKey(0);
+					vidWriter << output;
+
+					prev = tmp.clone();
+				}
+			}
+		}
+	}
+
 	// calculate correlation in video frames
 	static void correlateVideoDifference(string inputVideo, double starting_second, double ending_second, int n)
 	{
@@ -491,11 +578,11 @@ public:
 	}
 
 	// this method is combining the system parameters into a string to be used in the output video name
-	static string createOuputVideoName(string inputMessage,int symbol_time,string inputVideoFile,string outputVideoFile)
+	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
 		ostringstream outputVideoStream;
-		outputVideoStream << inputMessage << "_" << FREQ[ZERO] << "Hz_" << FREQ[ONE] << "Hz_";
-		outputVideoStream << symbol_time << "ms_" << (LUMINANCE[0] - LUMINANCE[1]) << "levels_" << codec << "_" << inputVideoFile << "_";// << outputVideoFile;
+		outputVideoStream << inputMessage << "_" << Parameters::FREQ[0] << "Hz_" << Parameters::FREQ[1] << "Hz_";
+		outputVideoStream << Parameters::symbolTime << "ms_" << (2 * Parameters::LUMINANCE) << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
 		str.erase(end_pos, str.end());
@@ -528,7 +615,7 @@ public:
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / Parameters::framesPerSymbol;;
+			nextIndex += fps / 30;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -615,7 +702,7 @@ public:
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / Parameters::framesPerSymbol;;
+			nextIndex += fps / 30;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -828,6 +915,7 @@ public:
 		{
 			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, Parameters::globalROI, color);
 		}
+		framerate = 30; // because we sample at 30 fps
 		return frames;
 	}
 
@@ -988,7 +1076,7 @@ public:
 	}
 
 	// open a video writer to use the same codec with every one
-	static VideoWriter getVideoWriter(string vidName,double framerate, cv::Size frameSize)
+	static VideoWriter getVideoWriter(string vidName,cv::Size frameSize)
 	{
 		// 0 -> no compression, DIVX, H264
 		unsigned long milliseconds_since_epoch =
@@ -997,13 +1085,13 @@ public:
 		ostringstream name;
 		name << milliseconds_since_epoch << "_" << vidName;
 		VideoWriter vidWriter(name.str(),
-			CV_FOURCC(codec[0], codec[1], codec[2], codec[3])
-			, framerate, frameSize);
+			CV_FOURCC(Parameters::codec[0], Parameters::codec[1], Parameters::codec[2], Parameters::codec[3])
+			, Parameters::fps, frameSize);
 		return vidWriter;
 	}
 	static cv::Size getFrameSize()
 	{
-		return DefaultFrameSize;
+		return Parameters::DefaultFrameSize;
 	}
 
 	// calculate longest common subsequence between two strings
@@ -1054,7 +1142,7 @@ public:
 		int o_sz = orig_msg.size();
 		int best_i;
 		vector<int> errors;
-		for (int i = 0; i < 1; i++)
+		for (int i = 1 - t_sz; i < o_sz; i++)
 		{
 			int sum = 0;
 			vector<int> tempErrors;
@@ -1096,17 +1184,12 @@ public:
 				
 				// for testing the correctness of this only
 				errors.clear();
-				int err[] = { 16, 21, 22, 24, 25, 27, 29, 30, 31, 36, 45, 56, 70, 71, 76, 77, 78, 81, 82, 86, 129, 133, 134, 136, 137, 138, 139, 144, 145, 153, 168, 170, 178, 184, 185, 186, 189, 190, 193, 194 };
-				for (int i = 0; i < 40; i++)
-				{
-					errors.push_back(err[i]);
-				}
 				for (int i = 0; i < errors.size(); i++)
 				{
 					ostringstream outputName;
 					outputName << std::setfill('0') << std::setw(10);
-					int start_data = Parameters::framesPerSymbol * (errors[i] + 1);
-					int end_data = start_data + Parameters::framesPerSymbol;
+					int start_data = 30 * (errors[i] + 1);
+					int end_data = start_data + 30;
 					int start_second = framerate * (errors[i] + 1);
 					int end_second = start_second + framerate;
 					outputName << start_second / framerate << "_" << end_second / framerate << "_" << orig_msg[errors[i]] << "_" << test_msg[errors[i]];
@@ -1175,13 +1258,13 @@ public:
 		double boarderPercentage = 0.95;
 		Mat board = 255 * Mat::ones(Utilities::getFrameSize(), CV_8UC1);
 		cv::cvtColor(board, board, CV_GRAY2BGR);
-		int xStep = (board.cols * boarderPercentage) / (patternsize.width + 1);
-		int yStep = (board.rows * boarderPercentage) / (patternsize.height + 1);
+		int xStep = (board.cols * boarderPercentage) / (Parameters::patternsize.width + 1);
+		int yStep = (board.rows * boarderPercentage) / (Parameters::patternsize.height + 1);
 		int xStart = (board.cols * (1 - boarderPercentage)) / 2;
 		int yStart = (board.rows * (1 - boarderPercentage)) / 2;
-		for (int x = 0; x <= patternsize.width; x += 2)
+		for (int x = 0; x <= Parameters::patternsize.width; x += 2)
 		{
-			for (int y = 0; y <= patternsize.height; y += 2)
+			for (int y = 0; y <= Parameters::patternsize.height; y += 2)
 			{
 				cv::rectangle(board,
 					cv::Point(xStart + x*xStep, yStart + y*yStep),
@@ -1191,9 +1274,9 @@ public:
 
 			}
 		}
-		for (int x = 1; x <= patternsize.width; x += 2)
+		for (int x = 1; x <= Parameters::patternsize.width; x += 2)
 		{
-			for (int y = 1; y <= patternsize.height; y += 2)
+			for (int y = 1; y <= Parameters::patternsize.height; y += 2)
 			{
 				cv::rectangle(board,
 					cv::Point(xStart + x*xStep, yStart + y*yStep),
@@ -1225,7 +1308,7 @@ public:
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
 		//that do not contain any chessboard corners
-		bool patternfound = findChessboardCorners(gray, patternsize, corners,
+		bool patternfound = findChessboardCorners(gray, Parameters::patternsize, corners,
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
 
@@ -1233,7 +1316,7 @@ public:
 		if (patternfound)
 		{
 			cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
-				TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, Parameters::framesPerSymbol, 0.1));
+				TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
 		}
 		else
 		{
@@ -1264,7 +1347,7 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat &img, cv::Size myPattern = patternsize)
+	static bool canDetectMyBoard(Mat &img, cv::Size myPattern = Parameters::patternsize)
 	{
 		// create the gray image
 		Mat gray; //source image

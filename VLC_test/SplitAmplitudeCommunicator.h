@@ -11,10 +11,10 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1));
-		double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2));
+		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		//double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, -Parameters::LUMINANCE));
 
 		ROIs = Utilities::getDivisions(2, 1, false, globalROI, true);
 	}
@@ -131,16 +131,19 @@ public:
 
 
 	// receive with a certain ROI ratio
-	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,true);
 		vector<float> amplitude_difference;
+		//double avg = 0;
 		for (int i = 0; i < frames[0].size(); i++)
 		{
 			amplitude_difference.push_back(frames[0][i] - frames[1][i]);
+			//avg = std::max((double)abs(amplitude_difference[i]),avg);
 		}
-		return receive2(amplitude_difference, 30, frames_per_symbol);
+		//cout << "Avg amplitude = " << avg << endl;
+		return receive2(amplitude_difference, fps);
 	}
 };
 

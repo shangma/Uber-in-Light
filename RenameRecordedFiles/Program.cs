@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace RenameRecordedFiles
@@ -83,6 +84,12 @@ namespace RenameRecordedFiles
 
             return new_name.Substring(first, last - first) + ".rand";
         }
+        static string getSymbolTime(string new_name)
+        {
+            Regex reg = new Regex(@"_\d+ms_");
+            Match m = reg.Match(new_name);
+            return m.Value.Substring(1,m.Value.Length - 4);
+        }
         static void Main(string[] args)
         {
             string currentDirectory = Environment.CurrentDirectory;
@@ -97,19 +104,29 @@ namespace RenameRecordedFiles
             {
                 FileInfo avif = new FileInfo(aviFiles[i % aviFiles.Length]);
                 FileInfo mp4f = new FileInfo(mp4Files[i]);
-                string new_name = mp4f.Name + "_" + avif.Name;
-                new_name = new_name.Replace(".avi", "");
-                new_name = new_name.Replace(".mp4", "");
+                string new_name = Path.GetFileNameWithoutExtension(mp4f.Name);
+                if (!mp4f.Name.Contains(Path.GetFileNameWithoutExtension(avif.Name)))
+                {
+                    new_name += "_" + Path.GetFileNameWithoutExtension(avif.Name);
+                }
                 new_name += ".mp4";
-                File.Copy(mp4Files[i], new_name);
-                //File.Delete(mp4Files[i]);
-                int mode = getMode(new_name); /// 0 -  normal, 1 -> AmpDifference
+                try
+                {
+                    File.Move(mp4Files[i], new_name);
+                }
+                catch(Exception)
+                {
 
-                int correction_code = getCorrectionCode(new_name);
-                int[] freq = getFreq(new_name);
-                sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} > {0}\\{1}.txt",
+                }
+                //File.Delete(mp4Files[i]);
+                int mode = getMode(avif.Name); /// 0 -  normal, 1 -> AmpDifference
+
+                int correction_code = getCorrectionCode(avif.Name);
+                int[] freq = getFreq(avif.Name);
+                string time = getSymbolTime(avif.Name);
+                sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {8} > {0}\\{1}.txt",
                     dinf.Name, new_name, mode, correction_code, freq[0], freq[1], (int)Decodeing.CROSS_CORRELATION, 
-                    getRandFileName(new_name));
+                    getRandFileName(new_name),time);
             }
             sw.Close();
             //if (mp4Files.Length == 0)
@@ -123,9 +140,10 @@ namespace RenameRecordedFiles
                     int mode = getMode(new_name);
                     int correction_code = getCorrectionCode(new_name);
                     int[] freq = getFreq(new_name);
-                    sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} > {0}\\{1}.txt",
+                    string time = getSymbolTime(new_name);
+                    sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {8} > {0}\\{1}.txt",
                    dinf.Name, new_name, mode, correction_code, freq[0], freq[1], (int)Decodeing.CROSS_CORRELATION,
-                   getRandFileName(new_name));
+                   getRandFileName(new_name), time);
                 }
             }
             sw.Close();

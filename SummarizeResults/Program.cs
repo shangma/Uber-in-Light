@@ -26,15 +26,23 @@ namespace SummarizeResults
             {
                 StreamReader sr = new StreamReader(file);
                 string data;
-                while (!sr.EndOfStream)
+                if (!sr.EndOfStream)
                 {
-                    data = sr.ReadToEnd();
+                    data = "";
+                    while (!data.Contains(" and "))
+                    {
+                        data = sr.ReadLine();
+                    } 
                     Regex reg = new Regex(@"\d+ and \d+");
                     Match match = reg.Match(data);
                     string[] total = match.Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                     int orig, tst, lcs;
                     orig = int.Parse(total[0]);
                     tst = int.Parse(total[2]);
+                    while (!data.Contains("Longest Common SubString"))
+                    {
+                        data = sr.ReadLine();
+                    } 
                     reg = new Regex(@"Length = \d+");
                     match = reg.Match(data);
                     string[] common = match.Value.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);

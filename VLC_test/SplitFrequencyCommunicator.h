@@ -12,9 +12,9 @@ public:
 
 	virtual void initCommunication()
 	{
-		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1));
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1));
+		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
 		
 		ROIs = Utilities::getDivisions(2, 1, false, globalROI, true);
 	}
@@ -173,12 +173,12 @@ protected:
 		for (; ind < freqDiff.size(); ind++)
 		{
 			//cout << endl << ind << "\t" << maxFreq1[ind] << "\t" << maxFreq2[ind] << "\t" << freqDiff[ind] << "\t";
-			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
+			if (abs(freqDiff[ind] - (Parameters::FREQ[0] - Parameters::FREQ[1])) < EPSILON)
 			{
 				result.push_back(0);
 				break;
 			}
-			else if (abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])) < EPSILON)
+			else if (abs(freqDiff[ind] - (Parameters::FREQ[1] - Parameters::FREQ[0])) < EPSILON)
 			{
 				result.push_back(1);
 				break;
@@ -193,7 +193,7 @@ protected:
 		for (; ind < freqDiff.size() - 1;)
 		{
 			//if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < EPSILON)
-			if (abs(freqDiff[ind] - (FREQ[ZERO] - FREQ[ONE])) < abs(freqDiff[ind] - (FREQ[ONE] - FREQ[ZERO])))
+			if (abs(freqDiff[ind] - (Parameters::FREQ[0] - Parameters::FREQ[1])) < abs(freqDiff[ind] - (Parameters::FREQ[1] - Parameters::FREQ[0])))
 			{
 				result.push_back(0);
 				i = 0;

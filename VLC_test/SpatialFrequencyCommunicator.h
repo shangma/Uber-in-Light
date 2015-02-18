@@ -15,15 +15,15 @@ public:
 		int frame_width = img.cols;
 		int frame_height = img.rows;
 		// create the video writer
-		VideoWriter vidWriter = Utilities::getVideoWriter("SpatialFrequency_" + outputVideoFile, framerate, cv::Size(frame_width, frame_height));
+		VideoWriter vidWriter = Utilities::getVideoWriter("SpatialFrequency_" + outputVideoFile, cv::Size(frame_width, frame_height));
 		if (vidWriter.isOpened())
 		{
 			Mat frame = img.clone();
 			int clnWidth = frame_width / 20;
 			for (int i = 0; i < frame_width - clnWidth; i += clnWidth)
 			{
-				Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
-				Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
+				Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), Parameters::LUMINANCE);
+				Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), -Parameters::LUMINANCE);
 			}
 			for (int i = 0; i < 300; i++)
 			{
@@ -71,8 +71,8 @@ public:
 					{
 						for (int i = 0; i < frame_width - clnWidth; i += clnWidth)
 						{
-							Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), LUMINANCE[0]);
-							Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), LUMINANCE[1]);
+							Utilities::updateFrameLuminance(frame, cv::Rect(i, 0, clnWidth / 2, frame_height), Parameters::LUMINANCE);
+							Utilities::updateFrameLuminance(frame, cv::Rect(i + clnWidth / 2, 0, clnWidth / 2, frame_height), -Parameters::LUMINANCE);
 						}
 					}
 					vidWriter << frame;

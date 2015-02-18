@@ -16,12 +16,12 @@ public:
 
 	virtual void initCommunication()
 	{
-		double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin1));
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin1));
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ZERO], FREQ[ONE], lumin2));
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(fps, msg, symbol_time, FREQ[ONE], FREQ[ZERO], lumin2));
+		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		//double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, -Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, -Parameters::LUMINANCE));
 		
 		ROIs = Utilities::getDivisions(4, 1, false, globalROI, true);
 	}
