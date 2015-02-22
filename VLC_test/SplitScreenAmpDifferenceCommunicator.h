@@ -11,15 +11,21 @@ public:
 	
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_SplitAmp_" + outputVideoFile;
+		ostringstream ostr;
+		ostr << "_SplitAmp_side" << sectionsPerLength << "_" << outputVideoFile;
+		return ostr.str();
 	}
 	
 	virtual void initCommunication()
 	{
 		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		//double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, -Parameters::LUMINANCE));
+		for (int i = 0; i < msg.size(); i++)
+		{
+			msg[i].amplitude = -msg[i].amplitude;
+		}
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		
 		framesForSymbol = (Parameters::fps * 1000) / Parameters::symbolTime;
 		 

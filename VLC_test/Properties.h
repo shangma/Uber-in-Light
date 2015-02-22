@@ -2,7 +2,7 @@
 
 //#include "SplitFrequencyAmplitudeCommunicator.h"
 #include "SplitAmplitudeCommunicator.h"
-#include "SpatialFrequencyCommunicator.h"
+//#include "SpatialFrequencyCommunicator.h"
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 #include "OldCommunicator.h"
@@ -47,7 +47,6 @@ private:
 		inputFileName = "";
 		ROI = 1;
 		type = 0;
-		side = 1;
 		text = "";
 		errorCorrection = 0;
 		interleave = false;
@@ -71,7 +70,6 @@ public:
 	string msgFileName; // the message file Name
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude
-	int side; // number of cells per side
 	bool realVideo; // true means real video and false means not
 	string text; // text to send
 	vector<short> msg; // the message after conversion to vector<short>
@@ -286,7 +284,33 @@ public:
 				// currntly in the conversion only
 				if (i < argc - 1)
 				{
-					side = stoi(string(argv[++i]));
+					Parameters::sideA = Parameters::sideB = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-sidea"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					Parameters::sideA = stoi(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-sideb"))
+			{
+				// the starting second of the video
+				// currntly in the conversion only
+				if (i < argc - 1)
+				{
+					Parameters::sideB = stoi(string(argv[++i]));
 				}
 				else
 				{
@@ -330,7 +354,7 @@ public:
 				// the amplitude
 				if (i < argc - 1)
 				{
-					Parameters::LUMINANCE = stod(string(argv[++i]));
+					//Parameters::LUMINANCE = stod(string(argv[++i]));
 				}
 				else
 				{
@@ -343,6 +367,17 @@ public:
 				if (i < argc - 1)
 				{
 					Parameters::symbolTime = stod(string(argv[++i]));
+				}
+				else
+				{
+					return returnError();
+				}
+			}
+			else if (!strcmp(argv[i], "-symbols"))
+			{
+				if (i < argc - 1)
+				{
+					Parameters::symbolsData.readData(string(argv[++i]));
 				}
 				else
 				{
@@ -370,13 +405,13 @@ public:
 			//communicator = new SplitFrequencyAmplitudeCommunicator;
 			break;
 		case SPLIT_SCREEN_TEMPORAL_CORRELATION:
-			communicator = new SplitScreenCommunicator(side);
+			communicator = new SplitScreenCommunicator(Parameters::sideA);
 			break;
 		case SPLIT_SCREEN_SPATIAL_REDUNDANCY:
-			communicator = new SplitScreenAmpDifferenceCommunicator(side);
+			communicator = new SplitScreenAmpDifferenceCommunicator(Parameters::sideA);
 			break;
 		case 6:
-			communicator = new SpatialFrequencyCommunicator;
+			//communicator = new SpatialFrequencyCommunicator;
 			break;
 		case -1:
 			communicator = new OldCommunicator;

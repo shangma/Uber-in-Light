@@ -596,8 +596,8 @@ public:
 	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
 		ostringstream outputVideoStream;
-		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "Hz_";
-		outputVideoStream << Parameters::symbolTime << "ms_" << (2 * Parameters::LUMINANCE) << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
+		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
+		outputVideoStream << Parameters::symbolTime << "ms_" /*<< (2 * Parameters::LUMINANCE)*/ << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
 		str.erase(end_pos, str.end());

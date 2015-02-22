@@ -51,7 +51,6 @@
     <ClInclude Include="schifra_utilities.hpp" />
     <ClInclude Include="SelectByMouse.h" />
     <ClInclude Include="Communicator.h" />
-    <ClInclude Include="SpatialFrequencyCommunicator.h" />
     <ClInclude Include="SplitAmplitudeCommunicator.h" />
     <ClInclude Include="SplitScreenAmpDifferenceCommunicator.h" />
     <ClInclude Include="SplitScreenCommunicator.h" />

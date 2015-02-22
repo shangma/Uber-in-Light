@@ -35,18 +35,20 @@ struct AllSymbolsData
 	// assume the fiel is sorted
 	void readData(string fileName)
 	{
+		vector<SymbolData> tmp;
 		ifstream ifstr(fileName);
 		if (ifstr.is_open())
 		{
 			SymbolData obj;
 			while (ifstr >> obj.symbol >> obj.frequency >> obj.amplitude >> obj.phase)
 			{
-				allData.push_back(obj);
+				tmp.push_back(obj);
 			}
 		}
-		if (allData.size() >= 2)
+		if (tmp.size() >= 2)
 		{
 			this->fileName = fileName;
+			allData = tmp;
 		}
 	}
 	string toString()
@@ -56,7 +58,7 @@ struct AllSymbolsData
 			return fileName;
 		}
 		ostringstream ostr;
-		ostr << FREQ[0] << "Hz_" << FREQ[1];
+		ostr << FREQ[0] << "Hz_" << FREQ[1] << "Hz";
 		return ostr.str();
 	}
 	void addSymbol(string symbol, double frequency, double amplitude = 0.005, double phase = 0)
@@ -93,23 +95,24 @@ struct AllSymbolsData
 		vector<SymbolData> res;
 		for (int i = 0; i < msg.size();i++)
 		{
-			ostringstream ostr;
-			for (int j = 0; j + i < msg.size(); j++,i++)
+			string ostr;
+			for (int j = 0; i < msg.size(); j++,i++)
 			{
-				ostr << msg[i + j];
-				SymbolData* symbolPtr = getSymbol(ostr.str());
+				ostr += '0' + msg[i];
+				SymbolData* symbolPtr = getSymbol(ostr);
 				if (symbolPtr != 0)
 				{
 					res.push_back(*symbolPtr);
 					ostr.clear();
+					//i += j;
 					break;
 				}
 			}
-			while (ostr.str().size() > 0)
+			while (ostr.size() != 0)
 			{
 				// this should be in the last symbol only otherwise there is something wrong
-				ostr << 0; // pad zeros
-				SymbolData* symbolPtr = getSymbol(ostr.str());
+				ostr += '0'; // pad zeros
+				SymbolData* symbolPtr = getSymbol(ostr);
 				if (symbolPtr != 0)
 				{
 					res.push_back(*symbolPtr);
@@ -129,12 +132,14 @@ struct Parameters
 	static vector<float> amplitudes;
 	static int fps;
 	static int DecodingMethod;
-	static double LUMINANCE;
+	//static double LUMINANCE;
 	//enum{ ZERO = 0, ONE };
 	static string codec; //I420, DIB ,DIVX, XVID
 	static cv::Size DefaultFrameSize;
 	static Size patternsize;
 	static AllSymbolsData symbolsData;
+	static int sideA;
+	static int sideB;
 };
 int Parameters::startingIndex = 0;
 cv::Rect Parameters::globalROI = cv::Rect(0,0,1,1);
@@ -142,9 +147,11 @@ vector<float> Parameters::amplitudes = vector<float>();
 int Parameters::fps = 0;
 float Parameters::symbolTime = 1000;
 int Parameters::DecodingMethod = FFT_RANDOM_GUESS;
-double Parameters::LUMINANCE = 0.005;
+//double Parameters::LUMINANCE = 0.005;
 //enum{ ZERO = 0, ONE };
 string Parameters::codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size Parameters::DefaultFrameSize = cv::Size(640, 480);
 Size Parameters::patternsize = cv::Size(11, 11);
 AllSymbolsData Parameters::symbolsData;
+int Parameters::sideA = 1;
+int Parameters::sideB = 1;

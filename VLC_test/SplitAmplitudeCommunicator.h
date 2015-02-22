@@ -12,9 +12,13 @@ public:
 	virtual void initCommunication()
 	{
 		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		//double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, -Parameters::LUMINANCE));
+		for (int i = 0; i < msg.size(); i++)
+		{
+			msg[i].amplitude = -msg[i].amplitude;
+		}
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 
 		ROIs = Utilities::getDivisions(2, 1, false, globalROI, true);
 	}

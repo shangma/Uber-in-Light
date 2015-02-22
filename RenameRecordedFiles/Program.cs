@@ -46,36 +46,46 @@ namespace RenameRecordedFiles
             }
             return correction_code;
         }
-        static int[] getFreq(string new_name)
+        static string getFreq(string new_name)
         {
-            int zero = 12;
-            int one = 8;
-            string[] parts = new_name.ToLower().Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
-            // get zero
-            int j = 0;
-            for (; j < parts.Length; j++)
+            // check if symbols file used
+            if (new_name.ToLower().Contains("symbol_"))
             {
-                if (parts[j].EndsWith("hz"))
+                int last = new_name.ToLower().IndexOf("symbol_");
+                int first = new_name.Substring(0,last - 1).ToLower().LastIndexOf("_") + 1;
+                return "-symbols " + new_name.Substring(first, last - first) + ".symbol";
+            }
+            else
+            {
+                int zero = 12;
+                int one = 8;
+                string[] parts = new_name.ToLower().Split(new string[] { "_" }, StringSplitOptions.RemoveEmptyEntries);
+                // get zero
+                int j = 0;
+                for (; j < parts.Length; j++)
                 {
-                    if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out zero))
+                    if (parts[j].EndsWith("hz"))
                     {
-                        j++;
-                        break;
+                        if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out zero))
+                        {
+                            j++;
+                            break;
+                        }
                     }
                 }
-            }
-            // get one 
-            for (; j < parts.Length; j++)
-            {
-                if (parts[j].EndsWith("hz"))
+                // get one 
+                for (; j < parts.Length; j++)
                 {
-                    if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out one))
+                    if (parts[j].EndsWith("hz"))
                     {
-                        break;
+                        if (int.TryParse(parts[j].Substring(0, parts[j].Length - 2), out one))
+                        {
+                            break;
+                        }
                     }
                 }
+                return ("-zero " + zero.ToString() + "-one" + one.ToString());
             }
-            return (new int[] { zero, one });
         }
         static string getRandFileName(string new_name)
         {
@@ -122,10 +132,10 @@ namespace RenameRecordedFiles
                 int mode = getMode(avif.Name); /// 0 -  normal, 1 -> AmpDifference
 
                 int correction_code = getCorrectionCode(avif.Name);
-                int[] freq = getFreq(avif.Name);
+                string symbols = getFreq(avif.Name);
                 string time = getSymbolTime(avif.Name);
-                sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {8} > {0}\\{1}.txt",
-                    dinf.Name, new_name, mode, correction_code, freq[0], freq[1], (int)Decodeing.CROSS_CORRELATION, 
+                sw.WriteLine(@"VLC_tester.exe -decode {5} -r {4} -t {6} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {7} > {0}\\{1}.txt",
+                    dinf.Name, new_name, mode, correction_code, symbols, (int)Decodeing.CROSS_CORRELATION, 
                     getRandFileName(new_name),time);
             }
             sw.Close();
@@ -139,11 +149,11 @@ namespace RenameRecordedFiles
                     string new_name = finf.Name;
                     int mode = getMode(new_name);
                     int correction_code = getCorrectionCode(new_name);
-                    int[] freq = getFreq(new_name);
+                    string symbols = getFreq(new_name);
                     string time = getSymbolTime(new_name);
-                    sw.WriteLine(@"VLC_tester.exe -decode {6} -r -zero {4} -one {5} -t {7} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {8} > {0}\\{1}.txt",
-                   dinf.Name, new_name, mode, correction_code, freq[0], freq[1], (int)Decodeing.CROSS_CORRELATION,
-                   getRandFileName(new_name), time);
+                    sw.WriteLine(@"VLC_tester.exe -decode {5} -r {4} -t {6} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {7} > {0}\\{1}.txt",
+                    dinf.Name, new_name, mode, correction_code, symbols, (int)Decodeing.CROSS_CORRELATION,
+                    getRandFileName(new_name), time);
                 }
             }
             sw.Close();

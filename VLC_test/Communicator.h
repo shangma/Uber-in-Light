@@ -318,7 +318,7 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::LUMINANCE));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 	}
 	virtual void sendImageMainLoop()
 	{
