@@ -1157,7 +1157,8 @@ public:
 		int o_sz = orig_msg.size();
 		int best_i;
 		vector<int> errors;
-		for (int i = 1 - t_sz; i < o_sz; i++)
+		//for (int i = 1 - t_sz; i < o_sz; i++)
+		for (int i = 0; i < 1; i++)
 		{
 			int sum = 0;
 			vector<int> tempErrors;

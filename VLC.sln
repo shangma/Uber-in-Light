@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompressAVIfiles", "Compres
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummarizeResults", "SummarizeResults\SummarizeResults.csproj", "{7BA7F015-F88A-46C3-8EA8-4C90CE8C117E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synchronize", "Synchronize\Synchronize.csproj", "{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,18 @@ Global
 		{7BA7F015-F88A-46C3-8EA8-4C90CE8C117E}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{7BA7F015-F88A-46C3-8EA8-4C90CE8C117E}.Release|Win32.ActiveCfg = Release|Any CPU
 		{7BA7F015-F88A-46C3-8EA8-4C90CE8C117E}.Release|x64.ActiveCfg = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|Win32.ActiveCfg = Release|Any CPU
+		{EE7788A2-CE50-4BB3-9139-FC73FEA2622C}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
