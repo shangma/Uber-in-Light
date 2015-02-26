@@ -384,6 +384,18 @@ public:
 					return returnError();
 				}
 			}
+			else if (!strcmp(argv[i], "-res"))
+			{
+				if (i < argc - 2)
+				{
+					Parameters::DefaultFrameSize.width = stoi(argv[++i]);
+					Parameters::DefaultFrameSize.height = stoi(argv[++i]);
+				}
+				else
+				{
+					return returnError();
+				}
+			}
 		}
 		if (inputFileName == "")
 		{

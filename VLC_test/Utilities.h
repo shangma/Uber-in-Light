@@ -31,8 +31,7 @@ public:
 			updateFrameWithVchannel(frame, ROI, percentage);
 		}
 	}
-
-	static void updateFrameWithVchannel(Mat &frame, Rect ROI, double percentage)
+	static Mat createVLayer(int width, int height, double percentage)
 	{
 		//Mat aux = frame(ROI);
 		//aux = (aux + percentage * 255);
@@ -40,45 +39,86 @@ public:
 		double absVal = abs(val);
 		int addVal = floor(absVal);
 		int sign = percentage > 0 ? 1 : -1;
-		addVal *= sign;
 		double diff = absVal - addVal;
-		int sz = (ROI.width * ROI.height);
+		addVal *= sign;
+		int sz = (width * height);
 		int threshold = diff * sz;
 		//cout << threshold << endl;
-		unsigned char* data = (unsigned char*)frame.data;
-		int rows = ROI.y + ROI.height;
-		int cols = ROI.x + ROI.width;
-		int j = 0;
-		int i = ROI.y * frame.cols + ROI.x;
-		int inc = frame.cols - ROI.width;
 		// make sure there is no overflow or underflow
-		int tmpBGR[3];
+		//int tmpBGR[3];
 		//std::random_device rd;
 		//std::mt19937 mt(rd());
 		std::mt19937 mt(19937);
-		std::uniform_int_distribution<int> dist(0, sz-1);
-		for (int r = ROI.y; r < rows; r++)
+		std::uniform_int_distribution<int> dist(0, sz - 1);
+		// create v-layer
+		Mat vChannel = Mat::zeros(height, width, CV_32SC1);
+		int* vData = (int*)vChannel.data;
+		for (int i = 0; i < sz; i++)
+		{
+			vData[i] = addVal;
+			if (dist(mt) < threshold)
+			{
+				vData[i] += sign;
+			}
+			/*else
+			{
+				cout << i << endl;
+			}*/
+		}
+		return vChannel;
+	}
+	static void updateFrameWithVchannel(Mat &frame, Rect ROI, double percentage)
+	{
+		long long a = (percentage * 10000);
+		long long b = frame.cols;
+		long long c = frame.rows;
+		long long key = (a << 30) | (b << 15) | (c);
+		map<long long, Mat>::iterator vLayerIterator = Parameters::vLayers.find(key);
+		if (vLayerIterator == Parameters::vLayers.end())
+		{
+			Parameters::vLayers[key] = createVLayer(ROI.width, ROI.height, 0);
+			int space = 0;
+			int spaceInc = 0;
+			double val = 0.001;
+			double valInc = 0.001;
+			double absPercentage = abs(percentage);
+			int sign = 1;
+			if (percentage < 1)
+			{
+				sign = -1;
+			}
+			for (; val < absPercentage; val += 0.001, space += spaceInc)
+			{
+				cv::Rect rois[4];
+				rois[0].x = rois[0].y = space; rois[0].width = ROI.width - space * 2; rois[0].height = spaceInc;
+				rois[1].x = rois[1].y = space; rois[1].width = spaceInc; rois[1].height = ROI.height - space * 2;
+				rois[2].x = space;  rois[2].y = space + ROI.height - space * 2 - spaceInc; rois[2].width = ROI.width - space * 2; rois[0].height = spaceInc;
+				rois[1].x = space + ROI.width - space * 2 - spaceInc;  rois[1].y = space; rois[1].width = spaceInc; rois[1].height = ROI.height - space * 2;
+				for (int j = 0; j < 4; j++)
+				{
+					Parameters::vLayers[key](rois[j]) = createVLayer(rois[j].width, rois[j].height, sign * val);
+				}
+			}
+			createVLayer(ROI.width - space * 2, ROI.height - space * 2, percentage).
+				copyTo(Parameters::vLayers[key](cv::Rect(space, space, ROI.width - space * 2, ROI.height - space * 2)));
+		}
+		// and copy
+		int* vData = (int*)Parameters::vLayers[key].data;
+		unsigned char* data = (unsigned char*)frame.data;
+		int rows = ROI.y + ROI.height;
+		int cols = ROI.x + ROI.width;
+		int inc = frame.cols - ROI.width;
+
+		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++)
 		{
 			for (int c = ROI.x; c < cols; c++, j++, i++)
 			{
-				// copy to int
-				tmpBGR[0] = data[i * 3];
-				tmpBGR[1] = data[i * 3 + 1];
-				tmpBGR[2] = data[i * 3 + 2];
-				//
-				tmpBGR[0] += addVal;
-				tmpBGR[1] += addVal;
-				tmpBGR[2] += addVal;
-				if (dist(mt) < threshold)
-				{
-					tmpBGR[0] += sign;
-					tmpBGR[1] += sign;
-					tmpBGR[2] += sign;
-				}
 				// copy back
-				data[i * 3] = tmpBGR[0] > 255 ? 255 : (tmpBGR[0] < 0) ? 0 : tmpBGR[0];
-				data[i * 3 + 1] = tmpBGR[1] > 255 ? 255 : (tmpBGR[1] < 0) ? 0 : tmpBGR[1];
-				data[i * 3 + 2] = tmpBGR[2] > 255 ? 255 : (tmpBGR[2] < 0) ? 0 : tmpBGR[2];
+				for (int k = 0; k < frame.channels(); k++)
+				{
+					int tmp = (vData[j] + data[i * 3 + k]);
+					data[i * 3 + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+				}
 			}
 			i += inc;
 		}
@@ -597,6 +637,7 @@ public:
 	{
 		ostringstream outputVideoStream;
 		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
+		outputVideoStream << "side" << Parameters::sideA << "_";
 		outputVideoStream << Parameters::symbolTime << "ms_" /*<< (2 * Parameters::LUMINANCE)*/ << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
@@ -620,6 +661,7 @@ public:
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
 		cap.read(prev);
+		double test_frame_rate = fps; // 30
 		//cap.read(prev);
 		//prev = prev(ROI);
 		double nextIndex = 0; 
@@ -630,7 +672,7 @@ public:
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / 30;
+			nextIndex += fps / test_frame_rate;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -644,10 +686,9 @@ public:
 			}
 			//cout << count << endl;
 			//mask = getBinaryMask(frame);
-			if (useChessBoard && (count % 5) == 0)
+			if (useChessBoard && (count % 10) == 0)
 			{
 				Mat temp;
-				cv::resize(frame, temp, cv::Size(640,480));
 				if (canDetectMyBoard(frame))
 				{
 					break;
@@ -869,7 +910,6 @@ public:
 		starting_index = 0;
 		for (; cap.read(frame); starting_index++)
 		{
-			cv::resize(frame, frame, cv::Size(640, 480));
 			// this loop to detect the first chess board
 			//cout << index << endl;
 			//imshow("frame", frame);
@@ -930,7 +970,7 @@ public:
 		{
 			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, Parameters::globalROI, color);
 		}
-		framerate = 30; // because we sample at 30 fps
+		//framerate = 30; // because we sample at 30 fps
 		return frames;
 	}
 
@@ -1320,6 +1360,8 @@ public:
 		{
 			gray = img.clone();
 		}
+
+		cv::resize(gray, gray, cv::Size(640, 480));
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -1353,10 +1395,16 @@ public:
 			xh = std::max(xh, corners[i].x);
 			yh = std::max(yh, corners[i].y);
 		}
-		result.x = xl;
-		result.y = yl;
-		result.width = xh - xl + 1;
-		result.height = yh - yl + 1;
+		float colScale = ((float)img.cols) / gray.cols;
+		float rowScale = ((float)img.rows) / gray.rows;
+		
+		result.x = xl * colScale;
+		result.y = yl * rowScale;
+		result.width = (xh - xl + 1) * colScale;
+		result.height = (yh - yl + 1) * rowScale;
+		//cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
+		//imshow("img", img);
+		//cv::waitKey(0);
 		return result;
 	}
 
@@ -1375,6 +1423,7 @@ public:
 		{
 			gray = img.clone();
 		}
+		cv::resize(gray, gray, cv::Size(640, 480));
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images

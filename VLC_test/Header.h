@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <fstream>
 #include <random>
+#include <map>
 
 using namespace cv;
 using namespace std;

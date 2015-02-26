@@ -140,6 +140,7 @@ struct Parameters
 	static AllSymbolsData symbolsData;
 	static int sideA;
 	static int sideB;
+	static map<long long, Mat> vLayers;
 };
 int Parameters::startingIndex = 0;
 cv::Rect Parameters::globalROI = cv::Rect(0,0,1,1);
@@ -153,5 +154,6 @@ string Parameters::codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size Parameters::DefaultFrameSize = cv::Size(640, 480);
 Size Parameters::patternsize = cv::Size(11, 11);
 AllSymbolsData Parameters::symbolsData;
+map<long long, Mat> Parameters::vLayers;
 int Parameters::sideA = 1;
 int Parameters::sideB = 1;

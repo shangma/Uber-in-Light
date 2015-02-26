@@ -418,7 +418,7 @@ public:
 				for (int k = 0; k < signals.size(); k++)
 				{
 					sum[k] += signals[k][j] * test[j - i + start];
-					if (test[j - i + start] > test[j - i + start - 1] && test[j - i + start] > test[j - i + start + 1])
+					/*if (test[j - i + start] > test[j - i + start - 1] && test[j - i + start] > test[j - i + start + 1])
 					{
 						sumAmp[k] += abs(test[j - i + start]);
 						cntAmp[k]++;
@@ -427,7 +427,7 @@ public:
 					{
 						sumAmp[k] += abs(test[j - i + start]);
 						cntAmp[k]++;
-					}
+					}*/
 				}
 			}
 			//sum /= cnt;
@@ -437,7 +437,7 @@ public:
 				if (sum[k] > bestVal[k])
 				{
 					bestVal[k] = sum[k];
-					avgAmplitude[k] = sumAmp[k] / cntAmp[k];
+					//avgAmplitude[k] = sumAmp[k] / cntAmp[k];
 				}
 			}
 		}
@@ -449,9 +449,9 @@ public:
 				maxID = i;
 			}
 		}
-		cout << avgAmplitude[maxID] << "\t";
+		//cout << avgAmplitude[maxID] << "\t";
 		
-		cout << endl;
+		//cout << endl;
 		return bestVal;
 	}
 

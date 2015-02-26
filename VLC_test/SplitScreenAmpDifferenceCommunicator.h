@@ -27,7 +27,7 @@ public:
 		}
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		
-		framesForSymbol = (Parameters::fps * 1000) / Parameters::symbolTime;
+		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		 
 		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true);
 	}
@@ -180,7 +180,7 @@ public:
 	//}
 
 	// receive with a certain ROI ratio
-	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		vector<short> results;
 		VideoCapture cap(fileName); // open the default camera
@@ -209,7 +209,8 @@ public:
 				frames[i / 2].push_back(frames2[i][j] - frames2[i + 1][j]);
 			}
 		}
-		results = receiveN(frames, framerate, frames_per_symbol);
+		//framerate = 30;
+		results = receiveN(frames, framerate);
 		return results;
 	}
 };

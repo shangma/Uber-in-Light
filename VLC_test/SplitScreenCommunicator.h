@@ -27,7 +27,7 @@ public:
 		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		
-		framesForSymbol = (Parameters::fps * 1000) / Parameters::symbolTime;
+		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		
 		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true);
 	}
@@ -171,8 +171,9 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	vector<short> receiveN(vector<vector<float> > frames, int fps, int frames_per_symbol)
+	vector<short> receiveN(vector<vector<float> > frames, int fps)
 	{
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		int sections = sectionsPerLength * sectionsPerLength;
 		vector<short> result;
 		if (frames.size() == 0)
@@ -182,22 +183,26 @@ public:
 		{
 			vt.push_back(receive2(frames[k], fps));
 		}
-		for (int i = 0; i < vt[0].size(); i++)
+		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
+		for (int i = 0; i < vt[0].size(); i += symbolSize)
 		{
 			for (int j = 0; j < vt.size(); j++)
 			{
-				result.push_back(vt[j][i]);
+				for (int k = 0; k < symbolSize; k++)
+				{
+					result.push_back(vt[j][i + k]);
+				}
 			}
 		}
 		return result;
 	}
 
 	// receive with a certain ROI ratio
-	vector<short> receive(string fileName, int frames_per_symbol, double ROI_Ratio)
+	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength,true);
-		return receiveN(frames, fps, frames_per_symbol);
+		return receiveN(frames, fps);
 	}
 };
 
