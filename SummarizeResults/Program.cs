@@ -15,6 +15,7 @@ namespace SummarizeResults
             string[]files = Directory.GetFiles(Environment.CurrentDirectory,"*." + type + ".txt",SearchOption.TopDirectoryOnly);
             StreamWriter sw = new StreamWriter(type + ".csv");
             Dictionary<string, List<double>> avgDic = new Dictionary<string, List<double>>();
+            Dictionary<string, int> origLength = new Dictionary<string, int>();
             if (type == "mp4")
             {
                 sw.WriteLine("file name, original file name, original length, test length, LCS, accuracy");
@@ -55,6 +56,10 @@ namespace SummarizeResults
                         int ind = name.IndexOf('_');
                         ind = name.IndexOf('_', ind+1);
                         string orig_name = name.Substring(ind + 1);
+                        if (!origLength.ContainsKey(orig_name))
+                        {
+                            origLength.Add(orig_name, orig);
+                        }
                         if(!avgDic.ContainsKey(orig_name))
                         {
                             avgDic.Add(orig_name, new List<double>());
@@ -74,10 +79,25 @@ namespace SummarizeResults
             {
                 // write averages
                 sw = new StreamWriter("avg_mp4.csv");
-                sw.WriteLine("original file name, Number of Runs, Average Accuracy");
+                sw.WriteLine("original file name,Number of Runs, Average Accuracy, original length");
                 foreach(string key in avgDic.Keys)
                 {
-                    sw.WriteLine("{0}, {1}, {2}", key, avgDic[key].Count,  avgDic[key].Average());
+                    sw.WriteLine("{0}, {1}, {2}, {3}", key, avgDic[key].Count,  avgDic[key].Average(), origLength[key]);
+                }
+                sw.Close();
+                // write median
+                sw = new StreamWriter("median_mp4.csv");
+                sw.WriteLine("original file name, Number of Runs, Average Accuracy, original length");
+                foreach (string key in avgDic.Keys)
+                {
+                    avgDic[key].Sort();
+                    double median = avgDic[key][avgDic[key].Count / 2];
+                    if((avgDic[key].Count & 1) == 0)
+                    {
+                        // even
+                        median = (median + avgDic[key][avgDic[key].Count / 2 - 1]) / 2;
+                    }
+                    sw.WriteLine("{0}, {1}, {2}, {3}", key, avgDic[key].Count, median, origLength[key]);
                 }
                 sw.Close();
             }

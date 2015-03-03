@@ -26,6 +26,8 @@
     <ClInclude Include="Properties.h" />
     <ClInclude Include="Parameters.h" />
     <ClInclude Include="ReedSolomon.h" />
+    <ClInclude Include="RGBCommunicator.h" />
+    <ClInclude Include="RGBSpatialRedundancy.h" />
     <ClInclude Include="schifra_crc.hpp" />
     <ClInclude Include="schifra_ecc_traits.hpp" />
     <ClInclude Include="schifra_erasure_channel.hpp" />

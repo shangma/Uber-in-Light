@@ -12,7 +12,7 @@ public:
 	*/
 	static Mat getBackgroundMask(Mat &prev, Mat &frame)
 	{
-		return getBackgroundMaskNew(prev, frame,5);
+		return getBackgroundMaskNew(prev, frame, 5);
 	}
 	static Mat getBackgroundMaskAlgo(Mat &prev, Mat &frame)
 	{

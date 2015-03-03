@@ -20,7 +20,7 @@ public:
 		}
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 
-		ROIs = Utilities::getDivisions(2, 1, false, globalROI, true);
+		ROIs = Utilities::getDivisions(1, 1, false, globalROI, true,true);
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -138,7 +138,7 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 2,true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,true,false);
 		vector<float> amplitude_difference;
 		//double avg = 0;
 		for (int i = 0; i < frames[0].size(); i++)

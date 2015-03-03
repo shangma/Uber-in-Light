@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using WMPLib;
 
 namespace RenameRecordedFiles
 {
@@ -17,6 +18,13 @@ namespace RenameRecordedFiles
     }
     class Program
     {
+        static Double getDuration(string file)
+        {
+            WindowsMediaPlayer wmp = new WindowsMediaPlayer();
+            IWMPMedia mediainfo = wmp.newMedia(file);
+            return mediainfo.duration;
+        }
+
         static int getMode(string file)
         {
             if (file.ToLower().Contains("ampdiff"))
@@ -117,9 +125,8 @@ namespace RenameRecordedFiles
             string symbols = getFreq(new_name);
             string time = getSymbolTime(new_name);
             string sideLength = getSideLength(new_name);
-            return string.Format(@"VLC_tester.exe -decode {5} -r {4} -t {6} -side {8} -if {0}\\{1} -roi 1 -m {2} -ec {3} -time {7} > {0}\\{1}.txt",
+            return string.Format(@"VLC_tester.exe -decode {4} -r {3} -t {5} -side {7} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
                 folder, 
-                new_name, 
                 mode, 
                 correction_code, 
                 symbols, 
@@ -128,15 +135,9 @@ namespace RenameRecordedFiles
                 time,
                 sideLength);
         }
-        static void Main(string[] args)
+
+        static void RenameSeparateFiles(string[] aviFiles, string[] mp4Files, string[] movFiles, DirectoryInfo dinf)
         {
-            string currentDirectory = Environment.CurrentDirectory;
-            string[] aviFiles = Directory.GetFiles(currentDirectory, "*.avi");
-            string[] mp4Files = Directory.GetFiles(currentDirectory, "*.mp4");
-            Array.Sort(aviFiles);
-            //Array.Reverse(aviFiles);
-            Array.Sort(mp4Files);
-            DirectoryInfo dinf = new DirectoryInfo(currentDirectory);
             StreamWriter sw = new StreamWriter("r_" + dinf.Name + ".bat");
             for (int i = 0; i < mp4Files.Length; i++)
             {
@@ -156,12 +157,29 @@ namespace RenameRecordedFiles
                 {
 
                 }
-                //File.Delete(mp4Files[i]);
-                //int mode = getMode(avif.Name); /// 0 -  normal, 1 -> AmpDifference
-                //int correction_code = getCorrectionCode(avif.Name);
-                //string symbols = getFreq(avif.Name);
-                //string time = getSymbolTime(avif.Name);
-                sw.WriteLine(getCommand(new_name,dinf.Name));
+                sw.WriteLine(@"{2} > {0}\\{1}.txt", dinf.Name, new_name, getCommand(new_name, dinf.Name) + new_name);
+            }
+            sw.Close();
+            sw = new StreamWriter("r_" + dinf.Name + "mov.bat");
+            for (int i = 0; i < movFiles.Length; i++)
+            {
+                FileInfo avif = new FileInfo(aviFiles[i % aviFiles.Length]);
+                FileInfo mp4f = new FileInfo(movFiles[i]);
+                string new_name = Path.GetFileNameWithoutExtension(mp4f.Name);
+                if (!mp4f.Name.Contains(Path.GetFileNameWithoutExtension(avif.Name)))
+                {
+                    new_name += "_" + Path.GetFileNameWithoutExtension(avif.Name);
+                }
+                new_name += ".mp4";
+                try
+                {
+                    File.Move(movFiles[i], new_name);
+                }
+                catch (Exception exc)
+                {
+                    Console.WriteLine(exc.Message);
+                }
+                sw.WriteLine(@"{2} > {0}\\{1}.txt", dinf.Name, new_name, getCommand(new_name, dinf.Name) + new_name);
             }
             sw.Close();
             //if (mp4Files.Length == 0)
@@ -172,10 +190,45 @@ namespace RenameRecordedFiles
                 {
                     FileInfo finf = new FileInfo(aviFiles[i]);
                     string new_name = finf.Name;
-                    sw.WriteLine(getCommand(new_name, dinf.Name));
+                    sw.WriteLine(@"{2} > {0}\\{1}.txt", dinf.Name, new_name, getCommand(new_name, dinf.Name) + new_name);
                 }
             }
             sw.Close();
         }
+        static void WriteCommandsforCombinedVideo(string[] aviFiles, string videoFile, DirectoryInfo dinf, double start)
+        {
+            StreamWriter sw = new StreamWriter("r_" + dinf.Name + "_" + videoFile.Replace("\\", "") + ".bat");
+            FileInfo mp4f = new FileInfo(videoFile);
+
+            for (int i = 0; i < aviFiles.Length; i++)
+            {
+                FileInfo avif = new FileInfo(aviFiles[i]);
+
+                sw.WriteLine(@"{2} -start {4} > {0}\\{3}_{1}.mp4.txt",
+                    dinf.Name, avif.Name.Substring(0, avif.Name.Length - 4),
+                    getCommand(avif.Name, dinf.Name) + videoFile, mp4f.Name, start);
+                start += getDuration(aviFiles[i]);
+            }
+            sw.Close();
+        }
+        static void Main(string[] args)
+        {
+            string currentDirectory = Environment.CurrentDirectory;
+            string[] aviFiles = Directory.GetFiles(currentDirectory, "*.avi");
+            string[] mp4Files = Directory.GetFiles(currentDirectory, "*.mp4");
+            string[] movFiles = Directory.GetFiles(currentDirectory, "*.MOV");
+            Array.Sort(aviFiles);
+            Array.Sort(mp4Files);
+            Array.Sort(movFiles);
+            DirectoryInfo dinf = new DirectoryInfo(currentDirectory);
+            if (args.Length == 2)
+            {
+                WriteCommandsforCombinedVideo(aviFiles, args[0], dinf, double.Parse(args[1]));
+            }
+            else
+            {
+                RenameSeparateFiles(aviFiles, mp4Files, movFiles, dinf);
+            }
+        }   
     }
 }

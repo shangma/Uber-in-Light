@@ -29,7 +29,7 @@ public:
 		
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		 
-		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true);
+		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true,false);
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -182,36 +182,19 @@ public:
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		vector<short> results;
-		VideoCapture cap(fileName); // open the default camera
-		if (!cap.isOpened())  // check if we succeeded
-			return results;
-		double framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
-		// try to detect the chess board
-		int index = 0;
-		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
-		globalROI = Utilities::getGlobalROI(fileName, index);
-		cap.set(CV_CAP_PROP_POS_FRAMES, index);
-		cout << "Index = " << index << endl;
-		ROIs = Utilities::getDivisions(sectionsPerLength*sectionsPerLength, ROI_Ratio, false,globalROI,false);
-		vector<cv::Rect> ROIs2;
-		for (int i = 0; i < ROIs.size(); i++)
+		int fps = 0;
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength, true, true);
+		vector<vector<float> > amplitude_difference;
+		for (int j = 0; j < frames.size(); j += 2)
 		{
-			ROIs2.push_back(cv::Rect(ROIs[i].x, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
-			ROIs2.push_back(cv::Rect(ROIs[i].x + ROIs[i].width / 2, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
-		}
-		vector<vector<float> > frames2 = Utilities::getVideoFrameLuminances(cap, ROIs2, framerate, true, globalROI);
-		vector<vector<float> > frames(ROIs.size());
-		for (int i = 0; i < frames2.size(); i += 2)
-		{
-			for (int j = 0; j < frames2[i].size(); j++)
+			vector<float> tmp;
+			for (int i = 0; i < frames[j].size(); i++)
 			{
-				frames[i / 2].push_back(frames2[i][j] - frames2[i + 1][j]);
+				tmp.push_back(frames[j][i] - frames[j + 1][i]);
 			}
+			amplitude_difference.push_back(tmp);
 		}
-		//framerate = 30;
-		results = receiveN(frames, framerate);
-		return results;
+		return receiveN(amplitude_difference, fps);
 	}
 };
 

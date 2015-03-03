@@ -116,8 +116,8 @@ public:
 				// copy back
 				for (int k = 0; k < frame.channels(); k++)
 				{
-					int tmp = (vData[j] + data[i * 3 + k]);
-					data[i * 3 + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+					int tmp = (vData[j] + data[i * frame.channels() + k]);
+					data[i * frame.channels() + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
 			i += inc;
@@ -343,29 +343,26 @@ public:
 		int j = 0;
 		int i = roi.y * frame.cols + roi.x;
 		int inc = frame.cols - roi.width;
+		int channels = frame.channels();
 		for (int r = roi.y; r < rows; r++)
 		{
 			for (int c = roi.x; c < cols; c++,j++,i++)
 			{
 				// previous
-				int max1 = p[i * 3];
-				if (max1 < p[i * 3 + 1])
-				{
-					max1 = p[i * 3 + 1];
-				}
-				if (max1 < p[i * 3 + 2])
-				{
-					max1 = p[i * 3 + 2];
-				}
+				int max1 = p[i * channels];
 				// frame
-				int max2 = f[i * 3];
-				if (max2 < f[i * 3 + 1])
+				int max2 = f[i * channels];
+				for (int k = 1; k < channels; k++)
 				{
-					max2 = f[i * 3 + 1];
-				}
-				if (max2 < f[i * 3 + 2])
-				{
-					max2 = f[i * 3 + 2];
+					if (max1 < p[i * channels + k])
+					{
+						max1 = p[i * channels + k];
+					}
+
+					if (max2 < f[i * channels + k])
+					{
+						max2 = f[i * channels + k];
+					}
 				}
 				data[j] = (max2 - max1);
 			}
@@ -637,7 +634,7 @@ public:
 	{
 		ostringstream outputVideoStream;
 		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
-		outputVideoStream << "side" << Parameters::sideA << "_";
+		outputVideoStream << Parameters::getSide() << "_";
 		outputVideoStream << Parameters::symbolTime << "ms_" /*<< (2 * Parameters::LUMINANCE)*/ << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
@@ -649,14 +646,47 @@ public:
 		return str + outputVideoFile;
 	}
 
-	
+	static void extractOneFrameLuminance(bool oldMethod, bool useAlpha, Mat &add_mask, vector<cv::Rect> &ROIs, 
+		vector<vector<float> > &frames,Mat &tmp_frame,Mat &tmp_prev,int i)
+	{
+		Mat tmp;
+		if (oldMethod)
+		{
+			if (useAlpha)
+			{
+				tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
+			}
+			else
+			{
+				tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
+			}
+			add_mask = add_mask * 0 + 255;
+		}
+		else
+		{
+			tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0, ROIs[i]);
+		}
+		float luminance = cv::sum(tmp).val[0];
+		float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
+		luminance /= summation;
+		//float luminance = getLuminance(tmp, ROI);
+		if (abs(luminance) < 0.001 && frames[i].size())
+		{
+			frames[i].push_back(frames[i][frames[i].size() - 1]);
+		}
+		else
+		{
+			frames[i].push_back(luminance);
+		}
+	}
 
 	/// get video frames luminance
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, bool useChessBoard, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
 	{
+		Parameters::endingIndex = Parameters::startingIndex + 1;
 		vector<vector<float> > frames(ROIs.size());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
@@ -679,6 +709,7 @@ public:
 			{
 				++count;
 				flag = cap.read(frame);
+				Parameters::endingIndex++;
 			}
 			if (!flag)
 			{
@@ -696,44 +727,31 @@ public:
 			}
 
 			Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
-			Mat tmp_frame;
-			frame(globalROI).copyTo(tmp_frame, add_mask);
-			Mat tmp_prev;
-			prev(globalROI).copyTo(tmp_prev, add_mask);
+			Mat tmp_frame_BGR;
+			frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
+			Mat tmp_prev_BGR;
+			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				Mat tmp;
-				if (oldMethod)
+				if (Parameters::BGR_split == 1)
 				{
-					if (useAlpha)
+					vector<Mat> frame_BGR, prev_BGR;
+					cv::split(tmp_frame_BGR, frame_BGR);
+					cv::split(tmp_prev_BGR, prev_BGR);
+					for (int j = 0; j < frame_BGR.size();j++)
 					{
-						tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
+						extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, frame_BGR[j], prev_BGR[j], i);
 					}
-					else
-					{
-						tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
-					}
-					add_mask = add_mask * 0 + 255;
 				}
 				else
 				{
-					tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0, ROIs[i]);
+					extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
 				}
-				float luminance = cv::sum(tmp).val[0];
-				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
-				luminance /= summation;
-				//float luminance = getLuminance(tmp, ROI);
-				if (abs(luminance) < 0.001 && frames[i].size())
-				{
-					frames[i].push_back(frames[i][frames[i].size() - 1]);
-				}
-				else
-				{
-					frames[i].push_back(luminance);
-				}
+				
 			}
 			prev = frame.clone();
 		}
+		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
 		return frames;
 	}
 
@@ -814,7 +832,7 @@ public:
 	// frame_height: frame Height
 	// percent: percentage to crop from the image
 	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
-	static vector<cv::Rect> getDivisions(int divisions,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal)
+	static vector<cv::Rect> getDivisions(int divisions,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal,bool spatialRedundancy)
 	{
 		int frame_width, frame_height;
 		frame_width = globalROI.width;
@@ -825,18 +843,9 @@ public:
 		int sectionWidth = 0, sectionHeight = 0;
 		if (cropInclusive)
 		{
-			if (divisions <= 2)
-			{
-				sectionWidth = frame_width / divisions;
-				sectionHeight = frame_height;
-				sectionsPerWidth = divisions;
-				sectionsPerHeight = 1;
-			}
-			else
-			{
-				sectionWidth = frame_width / sectionsPerWidth;
-				sectionHeight = frame_height / sectionsPerHeight;
-			}
+			sectionWidth = frame_width / sectionsPerWidth;
+			sectionHeight = frame_height / sectionsPerHeight;
+			
 			for (int y = 0; y < sectionsPerHeight; y++)
 			{
 				for (int x = 0; x < sectionsPerWidth; x++)
@@ -853,18 +862,9 @@ public:
 		}
 		else
 		{
-			if (divisions <= 2)
-			{
-				sectionWidth = (frame_width * percent) / divisions;
-				sectionHeight = frame_height * percent;
-				sectionsPerWidth = divisions;
-				sectionsPerHeight = 1;
-			}
-			else
-			{
-				sectionWidth = (frame_width * percent) / sectionsPerWidth;
-				sectionHeight = (frame_height * percent) / sectionsPerHeight;
-			}			
+			sectionWidth = (frame_width * percent) / sectionsPerWidth;
+			sectionHeight = (frame_height * percent) / sectionsPerHeight;
+			
 			int widthStart = frame_width * (1 - percent);
 			int heightStart = frame_height * (1 - percent);
 			for (int y = 0; y < sectionsPerHeight; y++)
@@ -889,20 +889,30 @@ public:
 				ROIs[i].y += globalROI.y;
 			}
 		}
+		if (spatialRedundancy)
+		{
+			vector<Rect> tempROIs;
+			for (int i = 0; i < ROIs.size(); i++)
+			{
+				tempROIs.push_back(cv::Rect(ROIs[i].x, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
+				tempROIs.push_back(cv::Rect(ROIs[i].x + ROIs[i].width / 2, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
+			}
+			return tempROIs;
+		}
 		return ROIs;
 	}
 
 	// this function is trying to find athe chess board and detect the last frame with the chess board and to detect the global ROI as well
-	static cv::Rect getGlobalROI(string videoName, int &starting_index)
+	static cv::Rect getGlobalROI(VideoCapture &cap, int &starting_index)
 	{
 		cv::Rect globalROI(0, 0, 1, 1);
-		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return globalROI;
+		double framerate = cap.get(CV_CAP_PROP_FPS);
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
+		cap.set(CV_CAP_PROP_POS_FRAMES, framerate * Parameters::start_second); //Set index to last frame
 		// try to detect the chess board
 		Mat frame;
 		globalROI.width = frame_width;
@@ -921,7 +931,7 @@ public:
 		}
 		int countChess = 0;
 		int countErrors = 0;
-		for (; cap.read(frame) && countErrors < 10; starting_index++, countChess++)
+		for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
 		{
 			// this loop to detect the last chess board
 			if (canDetectMyBoard(frame))
@@ -935,7 +945,7 @@ public:
 			}
 		}
 		starting_index -= (countErrors + 1);
-		cap.release();
+		//cap.release();
 		return globalROI;
 	}
 	/// get video frames luminance (this is the split version which splits the image into two)
@@ -945,7 +955,7 @@ public:
 	// divisions: supports 2 and 4 only for now
 	// ROI: is the area of interest only for the whole image
 	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions,bool useGlobalROI,
-		cv::Scalar color = cv::Scalar(-1,-1,-1))
+		bool spatialRedundancy,cv::Scalar color = cv::Scalar(-1,-1,-1))
 	{
 		vector<vector<float> > frames;
 		VideoCapture cap(videoName); // open the default camera
@@ -956,12 +966,13 @@ public:
 		Parameters::globalROI = cv::Rect(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		if (useGlobalROI)
 		{
-			Parameters::globalROI = getGlobalROI(videoName, Parameters::startingIndex);
-			cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
+			Parameters::globalROI = getGlobalROI(cap, Parameters::startingIndex);
 		}
+		Parameters::startingIndex += Parameters::start_second * framerate;
+		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, Parameters::globalROI, false);
+		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, Parameters::globalROI, false, spatialRedundancy);
 		if (color == cv::Scalar(-1, -1, -1))
 		{
 			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, Parameters::globalROI);
@@ -970,7 +981,18 @@ public:
 		{
 			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, Parameters::globalROI, color);
 		}
+		if (Parameters::endSecondFile.length() > 0)
+		{
+			ofstream endSecond(Parameters::endSecondFile);
+			endSecond << (Parameters::endingIndex * 1.0) / framerate;
+			endSecond.close();
+		}
 		//framerate = 30; // because we sample at 30 fps
+		if (((Parameters::endingIndex - Parameters::startingIndex) / framerate) < 3)
+		{
+			Parameters::start_second = cap.get(CV_CAP_PROP_POS_MSEC) * 1.0 / 1000.0;
+			return getVideoFrameLuminancesSplitted(videoName, percent, framerate, divisions, useGlobalROI, spatialRedundancy, color);
+		}
 		return frames;
 	}
 
@@ -988,7 +1010,7 @@ public:
 		
 		if (useGlobalROI)
 		{
-			globalROI = getGlobalROI(videoName, index);
+			globalROI = getGlobalROI(cap, index);
 			cap.set(CV_CAP_PROP_POS_FRAMES, index);
 		}
 		ROIs.push_back(globalROI);
@@ -1402,9 +1424,19 @@ public:
 		result.y = yl * rowScale;
 		result.width = (xh - xl + 1) * colScale;
 		result.height = (yh - yl + 1) * rowScale;
-		//cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
-		//imshow("img", img);
-		//cv::waitKey(0);
+		// then scale to full screen if required to do so
+		if (Parameters::fullScreen)
+		{
+			double cellWidth = (result.width * 1.0) /(Parameters::patternsize.width - 1);
+			double cellHeight = (result.height * 1.0) / (Parameters::patternsize.height - 1);
+			result.x -= cellWidth;
+			result.y -= cellHeight;
+			result.width += cellWidth * 2;
+			result.height += cellHeight * 2;
+		}
+		cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
+		imshow("img", img);
+		cv::waitKey(0);
 		return result;
 	}
 

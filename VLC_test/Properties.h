@@ -6,6 +6,8 @@
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 #include "OldCommunicator.h"
+#include "RGBCommunicator.h"
+#include "RGBSpatialRedundancy.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 
@@ -50,8 +52,6 @@ private:
 		text = "";
 		errorCorrection = 0;
 		interleave = false;
-		starting_second = 0;
-		ending_second = 0;
 		color = false;
 		correlation = 0;
 	}
@@ -77,7 +77,6 @@ public:
 	int errorCorrection;
 	bool interleave;
 	bool color;
-	double starting_second, ending_second; // starting and ending times for processing, currently in the conversion only
 	int correlation;
 	
 	int returnError()
@@ -258,7 +257,18 @@ public:
 				// currntly in the conversion only
 				if (i < argc - 1)
 				{
-					starting_second = stod(string(argv[++i]));
+					string start = string(argv[++i]);
+					ifstream startStream(start);
+					if (startStream.is_open())
+					{
+						startStream >> Parameters::start_second;
+						Parameters::endSecondFile = start;
+					}
+					else
+					{
+						Parameters::start_second = stod(start);
+					}
+					startStream.close();
 				}
 				else
 				{
@@ -271,7 +281,7 @@ public:
 				// currntly in the conversion only
 				if (i < argc - 1)
 				{
-					ending_second = stod(string(argv[++i]));
+					Parameters::end_second = stod(string(argv[++i]));
 				}
 				else
 				{
@@ -423,7 +433,10 @@ public:
 			communicator = new SplitScreenAmpDifferenceCommunicator(Parameters::sideA);
 			break;
 		case 6:
-			//communicator = new SpatialFrequencyCommunicator;
+			communicator = new RGBCommunicator;
+			break;
+		case 7:
+			communicator = new RGBSpatialRedundancyCommunicator;
 			break;
 		case -1:
 			communicator = new OldCommunicator;
@@ -511,14 +524,14 @@ public:
 		case CNVRT:
 			// convert argv2 video to argv3 as a video with the framerate in argv4
 			// argv3 must end with .avi
-			Utilities::convertVideo(inputFileName, outputFileName, Parameters::fps, starting_second, ending_second);
+			Utilities::convertVideo(inputFileName, outputFileName, Parameters::fps, Parameters::start_second, Parameters::end_second);
 			break;
 		case EXTEND:
 			// extend the video by repeating
-			Utilities::repeatVideo(inputFileName, outputFileName, Parameters::fps, extendN, starting_second, ending_second);
+			Utilities::repeatVideo(inputFileName, outputFileName, Parameters::fps, extendN, Parameters::start_second, Parameters::end_second);
 			break;
 		case CORRELEATION:
-			Utilities::correlateVideoDifference(inputFileName, starting_second, ending_second, correlation);
+			Utilities::correlateVideoDifference(inputFileName, Parameters::start_second, Parameters::end_second, correlation);
 			break;
 		}
 		

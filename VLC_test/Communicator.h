@@ -469,7 +469,7 @@ public:
 			signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency));
 		}
 		int window_size = frames_per_symbol;
-		int end = frames.size() - fps - window_size;
+		int end = frames.size() - fps;
 		
 		for (int i = fps; i < end; i += window_size)
 		{
@@ -643,7 +643,7 @@ public:
 	virtual vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true)[0];
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true,false)[0];
 		return receive2(frames, fps);
 	}
 
@@ -652,7 +652,7 @@ public:
 	{
 		puts("color");
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, color)[0];
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, false,color)[0];
 		return receive2(frames, fps);
 	}
 

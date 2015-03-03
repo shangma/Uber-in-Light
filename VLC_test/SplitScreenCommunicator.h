@@ -29,7 +29,7 @@ public:
 		
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		
-		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true);
+		ROIs = Utilities::getDivisions(sections, 1, false, globalROI, true,false);
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -201,7 +201,7 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength,true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, sectionsPerLength*sectionsPerLength,true,false);
 		return receiveN(frames, fps);
 	}
 };

@@ -61,7 +61,7 @@ struct AllSymbolsData
 		ostr << FREQ[0] << "Hz_" << FREQ[1] << "Hz";
 		return ostr.str();
 	}
-	void addSymbol(string symbol, double frequency, double amplitude = 0.005, double phase = 0)
+	void addSymbol(string symbol, double frequency, double amplitude = 0.004, double phase = 0)
 	{
 		for (int i = 0; i < allData.size(); i++)
 		{
@@ -127,6 +127,7 @@ struct AllSymbolsData
 struct Parameters
 {
 	static int startingIndex;
+	static int endingIndex;
 	static float symbolTime;
 	static cv::Rect globalROI;
 	static vector<float> amplitudes;
@@ -140,9 +141,29 @@ struct Parameters
 	static AllSymbolsData symbolsData;
 	static int sideA;
 	static int sideB;
+	static int BGR_split; // split = 1, original = 0
 	static map<long long, Mat> vLayers;
+	static double start_second;
+	static double end_second;
+	static string endSecondFile;
+	static int BKGMaskThr;
+	static bool fullScreen;
+	static string getSide()
+	{
+		ostringstream ostr;
+		if (sideA == sideB)
+		{
+			ostr << "side" << sideA;
+		}
+		else
+		{
+			ostr << "sideA" << sideA << "_sideB" << sideB;
+		}
+		return ostr.str();
+	}
 };
 int Parameters::startingIndex = 0;
+int Parameters::endingIndex = 0;
 cv::Rect Parameters::globalROI = cv::Rect(0,0,1,1);
 vector<float> Parameters::amplitudes = vector<float>();
 int Parameters::fps = 0;
@@ -157,3 +178,9 @@ AllSymbolsData Parameters::symbolsData;
 map<long long, Mat> Parameters::vLayers;
 int Parameters::sideA = 1;
 int Parameters::sideB = 1;
+double Parameters::start_second = 0;
+double Parameters::end_second = 0;
+string Parameters::endSecondFile = "";
+int Parameters::BGR_split = 0;
+int Parameters::BKGMaskThr = 5;
+bool Parameters::fullScreen = false;
