@@ -169,99 +169,6 @@ protected:
 	VideoWriter vidWriter;
 public:
 
-	// 
-	//int getFirstFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index = 0)
-	//{
-	//	vector<Frequency> temp;
-	//	for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
-	//	{
-	//		temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
-	//		//cout << "test " << i << endl;
-	//		// test the needed two frequencies for 60% correct
-	//		int maxi = 0;
-	//		for (int j = 1; j < temp.size(); j++)
-	//		{
-	//			if (temp[j].percent > temp[maxi].percent)
-	//			{
-	//				maxi = j;
-	//			}
-	//		}
-	//		if (temp[maxi].percent > 0.25)
-	//		{
-	//			if (abs(temp[maxi].freq - FREQ[ZERO]) < EPSILON)
-	//			{
-	//				//cout << start_index + i << "\tFound Zero" << endl;
-	//				printf("0");
-	//				return start_index + i;
-	//			}
-	//			if (abs(temp[maxi].freq - FREQ[ONE]) < EPSILON)
-	//			{
-	//				//cout << start_index + i << "\tFound One" << endl;
-	//				printf("1");
-	//				return start_index + i;
-	//			}
-	//		}
-	//	}
-	//	return -1;
-	//}
-
-
-	//int getNextFrameIndex(vector<float> frame_luminance, int frames_per_symbol, int start_index)
-	//{
-	//	vector<Frequency> temp;
-	//	for (int i = 0; frame_luminance.size() - start_index - i >= frames_per_symbol; i++)
-	//	{
-	//		temp = Utilities::myft(frame_luminance, 30, i + start_index, frames_per_symbol);
-	//		//cout << "test " << i << endl;
-	//		// test the needed two frequencies for 60% correct
-	//		int ZEROIndex = 0;
-	//		int ONEIndex = 0;
-	//		for (int j = 1; j < temp.size(); j++)
-	//		{
-	//			if (abs(temp[j].freq - FREQ[ZERO]) < abs(temp[ZEROIndex].freq - FREQ[ZERO]))
-	//			{
-	//				ZEROIndex = j;
-	//			}
-	//			if (abs(temp[j].freq - FREQ[ONE]) < abs(temp[ONEIndex].freq - FREQ[ONE]))
-	//			{
-	//				ONEIndex = j;
-	//			}
-	//		}
-	//		if (temp[ZEROIndex].percent > temp[ONEIndex].percent)
-	//		{
-	//			//cout << start_index + i << "\tFound Zero" << endl;
-	//			printf("0");
-	//			return start_index + i;
-	//		}
-	//		else if (temp[ZEROIndex].percent < temp[ONEIndex].percent)
-	//		{
-	//			//cout << start_index + i << "\tFound One" << endl;
-	//			printf("1");
-	//			return start_index + i;
-	//		}
-	//	}
-	//	return -1;
-	//}
-
-	//void send()
-	//{
-	//	string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg";
-	//	string msg = "";// "This is a test message, I am trying to send bits";
-	//	char a = 0xec;
-	//	for (int i = 0; i < 5; i++)
-	//	{
-	//		msg += a;
-	//	}
-	//	sendMessage(fileName, msg);
-	//	//createOfflineVideo(fileName, msg, "output.avi",1000);
-	//}
-
-	// msg: will be converted to binary
-	/*void send(string msg, string fileName = "D:\\MSECE_IUPUI\\MSECE_IUPUI\\Testing_image\\img2.jpg")
-	{
-	createOfflineVideo(fileName, msg, "output.avi", 1000);
-	}
-	*/
 	bool initImage(string inputImage, vector<short> msg, string outputVideoFile)
 	{
 		this->shortMsg = msg;
@@ -332,6 +239,10 @@ public:
 			vidWriter << frame;
 		}
 	}
+	virtual vector<Mat> getSplittedImages(Mat &frame)
+	{
+		return vector<Mat>();
+	}
 	virtual void sendVideoMainLoop()
 	{
 		Mat frame;
@@ -371,26 +282,14 @@ public:
 		}
 	}
 
-	//void receive(string fileName)
-	//{
-	//	vector<float> frames;
-	//	int fps;
-	//	frames = Utilities::getVideoFrameLuminances(fileName, 1, fps);
-	//	//int count = 0;
-	//	//cout << ++count << "\t";
-	//	//int frames_per_symbol = 30;
-	//	int index = getFirstFrameIndex(frames, Parameters::framesPerSymbol, 0);
-	//	for (; index > 0 && index < frames.size() - Parameters::framesPerSymbol;)
-	//	{
-	//		//cout << ++count << "\t";
-	//		index = getNextFrameIndex(frames, Parameters::framesPerSymbol, index + Parameters::framesPerSymbol);
-	//	}
-	//	puts("");
-	//	//myft(frames,30,180);
-	//	//myft();
-	//}
+	
 	vector<short> receive2(vector<float> frames, int fps)
 	{
+		/*for (int i = 0; i < frames.size(); i++)
+		{
+			printf("%f\n", frames[i]);
+		}
+		*/
 		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
@@ -461,21 +360,46 @@ public:
 		// return array
 		vector<short> result;
 		// create the signals to use in correlation
-		vector<vector<float> > signals;
+		vector<vector<vector<float> > > signals;
 		//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[0]));
 		//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::FREQ[1]));
 		for (int i = 0; i < Parameters::symbolsData.allData.size(); i++)
 		{
-			signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency));
+			vector<vector<float> > signal;
+			for (double phase = 0; phase < MM_PI; phase += MM_PI / 4)
+			{
+				//signals.push_back(WaveGenerator::createSampledSquareWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, 1, -1));
+				signal.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, phase));
+				//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol,
+				//	Parameters::symbolsData.allData[i].frequency, Parameters::symbolsData.allData[i].frequency, -Parameters::symbolsData.allData[i].frequency));
+			}
+			signals.push_back(signal);
 		}
 		int window_size = frames_per_symbol;
 		int end = frames.size() - fps;
-		
 		for (int i = fps; i < end; i += window_size)
 		{
-			//vector<float> test(frames.begin() + i, frames.begin() + i + window_size);
-			
-			vector<double> Detected = calcCrossCorrelate(signals, frames, i - 2, i + window_size + 2);
+			if (Parameters::symbolsData.allData.size() == 2)
+			{
+				// normalize signal
+				for (int j = 0; j < window_size; j++)
+				{
+					if (frames[j + i] > 0)
+					{
+						frames[j + i] = 1;
+					}
+					else if (frames[j + i] < 0)
+					{
+						frames[j + i] = -1;
+					}
+				}
+			}
+			vector<double> Detected;
+			for (int j = 0; j < signals.size(); j++)
+			{
+				vector<double> bestOfSignal = calcCrossCorrelate(signals[j], frames, i, i + window_size);
+				Detected.push_back(*max_element(bestOfSignal.begin(), bestOfSignal.end()));
+			}
 			// get maximum response
 			int maxIdx = 0;
 			for (int j = 1; j < signals.size(); j++)
@@ -643,7 +567,7 @@ public:
 	virtual vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,true,false)[0];
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,1,true,false)[0];
 		return receive2(frames, fps);
 	}
 
@@ -652,7 +576,7 @@ public:
 	{
 		puts("color");
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, false,color)[0];
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, false,color)[0];
 		return receive2(frames, fps);
 	}
 
@@ -664,37 +588,4 @@ public:
 		receive2(frames, fps);
 	}
 
-	/// get video frames luminance
-	//void extractAllVideoFrames(string videoName)
-	//{
-	//	VideoCapture cap(videoName); // open the default camera
-	//	if (!cap.isOpened())  // check if we succeeded
-	//		return;
-	//	double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-	//	cout << count << endl;
-	//	//Mat edges;
-	//	//namedWindow("edges", 1);
-	//	cout << "Processing Frames..." << endl;
-	//	Mat frame;
-	//	cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-	//	int ind = 0;
-	//	while (1)
-	//	{
-	//		Mat frame;
-	//		//cap >> frame;
-	//		bool success = cap.read(frame);
-	//		ind++;
-	//		if (!success){
-	//			cout << "End frame processing." << endl;
-	//			break;
-	//		}
-	//		if (ind > 8000 && !(ind % 50))
-	//		{
-	//			ostringstream ostr;
-	//			ostr << std::setfill('0') << std::setw(10);
-	//			ostr << ind << ".jpg";
-	//			imwrite(ostr.str(), frame);
-	//		}
-	//	}
-	//}
 };

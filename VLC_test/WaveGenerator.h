@@ -53,22 +53,25 @@ public:
 		//sample[0] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, ZeroFrequency, luminance,-luminance);
 		//sample[1] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, OneFrequency, luminance, -luminance);
 		VideoWriter vidWriter;
-		for (int i = 0; i < msg.size(); i++)
+		int msgSize = msg.size();
+		cout << msgSize << endl;
+		for (int i = 0; i < msgSize; i++)
 		{
 			vector<float> sample = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, msg[i].frequency, msg[i].amplitude, -msg[i].amplitude);
 			amplitudes.insert(amplitudes.end(), sample.begin(), sample.end());
-			cout << msg[i].symbol;
+			//cout << msg[i].symbol;
 		}
-		cout << endl;
+		//cout << endl;
 		return amplitudes;
 	}
 	// create sampled sine wave
-	static vector<float> createSampledSineWave(int fps, int frames_per_symbol, float freq)
+	static vector<float> createSampledSineWave(int fps, int frames_per_symbol, float freq,double phase)
 	{
 		vector<float> result;
 		for (int i = 0; i < frames_per_symbol; i++)
 		{
-			result.push_back(sin(2 * MM_PI * freq * i / fps + MM_PI));
+			double x = 2 * MM_PI * freq * i / fps + phase;
+			result.push_back(sin(x));
 		}
 
 		return result;

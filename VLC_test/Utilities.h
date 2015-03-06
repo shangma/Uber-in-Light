@@ -5,8 +5,9 @@
 #include "SelectByMouse.h"
 #include "background_subtractor.h"
 #include "Parameters.h"
+//#include "Properties.h"
 
-extern class Properties;
+//extern class Properties;
 
 // the frequency component and the percentage it represent in the frequency components given
 struct Frequency
@@ -20,7 +21,8 @@ class Utilities
 public:
 	/// This function will not check the range for the ROI
 	/// this function adds alpha to the value channel in the selected ROI
-	static void updateFrameLuminance(Mat &frame, Rect ROI, double percentage, bool useAlpha = false)
+	// the mask must be same size as the ROI and the colors must be 0 and 1 means use this pixel
+	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, Mat &mask, bool useAlpha = false)
 	{
 		if (useAlpha)
 		{
@@ -28,10 +30,15 @@ public:
 		}
 		else
 		{
-			updateFrameWithVchannel(frame, ROI, percentage);
+			updateFrameWithVchannel(frame, ROI, percentage,mask);
 		}
 	}
-	static Mat createVLayer(int width, int height, double percentage)
+	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, bool useAlpha = false)
+	{
+		Mat mask = Mat::ones(frame.size(),CV_8UC1);
+		updateFrameLuminance(frame, ROI, percentage, mask, useAlpha);
+	}
+	static Mat createVLayer(int &width, int &height, double &percentage)
 	{
 		//Mat aux = frame(ROI);
 		//aux = (aux + percentage * 255);
@@ -67,7 +74,7 @@ public:
 		}
 		return vChannel;
 	}
-	static void updateFrameWithVchannel(Mat &frame, Rect ROI, double percentage)
+	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double percentage,Mat &mask)
 	{
 		long long a = (percentage * 10000);
 		long long b = frame.cols;
@@ -76,48 +83,26 @@ public:
 		map<long long, Mat>::iterator vLayerIterator = Parameters::vLayers.find(key);
 		if (vLayerIterator == Parameters::vLayers.end())
 		{
-			Parameters::vLayers[key] = createVLayer(ROI.width, ROI.height, 0);
-			int space = 0;
-			int spaceInc = 0;
-			double val = 0.001;
-			double valInc = 0.001;
-			double absPercentage = abs(percentage);
-			int sign = 1;
-			if (percentage < 1)
-			{
-				sign = -1;
-			}
-			for (; val < absPercentage; val += 0.001, space += spaceInc)
-			{
-				cv::Rect rois[4];
-				rois[0].x = rois[0].y = space; rois[0].width = ROI.width - space * 2; rois[0].height = spaceInc;
-				rois[1].x = rois[1].y = space; rois[1].width = spaceInc; rois[1].height = ROI.height - space * 2;
-				rois[2].x = space;  rois[2].y = space + ROI.height - space * 2 - spaceInc; rois[2].width = ROI.width - space * 2; rois[0].height = spaceInc;
-				rois[1].x = space + ROI.width - space * 2 - spaceInc;  rois[1].y = space; rois[1].width = spaceInc; rois[1].height = ROI.height - space * 2;
-				for (int j = 0; j < 4; j++)
-				{
-					Parameters::vLayers[key](rois[j]) = createVLayer(rois[j].width, rois[j].height, sign * val);
-				}
-			}
-			createVLayer(ROI.width - space * 2, ROI.height - space * 2, percentage).
-				copyTo(Parameters::vLayers[key](cv::Rect(space, space, ROI.width - space * 2, ROI.height - space * 2)));
+			Parameters::vLayers[key] = createVLayer(ROI.width, ROI.height, percentage);
 		}
 		// and copy
 		int* vData = (int*)Parameters::vLayers[key].data;
+		unsigned char* maskData = (unsigned char*)mask.data;
 		unsigned char* data = (unsigned char*)frame.data;
 		int rows = ROI.y + ROI.height;
 		int cols = ROI.x + ROI.width;
 		int inc = frame.cols - ROI.width;
-
+		int channels = frame.channels();
 		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++)
 		{
 			for (int c = ROI.x; c < cols; c++, j++, i++)
 			{
 				// copy back
-				for (int k = 0; k < frame.channels(); k++)
+				for (int k = 0; k < channels; k++)
 				{
-					int tmp = (vData[j] + data[i * frame.channels() + k]);
-					data[i * frame.channels() + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+					int ind = i * channels + k;
+					int tmp = (vData[j] * maskData[i + k] + data[ind]);
+					data[ind] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
 			i += inc;
@@ -293,7 +278,7 @@ public:
 		return minimum;
 	}
 
-	static Mat getVchannel(Mat frame)
+	static Mat getVchannel(Mat &frame)
 	{
 		vector<Mat> BGR1;
 		cv::split(frame, BGR1);
@@ -302,18 +287,21 @@ public:
 
 		return BGR1[2];
 	}
-	static Mat getIntensity(Mat frame)
+	static Mat getIntensity(Mat &frame)
 	{
 		// save the ROI
-		Mat tmp;
-		/*frame.convertTo(tmp, CV_32F);
-		vector<Mat> BGR;
-		cv::split(frame, BGR);
-		BGR[0] = BGR[0] + BGR[1];
-		BGR[0] = BGR[0] + BGR[2];
-		return BGR[0];*/
-		
-		cv::cvtColor(frame, tmp, CV_BGR2GRAY);
+		Mat tmp = Mat::zeros(frame.size(),CV_32FC1);
+		int sz = frame.cols * frame.rows;
+		int channels = frame.channels();
+		unsigned char * frameData = (unsigned char *)frame.data;
+		float* intensityData = (float*)tmp.data;
+		for (int i = 0; i < sz; i++)
+		{
+			for (int j = 0; j < channels; j++)
+			{
+				intensityData[i] += frameData[i*channels + j];
+			}
+		}
 		return tmp;
 	}
 	// the input frames here are the original frames
@@ -321,16 +309,7 @@ public:
 	{
 		// save the ROI
 		Mat tmp, tmp1, tmp2;
-		vector<Mat> HSV1, HSV2;
-		
-		//cv::cvtColor(prev, hsv1, CV_BGR2HSV);
-		//cv::split(hsv1, HSV1);
-		//HSV1[2].convertTo(tmp1, CV_32F);
-		//cv::cvtColor(frame, hsv2, CV_BGR2HSV);
-		//cv::split(hsv2, HSV2);
-		//HSV2[2].convertTo(tmp2, CV_32F);
-		//cv::subtract(tmp2, tmp1, tmp);
-		
+		vector<Mat> HSV1, HSV2;	
 
 		// new method
 		Mat ret = Mat::zeros(roi.height, roi.width, CV_32F);
@@ -368,33 +347,6 @@ public:
 			}
 			i += inc;
 		}
-		/*
-		Mat BGR1[3], BGR2[3];
-		cv::split(prev(roi), BGR1);
-		ofstream ofst("test.txt");
-		for (int i = 0; i < sz; i++)
-		{
-			if (p[i * 3] != ((unsigned char*)BGR1[0].data)[i] || p[i * 3 + 1] != ((unsigned char*)BGR1[1].data)[i] || p[i * 3 + 2] != ((unsigned char*)BGR1[2].data)[i])
-			{
-				ofst << i << "\t";
-				ofst << (int)p[i * 3] << "->" << (int)((unsigned char*)BGR1[0].data)[i] << "," << (int)p[i * 3 + 1] << "->";
-				ofst << (int)((unsigned char*)BGR1[1].data)[i] << "," << (int)p[i * 3 + 2] << "->" << (int)((unsigned char*)BGR1[2].data)[i] << endl;
-				ofst << "error here\n";
-			}
-		}
-		ofst.close();
-		cv::split(frame(roi), BGR2);
-		cv::max(BGR1[0], BGR1[1], BGR1[1]);
-		cv::max(BGR1[1], BGR1[2], BGR1[2]);
-		BGR1[2].convertTo(tmp1, CV_32F);
-		cv::max(BGR2[0], BGR2[1], BGR2[1]);
-		cv::max(BGR2[1], BGR2[2], BGR2[2]);
-		BGR2[2].convertTo(tmp2, CV_32F);
-		cv::subtract(tmp2, tmp1, tmp);
-		
-
-		Mat test = ret - tmp;
-		*/
 
 		return ret;
 	}
@@ -635,7 +587,9 @@ public:
 		ostringstream outputVideoStream;
 		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
 		outputVideoStream << Parameters::getSide() << "_";
-		outputVideoStream << Parameters::symbolTime << "ms_" /*<< (2 * Parameters::LUMINANCE)*/ << "levels_" << Parameters::codec << "_" << inputVideoFile << "_";// << outputVideoFile;
+		outputVideoStream << Parameters::getFull() << "_";
+		outputVideoStream << Parameters::symbolTime << "ms_" << "levels_";
+		outputVideoStream << Parameters::getCodec() << "_" << inputVideoFile << "_";
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
 		str.erase(end_pos, str.end());
@@ -660,7 +614,7 @@ public:
 			{
 				tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
 			}
-			add_mask = add_mask * 0 + 255;
+			//add_mask = add_mask * 0 + 255;
 		}
 		else
 		{
@@ -733,14 +687,14 @@ public:
 			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				if (Parameters::BGR_split == 1)
+				if (Parameters::CommunicatorSpecificSplit == 1)
 				{
-					vector<Mat> frame_BGR, prev_BGR;
-					cv::split(tmp_frame_BGR, frame_BGR);
-					cv::split(tmp_prev_BGR, prev_BGR);
-					for (int j = 0; j < frame_BGR.size();j++)
+					vector<Mat> frame_split = Properties::getInst()->getSplittedImages(tmp_frame_BGR);
+					vector<Mat> prev_split = Properties::getInst()->getSplittedImages(tmp_prev_BGR);
+					
+					for (int j = 0; j < frame_split.size(); j++)
 					{
-						extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, frame_BGR[j], prev_BGR[j], i);
+						extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, frame_split[j], prev_split[j], i);
 					}
 				}
 				else
@@ -832,23 +786,21 @@ public:
 	// frame_height: frame Height
 	// percent: percentage to crop from the image
 	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
-	static vector<cv::Rect> getDivisions(int divisions,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal,bool spatialRedundancy)
+	static vector<cv::Rect> getDivisions(int sideWidth,int sideHeight,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal,bool spatialRedundancy)
 	{
 		int frame_width, frame_height;
 		frame_width = globalROI.width;
 		frame_height = globalROI.height;
-		int sectionsPerWidth = sqrt(divisions);
-		int sectionsPerHeight = sectionsPerWidth;
 		vector<cv::Rect> ROIs;
 		int sectionWidth = 0, sectionHeight = 0;
 		if (cropInclusive)
 		{
-			sectionWidth = frame_width / sectionsPerWidth;
-			sectionHeight = frame_height / sectionsPerHeight;
+			sectionWidth = frame_width / sideWidth;
+			sectionHeight = frame_height / sideHeight;
 			
-			for (int y = 0; y < sectionsPerHeight; y++)
+			for (int y = 0; y < sideHeight; y++)
 			{
-				for (int x = 0; x < sectionsPerWidth; x++)
+				for (int x = 0; x < sideWidth; x++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
@@ -862,14 +814,14 @@ public:
 		}
 		else
 		{
-			sectionWidth = (frame_width * percent) / sectionsPerWidth;
-			sectionHeight = (frame_height * percent) / sectionsPerHeight;
+			sectionWidth = (frame_width * percent) / sideWidth;
+			sectionHeight = (frame_height * percent) / sideHeight;
 			
 			int widthStart = frame_width * (1 - percent);
 			int heightStart = frame_height * (1 - percent);
-			for (int y = 0; y < sectionsPerHeight; y++)
+			for (int y = 0; y < sideHeight; y++)
 			{
-				for (int x = 0; x < sectionsPerWidth; x++)
+				for (int x = 0; x < sideWidth; x++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
@@ -954,7 +906,7 @@ public:
 	// int &framerate: is output parameter
 	// divisions: supports 2 and 4 only for now
 	// ROI: is the area of interest only for the whole image
-	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int divisions,bool useGlobalROI,
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int sideA,int sideB,bool useGlobalROI,
 		bool spatialRedundancy,cv::Scalar color = cv::Scalar(-1,-1,-1))
 	{
 		vector<vector<float> > frames;
@@ -972,7 +924,7 @@ public:
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(divisions, percent, false, Parameters::globalROI, false, spatialRedundancy);
+		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, false, spatialRedundancy);
 		if (color == cv::Scalar(-1, -1, -1))
 		{
 			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, Parameters::globalROI);
@@ -991,7 +943,7 @@ public:
 		if (((Parameters::endingIndex - Parameters::startingIndex) / framerate) < 3)
 		{
 			Parameters::start_second = cap.get(CV_CAP_PROP_POS_MSEC) * 1.0 / 1000.0;
-			return getVideoFrameLuminancesSplitted(videoName, percent, framerate, divisions, useGlobalROI, spatialRedundancy, color);
+			return getVideoFrameLuminancesSplitted(videoName, percent, framerate, sideA,sideB, useGlobalROI, spatialRedundancy, color);
 		}
 		return frames;
 	}
@@ -1161,8 +1113,9 @@ public:
 			(std::chrono::system_clock::now().time_since_epoch()).count();
 		ostringstream name;
 		name << milliseconds_since_epoch << "_" << vidName;
+		string codec = Parameters::getCodec();
 		VideoWriter vidWriter(name.str(),
-			CV_FOURCC(Parameters::codec[0], Parameters::codec[1], Parameters::codec[2], Parameters::codec[3])
+			CV_FOURCC(codec[0], codec[1], codec[2], codec[3])
 			, Parameters::fps, frameSize);
 		return vidWriter;
 	}
@@ -1434,9 +1387,9 @@ public:
 			result.width += cellWidth * 2;
 			result.height += cellHeight * 2;
 		}
-		cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
+		/*cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
 		imshow("img", img);
-		cv::waitKey(0);
+		cv::waitKey(0);*/
 		return result;
 	}
 
@@ -1527,5 +1480,31 @@ public:
 			result.push_back(index);
 		}
 		return result;
+	}
+	static Mat calcHueHistogram(Mat &src, Mat &hueVal,int hbins = 30)
+	{
+		Mat hsv;
+
+		cvtColor(src, hsv, CV_BGR2HSV);
+
+		// Quantize the hue to 30 levels
+		// and the saturation to 32 levels
+		
+		int histSize[] = { hbins };
+		// hue varies from 0 to 179, see cvtColor
+		float hranges[] = { 0, 180 };
+
+		const float* ranges[] = { hranges };
+		MatND hist;
+		// we compute the histogram from the 0-th and 1-st channels
+		int channels[] = { 0 };
+		Mat HSV[3];
+		cv::split(hsv, HSV);
+		hueVal = HSV[0].clone();
+		calcHist(&hsv, 1, channels, Mat(), // do not use mask
+			hist, 1, histSize, ranges,
+			true, // the histogram is uniform
+			false);
+		return hist;
 	}
 };

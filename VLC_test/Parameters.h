@@ -1,6 +1,12 @@
 #pragma once
+#include <string>
+#include <vector>
+#include <sstream>
+#include <fstream>
+#include <iostream>
+#include "opencv2/core/core.hpp"
 
-#include "Header.h"
+using namespace std;
 
 enum
 {
@@ -135,19 +141,19 @@ struct Parameters
 	static int DecodingMethod;
 	//static double LUMINANCE;
 	//enum{ ZERO = 0, ONE };
-	static string codec; //I420, DIB ,DIVX, XVID
+	
 	static cv::Size DefaultFrameSize;
-	static Size patternsize;
+	static cv::Size patternsize;
 	static AllSymbolsData symbolsData;
 	static int sideA;
 	static int sideB;
-	static int BGR_split; // split = 1, original = 0
-	static map<long long, Mat> vLayers;
+	static int CommunicatorSpecificSplit; // split = 1, original = 0
+	static map<long long, cv::Mat> vLayers;
 	static double start_second;
 	static double end_second;
 	static string endSecondFile;
 	static int BKGMaskThr;
-	static bool fullScreen;
+	static int fullScreen;
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -161,6 +167,29 @@ struct Parameters
 		}
 		return ostr.str();
 	}
+	static string getFull()
+	{
+		ostringstream ostr;
+		ostr << "full" << fullScreen;
+		return ostr.str();
+	}
+	static bool setCodec(string code)
+	{
+		vector<string> codecs({"I420", "DIB", "DIVX", "XVID"});
+		//cout << code << endl;
+		if (find(codecs.begin(), codecs.end(),code) != codecs.end())
+		{
+			codec = code;
+			return true;
+		}
+		return false;
+	}
+	static string getCodec()
+	{
+		return codec;
+	}
+private:
+	static string codec; //I420, DIB ,DIVX, XVID
 };
 int Parameters::startingIndex = 0;
 int Parameters::endingIndex = 0;
@@ -173,14 +202,14 @@ int Parameters::DecodingMethod = FFT_RANDOM_GUESS;
 //enum{ ZERO = 0, ONE };
 string Parameters::codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size Parameters::DefaultFrameSize = cv::Size(640, 480);
-Size Parameters::patternsize = cv::Size(11, 11);
+cv::Size Parameters::patternsize = cv::Size(11, 11);
 AllSymbolsData Parameters::symbolsData;
-map<long long, Mat> Parameters::vLayers;
+map<long long, cv::Mat> Parameters::vLayers;
 int Parameters::sideA = 1;
 int Parameters::sideB = 1;
 double Parameters::start_second = 0;
 double Parameters::end_second = 0;
 string Parameters::endSecondFile = "";
-int Parameters::BGR_split = 0;
+int Parameters::CommunicatorSpecificSplit = 0;
 int Parameters::BKGMaskThr = 5;
-bool Parameters::fullScreen = false;
+int Parameters::fullScreen = false;

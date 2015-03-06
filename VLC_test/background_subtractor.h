@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Header.h"
+#include "Parameters.h"
 #include <queue>
 
 class MaskFactory
@@ -12,7 +13,7 @@ public:
 	*/
 	static Mat getBackgroundMask(Mat &prev, Mat &frame)
 	{
-		return getBackgroundMaskNew(prev, frame, 5);
+		return getBackgroundMaskNew(prev, frame, Parameters::BKGMaskThr);
 	}
 	static Mat getBackgroundMaskAlgo(Mat &prev, Mat &frame)
 	{

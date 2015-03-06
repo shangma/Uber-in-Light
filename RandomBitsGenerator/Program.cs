@@ -11,12 +11,14 @@ namespace RandomBitsGenerator
     {
         static void Main(string[] args)
         {
-            for (int side = 2; side < 200; side <<= 1)
+            int[] cellPerWidth = new int[] { 3, 6, 12, 15, 16, 20, 30 };
+            int[] cellPerHeight = new int[] { 2, 5, 10, 12, 15, 18, 20 };
+            for (int i = 0; i < cellPerHeight.Length; i++)
             {
-                StreamWriter sw = new StreamWriter(string.Format("{0}x{0}.rand", side));
-                int length = side * side * 30; // 30 seconds
+                StreamWriter sw = new StreamWriter(string.Format("{0}x{1}.rand", cellPerHeight[i], cellPerWidth[i]));
+                int length = cellPerHeight[i] * cellPerWidth[i] * 300; // 30 seconds
                 Random r = new Random((int)DateTime.Now.Ticks);
-                for (int i = 0; i < length; i++)
+                for (int j = 0; j < length; j++)
                 {
                     sw.Write(r.Next(2));
                 }

@@ -87,7 +87,7 @@ namespace SummarizeResults
                 sw.Close();
                 // write median
                 sw = new StreamWriter("median_mp4.csv");
-                sw.WriteLine("original file name, Number of Runs, Average Accuracy, original length");
+                sw.WriteLine("original file name, Number of Runs, Median Accuracy, original length");
                 foreach (string key in avgDic.Keys)
                 {
                     avgDic[key].Sort();
@@ -98,6 +98,17 @@ namespace SummarizeResults
                         median = (median + avgDic[key][avgDic[key].Count / 2 - 1]) / 2;
                     }
                     sw.WriteLine("{0}, {1}, {2}, {3}", key, avgDic[key].Count, median, origLength[key]);
+                }
+                sw.Close();
+                // write median
+                sw = new StreamWriter("max_mp4.csv");
+                sw.WriteLine("original file name, Number of Runs, Max Accuracy, original length");
+                foreach (string key in avgDic.Keys)
+                {
+                    avgDic[key].Sort();
+                    avgDic[key].Reverse();
+                    double max = avgDic[key][0];
+                    sw.WriteLine("{0}, {1}, {2}, {3}", key, avgDic[key].Count, max, origLength[key]);
                 }
                 sw.Close();
             }

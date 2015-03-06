@@ -1,7 +1,7 @@
 #pragma once
-#include "Communicator.h"
+#include "RGBCommunicator.h"
 class RGBSpatialRedundancyCommunicator :
-	public Communicator
+	public RGBCommunicator
 {
 public:
 	////////////////////////////// Split Amplitude ///////////////////////////
@@ -28,7 +28,7 @@ public:
 		{
 			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
 		}
-		ROIs = Utilities::getDivisions(1, 1, false, globalROI, true, true);
+		ROIs = Utilities::getDivisions(1,1, 1, false, globalROI, true, true);
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -79,9 +79,9 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		Parameters::BKGMaskThr = 10;
-		Parameters::BGR_split = 1;
+		Parameters::CommunicatorSpecificSplit = 1;
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, true, true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, true);
 		vector<float> frames_BGR[3];
 		for (int i = 0; i < frames[0].size(); i++)
 		{

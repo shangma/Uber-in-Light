@@ -115,8 +115,38 @@ namespace RenameRecordedFiles
         static string getSideLength(string new_name)
         {
             Regex reg = new Regex(@"_side\d+_");
-            Match m = reg.Match(new_name);
-            return m.Value.Substring(5, m.Value.Length - 6);
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                return "-side " + m.Value.Substring(5, m.Value.Length - 6);
+            }
+            string ret = "";
+            reg = new Regex(@"_sideA\d+_");
+        
+            if(reg.IsMatch(new_name))
+            { 
+                Match m = reg.Match(new_name);
+                ret = "-sideA " + m.Value.Substring(6, m.Value.Length - 7);
+            }
+            reg = new Regex(@"_sideB\d+_");
+
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                ret += " -sideB " + m.Value.Substring(6, m.Value.Length - 7);
+            }
+            return ret;
+        }
+        static string getFullScreen(string new_name)
+        {
+            string ret = "";
+            Regex reg = new Regex(@"_full\d_");
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                ret = "-full " + m.Value.Substring(5, 1);
+            }
+            return ret;
         }
         static string getCommand(string new_name, string folder)
         {
@@ -125,7 +155,8 @@ namespace RenameRecordedFiles
             string symbols = getFreq(new_name);
             string time = getSymbolTime(new_name);
             string sideLength = getSideLength(new_name);
-            return string.Format(@"VLC_tester.exe -decode {4} -r {3} -t {5} -side {7} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
+            string fullScreen = getFullScreen(new_name);
+            return string.Format(@"VLC_tester.exe -decode {4} -r {3} -t {5} {7} {8} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
                 folder, 
                 mode, 
                 correction_code, 
@@ -133,7 +164,8 @@ namespace RenameRecordedFiles
                 (int)Decodeing.CROSS_CORRELATION,
                 getRandFileName(new_name), 
                 time,
-                sideLength);
+                sideLength,
+                fullScreen);
         }
 
         static void RenameSeparateFiles(string[] aviFiles, string[] mp4Files, string[] movFiles, DirectoryInfo dinf)
