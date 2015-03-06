@@ -379,6 +379,7 @@ public:
 		int end = frames.size() - fps;
 		for (int i = fps; i < end; i += window_size)
 		{
+			/*
 			if (Parameters::symbolsData.allData.size() == 2)
 			{
 				// normalize signal
@@ -394,6 +395,7 @@ public:
 					}
 				}
 			}
+			*/
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
 			{

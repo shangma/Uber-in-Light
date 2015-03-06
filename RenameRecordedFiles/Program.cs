@@ -27,17 +27,21 @@ namespace RenameRecordedFiles
 
         static int getMode(string file)
         {
-            if (file.ToLower().Contains("ampdiff"))
+            if (file.ToLower().Contains("_ampdiff_"))
             {
                 return 1;
             }
-            if (file.ToLower().Contains("splitamp"))
+            if (file.ToLower().Contains("_splitamp_"))
             {
                 return 5;
             }
-            if(file.ToLower().Contains("split"))
+            if(file.ToLower().Contains("_split_"))
             {
                 return 4;
+            }
+            if (file.ToLower().Contains("_rgb2_"))
+            {
+                return 9;
             }
             return 0;
         }

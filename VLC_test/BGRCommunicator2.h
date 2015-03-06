@@ -44,7 +44,7 @@ public:
 					// blue is poitive
 					Utilities::updateFrameLuminance(BGR[0], ROIs[j], amplitudes[0][innerLoopIndex]);
 					// red is negative
-					Utilities::updateFrameLuminance(BGR[2], ROIs[j], amplitudes[0][innerLoopIndex]);
+					Utilities::updateFrameLuminance(BGR[2], ROIs[j], -amplitudes[0][innerLoopIndex]);
 					// green is control
 					// not yet implemented
 				}
@@ -109,7 +109,7 @@ public:
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 
 			Parameters::sideA, Parameters::sideB, true, false);
-		vector<vector<float> > frames_BGR;
+		/*vector<vector<float> > frames_BGR;
 	
 		for (int j = 0; j < frames.size(); j ++)
 		{
@@ -119,8 +119,8 @@ public:
 				tmp.push_back(frames[j][i]);
 			}
 			frames_BGR.push_back(tmp);
-		}
-		return receiveN(frames_BGR, fps);
+		}*/
+		return receiveN(frames, fps);
 	}
 };
 

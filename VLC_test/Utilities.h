@@ -680,11 +680,11 @@ public:
 		int count = 1;
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		frame = prev.clone();
-		while (true)
+		while (cap.read(frame))
 		{
 			//imshow("prev", prev);
 			//cv::waitKey(30);
-			nextIndex += fps / test_frame_rate;
+			/*nextIndex += fps / test_frame_rate;
 			bool flag = true;
 
 			while ((int)nextIndex > count + 1)
@@ -696,12 +696,12 @@ public:
 			if (!flag)
 			{
 				break;
-			}
+			}*/
 			//cout << count << endl;
 			//mask = getBinaryMask(frame);
 			if (useChessBoard && (count % 10) == 0)
 			{
-				Mat temp;
+				//Mat temp;
 				if (canDetectMyBoard(frame))
 				{
 					break;
@@ -734,6 +734,7 @@ public:
 			prev = frame.clone();
 		}
 		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
+		cout << "last index = " << Parameters::endingIndex << endl;
 		return frames;
 	}
 
