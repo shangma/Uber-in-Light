@@ -7,6 +7,7 @@
 #include "RGBSpatialRedundancy.h"
 #include "HUECommnunicator.h"
 #include "BGRCommunicator2.h"
+#include "BGRCommunicator3.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 
@@ -397,6 +398,9 @@ int Properties::testSendReceive(int argc, char** argv)
 		break;
 	case 9:
 		communicator = new BGRCommunicator2;
+		break;
+	case 10:
+		communicator = new BGRCommunicator3;
 		break;
 	case -1:
 		communicator = new OldCommunicator;

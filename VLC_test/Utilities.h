@@ -22,7 +22,7 @@ public:
 	/// This function will not check the range for the ROI
 	/// this function adds alpha to the value channel in the selected ROI
 	// the mask must be same size as the ROI and the colors must be 0 and 1 means use this pixel
-	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, Mat &mask, bool useAlpha = false)
+	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, bool useAlpha = false)
 	{
 		if (useAlpha)
 		{
@@ -30,13 +30,8 @@ public:
 		}
 		else
 		{
-			updateFrameWithVchannel(frame, ROI, percentage,mask);
+			updateFrameWithVchannel(frame, ROI, percentage);
 		}
-	}
-	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, bool useAlpha = false)
-	{
-		Mat mask = Mat::ones(frame.size(),CV_8UC1);
-		updateFrameLuminance(frame, ROI, percentage, mask, useAlpha);
 	}
 	static Mat createVLayer(int &width, int &height, double &percentage)
 	{
@@ -74,7 +69,7 @@ public:
 		}
 		return vChannel;
 	}
-	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double percentage,Mat &mask)
+	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double percentage)
 	{
 		long long a = (percentage * 10000);
 		long long b = frame.cols;
@@ -87,7 +82,7 @@ public:
 		}
 		// and copy
 		int* vData = (int*)Parameters::vLayers[key].data;
-		unsigned char* maskData = (unsigned char*)mask.data;
+		//unsigned char* maskData = (unsigned char*)mask.data;
 		unsigned char* data = (unsigned char*)frame.data;
 		int rows = ROI.y + ROI.height;
 		int cols = ROI.x + ROI.width;
@@ -101,7 +96,8 @@ public:
 				for (int k = 0; k < channels; k++)
 				{
 					int ind = i * channels + k;
-					int tmp = (vData[j] * maskData[i + k] + data[ind]);
+					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
+					int tmp = (vData[j] + data[ind]);
 					data[ind] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
@@ -303,6 +299,39 @@ public:
 			}
 		}
 		return tmp;
+	}
+	// get differnce between neighbour frames
+	// and get difference between B and R channels
+	static Mat getDiffBetweenFramesBR(Mat &prev, Mat &frame, int radius, cv::Rect roi)
+	{
+		// save the ROI
+		Mat tmp, tmp1, tmp2;
+		vector<Mat> HSV1, HSV2;
+
+		// new method
+		Mat ret = Mat::zeros(roi.height, roi.width, CV_32F);
+		float* data = ((float*)ret.data);
+		unsigned char * p = ((unsigned char*)prev.data);
+		unsigned char * f = ((unsigned char*)frame.data);
+		int sz = ret.cols * ret.rows;
+		int rows = roi.y + roi.height;
+		int cols = roi.x + roi.width;
+		int j = 0;
+		int i = roi.y * frame.cols + roi.x;
+		int inc = frame.cols - roi.width;
+		int channels = frame.channels();
+		for (int r = roi.y; r < rows; r++)
+		{
+			for (int c = roi.x; c < cols; c++, j++, i++)
+			{
+				int a = f[i * channels] + p[i * channels + 2];
+				int b = f[i * channels + 2] + p[i * channels];
+				data[j] = a - b;
+			}
+			i += inc;
+		}
+
+		return ret;
 	}
 	// the input frames here are the original frames
 	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius, cv::Rect roi)
@@ -600,25 +629,24 @@ public:
 		return str + outputVideoFile;
 	}
 
-	static void extractOneFrameLuminance(bool oldMethod, bool useAlpha, Mat &add_mask, vector<cv::Rect> &ROIs, 
+	static void extractOneFrameLuminance(Mat &add_mask, vector<cv::Rect> &ROIs, 
 		vector<vector<float> > &frames,Mat &tmp_frame,Mat &tmp_prev,int i)
 	{
 		Mat tmp;
-		if (oldMethod)
+		switch (Parameters::amplitudeExtraction)
 		{
-			if (useAlpha)
-			{
-				tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
-			}
-			else
-			{
-				tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
-			}
-			//add_mask = add_mask * 0 + 255;
-		}
-		else
-		{
+		case ALPHA_CHANNEL:
+			tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
+			break;
+		case V_CHANNEL:
+			tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
+			break;
+		case V_CHANNEL_DIFF:
 			tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0, ROIs[i]);
+			break;
+		case BR_CHANNELS_DIFF:
+			tmp = Utilities::getDiffBetweenFramesBR(tmp_prev, tmp_frame, 0, ROIs[i]);
+			break;
 		}
 		float luminance = cv::sum(tmp).val[0];
 		float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
@@ -694,12 +722,12 @@ public:
 					
 					for (int j = 0; j < frame_split.size(); j++)
 					{
-						extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, frame_split[j], prev_split[j], i);
+						extractOneFrameLuminance(add_mask, ROIs, frames, frame_split[j], prev_split[j], i);
 					}
 				}
 				else
 				{
-					extractOneFrameLuminance(oldMethod, useAlpha, add_mask, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
+					extractOneFrameLuminance(add_mask, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
 				}
 				
 			}

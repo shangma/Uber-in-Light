@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="background_subtractor.h" />
     <ClInclude Include="BGRCommunicator2.h" />
+    <ClInclude Include="BGRCommunicator3.h" />
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="HUECommnunicator.h" />

@@ -14,6 +14,14 @@ enum
 	FFT_NO_RANDOM_GUESS,
 	CROSS_CORRELATION,
 };
+enum
+{
+	ALPHA_CHANNEL,
+	V_CHANNEL,
+	V_CHANNEL_DIFF,
+	BR_CHANNELS_DIFF,
+};
+
 
 // try to read this from file
 struct SymbolData
@@ -154,6 +162,7 @@ struct Parameters
 	static string endSecondFile;
 	static int BKGMaskThr;
 	static int fullScreen;
+	static int amplitudeExtraction;
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -213,3 +222,4 @@ string Parameters::endSecondFile = "";
 int Parameters::CommunicatorSpecificSplit = 0;
 int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
+int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;

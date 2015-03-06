@@ -28,15 +28,18 @@ public:
 	}
 	virtual void sendImageMainLoop()
 	{
-		for (int i = 0; i < amplitudes[0].size(); i += (sections * framesForSymbol))
+		int amplitudes0_size = amplitudes[0].size();
+		int i_increment = (sections * framesForSymbol);
+		for (int i = 0; i < amplitudes0_size; i += i_increment)
 		{
 			for (int k = 0; k < framesForSymbol; k++)
 			{
 				Mat frame = img.clone();
-				for (int j = 0; j < sections && (i + (j * framesForSymbol) + k) < amplitudes[0].size(); j++)
+				int innerLoopComparison = i + k;
+				for (int j = 0; j < sections && innerLoopComparison < amplitudes0_size; j++, innerLoopComparison += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][i + (j * framesForSymbol) + k]);
+					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
 				vidWriter << frame;
 			}
