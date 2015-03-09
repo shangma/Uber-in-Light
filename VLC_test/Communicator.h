@@ -206,16 +206,51 @@ public:
 	}
 	void addSynchFrames(bool end)
 	{
+		switch (Parameters::synchMethod)
+		{
+		case SYNCH_GREEN_CHANNEL:
+			{
+				double frameIndex = 0;
+				vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps, 14, 0.01, -0.01);
+				for (int i = 0; i < wave.size(); i++)
+				{
+					if (Parameters::realVideo)
+					{
+						if (i >= frameIndex)
+						{
+							frameIndex += inputFrameUsageFrames;
+							videoReader.read(img);
+							cv::resize(img, img, Utilities::getFrameSize());
+						}
+					}
+					vector<Mat> BGR;
+					cv::split(img, BGR);
+					Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[i]);
+					Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[i]);
+					Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[i]);
+					Mat frame;
+					cv::merge(BGR, frame);
+					vidWriter << frame;
+				}
+			}
+			break;
+		case SYNCH_CHESS:
+			if (end)
+			{
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
+				//vidWriter.release();
+			}
+			else
+			{
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+			}
+			break;
+		}
 		if (end)
 		{
-			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
-			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
 			vidWriter.release();
-		}
-		else
-		{
-			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
-			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
 		}
 	}
 

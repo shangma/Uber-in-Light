@@ -699,7 +699,7 @@ public:
 			}*/
 			//cout << count << endl;
 			//mask = getBinaryMask(frame);
-			if (useChessBoard && (count % 10) == 0)
+			if (useChessBoard && (count % 4) == 0)
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame))
@@ -898,35 +898,73 @@ public:
 		Mat frame;
 		globalROI.width = frame_width;
 		globalROI.height = frame_height;
-		starting_index = 0;
-		for (; cap.read(frame); starting_index++)
+		cout << "we are here\n";
+		if (Parameters::synchMethod == SYNCH_CHESS)
 		{
-			// this loop to detect the first chess board
-			//cout << index << endl;
-			//imshow("frame", frame);
-			//cv::waitKey(0);
-			if (canDetectMyBoard(frame))
+			starting_index = 0;
+			for (; cap.read(frame); starting_index++)
 			{
-				break;
+				// this loop to detect the first chess board
+				if (canDetectMyBoard(frame))
+				{
+					break;
+				}
+			}
+			int countChess = 0;
+			int countErrors = 0;
+			for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
+			{
+				// this loop to detect the last chess board
+				if (canDetectMyBoard(frame))
+				{
+					globalROI = detectMyBoard(frame);
+					countErrors = 0;
+				}
+				else
+				{
+					countErrors++;
+				}
+			}
+			starting_index -= (countErrors + 1);
+		}
+		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
+		{
+			cout << "GREEN\n";
+			Mat prev, frame, accumelation = Mat::zeros(frame_height, frame_width, CV_32SC1);
+			int sz = frame_height * frame_width;
+			int* accData = (int*)accumelation.data;
+			if (cap.retrieve(prev))
+			{
+				prev.convertTo(prev, CV_32S);
+
+				while (cap.retrieve(frame))
+				{
+					frame.convertTo(frame, CV_32S);
+					Mat test = frame - prev;
+					int* testData = (int*)test.data;
+					for (int i = 0; i < sz; i++)
+					{
+						int pixelVal = testData[i * 3 + 1];
+						pixelVal -= testData[i * 3];
+						pixelVal -= testData[i * 3 + 2];
+						if (pixelVal < 0)
+						{
+							pixelVal = -pixelVal;
+						}
+						if (pixelVal > 0)
+						{
+							cout << i << "\t" << pixelVal << endl;
+						}
+						accData[i] += pixelVal;
+					}
+//					accumelation.convertTo(test, CV_8UC1);
+					imshow("acc", test * 255);
+					cv::waitKey(0);
+					//
+					prev = frame.clone();
+				}
 			}
 		}
-		int countChess = 0;
-		int countErrors = 0;
-		for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
-		{
-			// this loop to detect the last chess board
-			if (canDetectMyBoard(frame))
-			{
-				globalROI = detectMyBoard(frame);
-				countErrors = 0;
-			}
-			else
-			{
-				countErrors++;
-			}
-		}
-		starting_index -= (countErrors + 1);
-		//cap.release();
 		return globalROI;
 	}
 	/// get video frames luminance (this is the split version which splits the image into two)

@@ -138,7 +138,7 @@ int Properties::testSendReceive(int argc, char** argv)
 		}
 		else if (!strcmp(argv[i], "-v"))
 		{
-			realVideo = true;
+			Parameters::realVideo = true;
 		}
 		else if (!strcmp(argv[i], "-zero"))
 		{
@@ -427,7 +427,7 @@ int Properties::testSendReceive(int argc, char** argv)
 			msg = reedSolomon.encode_bit_stream(msg);
 			msgFileName = "ReedSolomon_" + msgFileName;
 		}
-		if (realVideo)
+		if (Parameters::realVideo)
 		{
 			if (communicator->initVideo(inputFileName, msg,
 				Utilities::createOuputVideoName(msgFileName, inputFileName, outputFileName)))

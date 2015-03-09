@@ -22,6 +22,11 @@ enum
 	BR_CHANNELS_DIFF,
 };
 
+enum
+{
+	SYNCH_CHESS,
+	SYNCH_GREEN_CHANNEL,
+};
 
 // try to read this from file
 struct SymbolData
@@ -163,6 +168,8 @@ struct Parameters
 	static int BKGMaskThr;
 	static int fullScreen;
 	static int amplitudeExtraction;
+	static bool realVideo;
+	static int synchMethod;
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -223,3 +230,5 @@ int Parameters::CommunicatorSpecificSplit = 0;
 int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
+bool Parameters::realVideo = false;
+int Parameters::synchMethod = SYNCH_CHESS;

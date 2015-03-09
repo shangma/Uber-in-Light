@@ -37,7 +37,6 @@ private:
 	Properties()
 	{
 		mode = SEND;
-		realVideo = false;
 		outputFileName = "output.avi";
 		inputFileName = "";
 		ROI = 1;
@@ -64,7 +63,6 @@ public:
 	string msgFileName; // the message file Name
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude
-	bool realVideo; // true means real video and false means not
 	string text; // text to send
 	vector<short> msg; // the message after conversion to vector<short>
 	int extendN;
