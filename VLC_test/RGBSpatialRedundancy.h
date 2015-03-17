@@ -28,7 +28,7 @@ public:
 		{
 			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
 		}
-		ROIs = Utilities::getDivisions(1,1, 1, false, globalROI, true, true);
+		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, true);
 	}
 	virtual void sendImageMainLoop()
 	{

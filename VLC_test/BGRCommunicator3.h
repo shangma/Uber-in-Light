@@ -1,10 +1,10 @@
 #pragma once
 #include "Communicator.h"
 class BGRCommunicator3 :
-	public Communicator
+	public SplitScreenCommunicator
 {
 public:
-	////////////////////////////// Split Amplitude ///////////////////////////
+	////////////////////////////// Red and Blue as separate channels ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
 		return "_RGB3_" + outputVideoFile;
@@ -34,46 +34,71 @@ public:
 		// then add the green channel as the inverse of the other two channels
 		for (int i = 0; i < amplitudes[0].size(); i++)
 		{
-			amplitudes[1].push_back(-amplitudes[0][i] - amplitudes[2][i]);
+			amplitudes[1].push_back(0);// -amplitudes[0][i] - amplitudes[2][i]);
 		}
-		ROIs = Utilities::getDivisions(1, 1, 1, false, globalROI, true, false);
+		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
+		sections = Parameters::sideA * Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()
 	{
-		for (int i = 0; i < amplitudes[0].size(); i++)
+		int amplitudes0_size = amplitudes[0].size();
+		int i_increment = (sections * framesForSymbol);
+		for (int i = 0; i < amplitudes0_size; i += i_increment)
 		{
-			Mat frame = img.clone();
-			vector<Mat> BGR;
-			cv::split(frame, BGR);
-			for (int j = 0; j < 3; j++)
+			for (int k = 0; k < framesForSymbol; k++)
 			{
-				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][i]);
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+				int innerLoopIndex = i + k;
+				for (int j = 0; j < sections && innerLoopIndex < amplitudes0_size; j++, innerLoopIndex += framesForSymbol)
+				{
+					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					for (int k = 0; k < 3; k++)
+					{
+						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					}
+				}
+				Mat frame;
+				cv::merge(BGR, frame);
+				vidWriter << frame;
 			}
-			cv::merge(BGR, frame);
-			vidWriter << frame;
 		}
 	}
 	virtual void sendVideoMainLoop()
 	{
-		Mat frame;
 		double frameIndex = 0;
-		for (int k = 0; k < amplitudes[0].size(); k++)
+		double frameIndexIncrement = inputFrameUsageFrames*sections;
+		int ampitudesSize = amplitudes[0].size();
+		int i_increment = (sections * framesForSymbol);
+		for (int i = 0; i < ampitudesSize; i += i_increment)
 		{
-			if (k >= frameIndex)
+			int frameIndexComparison = i;
+			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison += sections)
 			{
-				frameIndex += inputFrameUsageFrames;
-				videoReader.read(frame);
+				if (frameIndexComparison >= frameIndex)
+				{
+					frameIndex += frameIndexIncrement;
+					videoReader.read(img);
+					cv::resize(img, img, Utilities::getFrameSize());
+				}
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+
+				int innerLoopIndex = i + k;
+				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
+				{
+					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					for (int k = 0; k < 3; k++)
+					{
+						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					}
+				}
+				Mat frame;
+				cv::merge(BGR, frame);
+				vidWriter << frame;
 			}
-			Mat tmp;
-			cv::resize(frame, tmp, Utilities::getFrameSize());
-			vector<Mat> BGR;
-			cv::split(tmp, BGR);
-			for (int j = 0; j < 3; j++)
-			{
-				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][k]);
-			}
-			cv::merge(BGR, tmp);
-			vidWriter << tmp;
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,31 +114,27 @@ public:
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		Parameters::BKGMaskThr = 10;
-		Parameters::CommunicatorSpecificSplit = 1;
+		Parameters::BKGMaskThr = 300; 
+		Parameters::amplitudeExtraction = BR_CHANNELS_SEPARATE;
+		//Parameters::CommunicatorSpecificSplit = 1;
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, 1, true, false);
-		vector<float> frames_BGR[2];
-		for (int i = 0; i < frames[0].size(); i+=3)
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,
+			Parameters::sideA, Parameters::sideB, true, false);
+		vector<vector<float> > frames_BGR;
+		for (int i = 0; i < frames.size(); i++)
 		{
-			// blue
-			frames_BGR[0].push_back(frames[0][i]);
-			// red
-			frames_BGR[1].push_back(frames[0][i + 2]);
-		}
-		vector<short> tmp_res[2];
-		for (int i = 0; i < 2; i++)
-		{
-			tmp_res[i] = receive2(frames_BGR[i], fps);
-		}
-		vector<short> res;
-		for (int i = 0; i < tmp_res[0].size(); i++)
-		{
-			for (int j = 0; j < 2; j++)
+			vector<float> B;
+			vector<float> R;
+			for (int j = 0; j < frames[i].size(); j+=2)
 			{
-				res.push_back(tmp_res[j][i]);
+				// blue
+				B.push_back(frames[i][j]);
+				// red
+				R.push_back(frames[i][j + 1]);
 			}
+			frames_BGR.push_back(B);
+			frames_BGR.push_back(R);
 		}
-		return res;
+		return receiveN(frames_BGR, fps);
 	}
 };

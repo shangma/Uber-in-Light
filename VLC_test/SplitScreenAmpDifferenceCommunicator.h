@@ -27,7 +27,7 @@ public:
 		
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		 
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, globalROI, true, true);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, true);
 		sections = Parameters::sideA* Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()

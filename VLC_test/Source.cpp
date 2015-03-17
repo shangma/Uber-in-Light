@@ -8,6 +8,7 @@
 #include "HUECommnunicator.h"
 #include "BGRCommunicator2.h"
 #include "BGRCommunicator3.h"
+#include "BGRCommunicator4.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 
@@ -402,6 +403,9 @@ int Properties::testSendReceive(int argc, char** argv)
 	case 10:
 		communicator = new BGRCommunicator3;
 		break;
+	case 11:
+		communicator = new BGRCommunicator4;
+		break; 
 	case -1:
 		communicator = new OldCommunicator;
 		break;
@@ -509,10 +513,50 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
-	string release = "C:\\Users\\mostafaizz\\Documents\\Visual Studio 2013\\Projects\\ConsoleApplication1\\Release\\";
+	/*while (true)
+	{
+		int n;
+		cin >> n;
+		Mat test = Mat::ones(n, n, CV_32FC1);
+		((float*)test.data)[0] = -2.0f * n;
+		((float*)test.data)[n - 1] = -2.0f * n;
+		float maxSum;
+		Utilities::getMaxSum(test, maxSum);
+		Utilities::getMaxSumDP(test, maxSum);
+	}*/
+	//string release = "C:\\Users\\mostafaizz\\Documents\\Visual Studio 2013\\Projects\\ConsoleApplication1\\Release\\";
+	//string fileName = release + string(argv[1]) + ".rand";
+	//string dstfileName = release + string(argv[1]) + "org.rand";
+	//ifstream ifs(fileName);
+	//// assume the text inside
+	//string text;
+	//ifs >> text;
+	//ifs.close();
+	//// convert the message to vector of short
+	//vector<short> msg = Utilities::getBinaryMessage(text);
+
+	//AllSymbolsData asd1,asd2;
+	//asd1.readData(release + "8freq8.symbol");
+	//asd2.readData(release + "8freq8org.symbol");
+
+	//vector<SymbolData> msg1 = asd1.getMsgSymbols(msg);
+	//ofstream dst(dstfileName);
+	//for (int i = 0; i < msg1.size(); i++)
+	//{
+	//	double freq = msg1[i].frequency;
+	//	for (int j = 0; j < asd2.allData.size(); j++)
+	//	{
+	//		if (abs(freq - asd2.allData[j].frequency) < 0.1)
+	//		{
+	//			dst << asd2.allData[j].symbol;
+	//		}
+	//	}
+	//}
+	//dst.close();
+
 	//Mat img = imread(release + "img2.jpg");
 	//Utilities::calcHistogram(img);
-	//Utilities::exploreVideo(release + "HiLight\\IMG_6049.MOV");
+	//Utilities::exploreVideo(release + "test\\20150311_152112_172020172__RGB2_2x3rand_4Freq8symbol_sideA3_sideB2_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	return Properties::getInst()->testSendReceive(argc, argv);
 	
 	

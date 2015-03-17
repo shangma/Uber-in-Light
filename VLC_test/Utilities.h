@@ -274,16 +274,27 @@ public:
 		return minimum;
 	}
 
-	static Mat getVchannel(Mat &frame)
+	static void getVchannel(Mat &frame, vector<float> &amplitudes, Mat &mask)
 	{
 		vector<Mat> BGR1;
 		cv::split(frame, BGR1);
 		cv::max(BGR1[0], BGR1[1], BGR1[1]);
 		cv::max(BGR1[1], BGR1[2], BGR1[2]);
 
-		return BGR1[2];
+		float luminance = cv::mean(BGR1[2]).val[0];
+		//float summation = (cv::sum((*add_mask)(ROIs[i])).val[0] / 255.0) + 1;
+		float summation = (cv::sum(mask).val[0] / 255.0) + 1;
+		luminance /= summation;
+		if (abs(luminance) < 0.001 && amplitudes.size())
+		{
+			amplitudes.push_back(amplitudes[amplitudes.size() - 1]);
+		}
+		else
+		{
+			amplitudes.push_back(luminance);
+		}
 	}
-	static Mat getIntensity(Mat &frame)
+	static void getIntensity(Mat &frame, vector<float> &amplitudes, Mat &mask)
 	{
 		// save the ROI
 		Mat tmp = Mat::zeros(frame.size(),CV_32FC1);
@@ -298,17 +309,24 @@ public:
 				intensityData[i] += frameData[i*channels + j];
 			}
 		}
-		return tmp;
+		float luminance = cv::mean(tmp).val[0];
+		//float summation = (cv::sum((*add_mask)(ROIs[i])).val[0] / 255.0) + 1;
+		float summation = (cv::sum(mask).val[0] / 255.0) + 1;
+		luminance /= summation;
+		if (abs(luminance) < 0.001 && amplitudes.size())
+		{
+			amplitudes.push_back(amplitudes[amplitudes.size() - 1]);
+		}
+		else
+		{
+			amplitudes.push_back(luminance);
+		}
 	}
+
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
-	static Mat getDiffBetweenFramesBR(Mat &prev, Mat &frame, int radius, cv::Rect roi)
+	static Mat getDiffBetweenFramesBR_G(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, Mat &mask)
 	{
-		// save the ROI
-		Mat tmp, tmp1, tmp2;
-		vector<Mat> HSV1, HSV2;
-
-		// new method
 		Mat ret = Mat::zeros(roi.height, roi.width, CV_32F);
 		float* data = ((float*)ret.data);
 		unsigned char * p = ((unsigned char*)prev.data);
@@ -324,17 +342,101 @@ public:
 		{
 			for (int c = roi.x; c < cols; c++, j++, i++)
 			{
-				int a = f[i * channels] + p[i * channels + 2];
-				int b = f[i * channels + 2] + p[i * channels];
+				int a = f[i * channels + 1] + p[i * channels] + p[i * channels + 2];
+				int b = p[i * channels + 1] + f[i * channels] + f[i * channels + 2];
 				data[j] = a - b;
 			}
 			i += inc;
 		}
 
+		float luminance = cv::mean(ret).val[0];
+		//float summation = (cv::sum((*add_mask)(ROIs[i])).val[0] / 255.0) + 1;
+		float summation = (cv::sum(mask).val[0] / 255.0) + 1;
+		luminance /= summation;
+		if (abs(luminance) < 0.001 && amplitudes.size())
+		{
+			amplitudes.push_back(amplitudes[amplitudes.size() - 1]);
+		}
+		else
+		{
+			amplitudes.push_back(luminance);
+		}
+
 		return ret;
 	}
+	// get differnce between neighbour frames
+	// and get difference between B and R channels
+	static void getDiffBetweenFramesBR(Mat &prev, Mat &frame, cv::Rect &roi,vector<float> &amplitudes)
+	{
+		// save the ROI
+		Mat tmp, tmp1, tmp2;
+		vector<Mat> HSV1, HSV2;
+
+		// new method
+		//Mat ret = Mat::zeros(roi.height, roi.width, CV_32SC1);
+		//int* data = ((int*)ret.data);
+		long long sum = 0;
+		unsigned char * p = ((unsigned char*)prev.data);
+		unsigned char * f = ((unsigned char*)frame.data);
+		int sz = frame.cols * frame.rows;
+		int rows = roi.y + roi.height;
+		int cols = roi.x + roi.width;
+		int j = 0;
+		int i = roi.y * frame.cols + roi.x;
+		int inc = frame.cols - roi.width;
+		int channels = frame.channels();
+		for (int r = roi.y; r < rows; r++)
+		{
+			for (int c = roi.x; c < cols; c++, j++, i++)
+			{
+				int a = f[i * channels] + p[i * channels + 2];
+				int b = f[i * channels + 2] + p[i * channels];
+				//data[j] = a - b;
+				sum += a - b;
+			}
+			i += inc;
+		}
+
+		amplitudes.push_back(sum);
+	}
+	// get differnce between neighbour frames
+	// and get difference between B and R channels
+	static void getDiffBetweenFramesSeprateBR(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes)
+	{
+		// save the ROI
+		Mat tmp, tmp1, tmp2;
+		vector<Mat> HSV1, HSV2;
+
+		// new method
+		//Mat ret = Mat::zeros(roi.height, roi.width, CV_32SC1);
+		//int* data = ((int*)ret.data);
+		long long sum1 = 0, sum2 = 0;
+		unsigned char * p = ((unsigned char*)prev.data);
+		unsigned char * f = ((unsigned char*)frame.data);
+		int sz = frame.cols * frame.rows;
+		int rows = roi.y + roi.height;
+		int cols = roi.x + roi.width;
+		int j = 0;
+		int i = roi.y * frame.cols + roi.x;
+		int inc = frame.cols - roi.width;
+		int channels = frame.channels();
+		for (int r = roi.y; r < rows; r++)
+		{
+			for (int c = roi.x; c < cols; c++, j++, i++)
+			{
+				sum1 += f[i * channels];
+				sum1 -= p[i * channels];
+				sum2 += f[i * channels + 2];
+				sum2 -= p[i * channels + 2];
+			}
+			i += inc;
+		}
+
+		amplitudes.push_back(sum1);
+		amplitudes.push_back(sum2);
+	}
 	// the input frames here are the original frames
-	static Mat getDiffInVchannelHSV(Mat &prev,Mat &frame,int radius, cv::Rect roi)
+	static void getDiffInVchannelHSV(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, Mat &mask)
 	{
 		// save the ROI
 		Mat tmp, tmp1, tmp2;
@@ -377,7 +479,18 @@ public:
 			i += inc;
 		}
 
-		return ret;
+		float luminance = cv::mean(ret).val[0];
+		//float summation = (cv::sum((*add_mask)(ROIs[i])).val[0] / 255.0) + 1;
+		float summation = (cv::sum(mask).val[0] / 255.0) + 1;
+		luminance /= summation;
+		if (abs(luminance) < 0.001 && amplitudes.size())
+		{
+			amplitudes.push_back(amplitudes[amplitudes.size() - 1]);
+		}
+		else
+		{
+			amplitudes.push_back(luminance);
+		}
 	}
 
 
@@ -551,8 +664,10 @@ public:
 					videoReader.set(CV_CAP_PROP_POS_FRAMES, j + i);
 					if (videoReader.read(next))
 					{
-						Mat diff = getDiffInVchannelHSV(frame, next, 0, cv::Rect(0, 0, frame_width,frame_height));
-						correlations[i] += abs(cv::mean(diff).val[0]);
+						vector<float> diff;
+						Mat mask = Mat::zeros(frame.size(), CV_8UC1) + 255;
+						getDiffInVchannelHSV(frame, next, cv::Rect(0, 0, frame_width, frame_height), diff,mask);
+						correlations[i] += diff[0];
 						
 						frame.convertTo(frame, CV_32F);
 						vector<Mat> BGR1;
@@ -629,36 +744,29 @@ public:
 		return str + outputVideoFile;
 	}
 
-	static void extractOneFrameLuminance(Mat &add_mask, vector<cv::Rect> &ROIs, 
+	static void extractOneFrameLuminance(Mat *add_mask, vector<cv::Rect> &ROIs, 
 		vector<vector<float> > &frames,Mat &tmp_frame,Mat &tmp_prev,int i)
 	{
-		Mat tmp;
 		switch (Parameters::amplitudeExtraction)
 		{
 		case ALPHA_CHANNEL:
-			tmp = Utilities::getIntensity(tmp_frame(ROIs[i]));
+			Utilities::getIntensity(tmp_frame(ROIs[i]), frames[i], (*add_mask)(ROIs[i]));
 			break;
 		case V_CHANNEL:
-			tmp = Utilities::getVchannel(tmp_frame(ROIs[i]));
+			Utilities::getVchannel(tmp_frame(ROIs[i]), frames[i], (*add_mask)(ROIs[i]));
 			break;
 		case V_CHANNEL_DIFF:
-			tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0, ROIs[i]);
+			Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
 			break;
 		case BR_CHANNELS_DIFF:
-			tmp = Utilities::getDiffBetweenFramesBR(tmp_prev, tmp_frame, 0, ROIs[i]);
+			Utilities::getDiffBetweenFramesBR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
 			break;
-		}
-		float luminance = cv::sum(tmp).val[0];
-		float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
-		luminance /= summation;
-		//float luminance = getLuminance(tmp, ROI);
-		if (abs(luminance) < 0.001 && frames[i].size())
-		{
-			frames[i].push_back(frames[i][frames[i].size() - 1]);
-		}
-		else
-		{
-			frames[i].push_back(luminance);
+		case BR_CHANNELS_SEPARATE:
+			Utilities::getDiffBetweenFramesSeprateBR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
+			break;
+		case BR_G_CHANNELS_DIFF:
+			Utilities::getDiffBetweenFramesBR_G(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
+			break;
 		}
 	}
 
@@ -666,7 +774,7 @@ public:
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, bool useChessBoard, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
 	{
 		Parameters::endingIndex = Parameters::startingIndex + 1;
 		vector<vector<float> > frames(ROIs.size());
@@ -680,26 +788,11 @@ public:
 		int count = 1;
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		frame = prev.clone();
+		int ROIsSize = ROIs.size();
 		while (cap.read(frame))
 		{
-			//imshow("prev", prev);
-			//cv::waitKey(30);
-			/*nextIndex += fps / test_frame_rate;
-			bool flag = true;
-
-			while ((int)nextIndex > count + 1)
-			{
-				++count;
-				flag = cap.read(frame);
-				Parameters::endingIndex++;
-			}
-			if (!flag)
-			{
-				break;
-			}*/
-			//cout << count << endl;
-			//mask = getBinaryMask(frame);
-			if (useChessBoard && (count % 4) == 0)
+			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
+			if (count & 3)
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame))
@@ -713,22 +806,9 @@ public:
 			frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
 			Mat tmp_prev_BGR;
 			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
-			for (int i = 0; i < ROIs.size(); i++)
+			for (int i = 0; i < ROIsSize; i++)
 			{
-				if (Parameters::CommunicatorSpecificSplit == 1)
-				{
-					vector<Mat> frame_split = Properties::getInst()->getSplittedImages(tmp_frame_BGR);
-					vector<Mat> prev_split = Properties::getInst()->getSplittedImages(tmp_prev_BGR);
-					
-					for (int j = 0; j < frame_split.size(); j++)
-					{
-						extractOneFrameLuminance(add_mask, ROIs, frames, frame_split[j], prev_split[j], i);
-					}
-				}
-				else
-				{
-					extractOneFrameLuminance(add_mask, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
-				}
+				extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
 				
 			}
 			prev = frame.clone();
@@ -790,19 +870,7 @@ public:
 			prev(globalROI).copyTo(tmp_prev, add_mask);
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				Mat tmp = Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, 0,ROIs[i]);
-				float luminance = cv::sum(tmp).val[0];
-				float summation = (cv::sum(add_mask(ROIs[i])).val[0] / 255.0) + 1;
-				luminance /= summation;
-				//float luminance = getLuminance(tmp, ROI);
-				if (abs(luminance) < 0.001 && frames[i].size())
-				{
-					frames[i].push_back(frames[i][frames[i].size() - 1]);
-				}
-				else
-				{
-					frames[i].push_back(luminance);
-				}
+				Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], add_mask(ROIs[i]));
 			}
 			prev = frame.clone();
 		}
@@ -883,6 +951,142 @@ public:
 		return ROIs;
 	}
 
+	static float getMaxSum(float *arr, int startIncInput, int endExcInput, int &startOuput, int &endOutput)
+	{
+		float sum_here, sum_total;
+		sum_here = sum_total = arr[startIncInput];
+		int start = startOuput = startIncInput, end = endOutput = startIncInput + 1;
+		for (int i = startIncInput + 1; i < endExcInput; i++)
+		{
+			if (arr[i] > sum_here + arr[i])
+			{
+				sum_here = arr[i];
+				start = i;
+				end = i + 1;
+			}
+			else if (sum_here + arr[i] > arr[i])
+			{
+				sum_here = sum_here + arr[i];
+				end = i + 1;
+			}
+			
+			if (sum_here > sum_total)
+			{
+				sum_total = sum_here;
+				startOuput = start;
+				endOutput = end;
+			}
+		}
+		return sum_total;
+	}
+
+	// should be float 
+	static cv::Rect getMaxSum(Mat &inp, float &maxSum)
+	{
+		int cols = inp.cols;
+		int rows = inp.rows;
+		int sz = rows * cols;
+		float* data = (float*)inp.data;
+		// Variables to store the final output
+		maxSum = INT_MIN;
+		int finalLeft, finalRight, finalTop, finalBottom;
+
+		int top, bottom, i;
+		float sum;
+		int start, finish;
+		float * temp = new float[cols];
+		// Set the left column
+		for (top = 0; top < rows; ++top)
+		{
+			// Initialize all elements of temp as 0
+			memset(temp, 0, cols*sizeof(float));
+			// Set the right column for the left column set by outer loop
+			for (bottom = top; bottom < rows; ++bottom)
+			{
+				// Calculate sum between current left and right for every row 'i'
+				for (i = 0; i < cols; ++i)
+				{
+					temp[i] += data[i + bottom * cols];
+				}
+				// Find the maximum sum subarray in temp[]. The kadane() function
+				// also sets values of start and finish.  So 'sum' is sum of
+				// rectangle between (start, left) and (finish, right) which is the
+				//  maximum sum with boundary columns strictly as left and right.
+				sum = getMaxSum(temp, 0, cols,  start, finish);
+
+				// Compare sum with maximum sum so far. If sum is more, then update
+				// maxSum and other output values
+				if (sum > maxSum)
+				{
+					maxSum = sum;
+					finalLeft = start;
+					finalRight = finish;
+					finalTop = top;
+					finalBottom = bottom + 1;
+				}
+			}
+		}
+		delete[]temp;
+		//cout << "maxSum = " << maxSum << endl;
+		//printf("(%d\t%d)\t(%d\t%d)\n", finalLeft, finalTop, finalRight, finalBottom);
+		return cv::Rect(finalLeft, finalTop, finalRight - finalLeft, finalBottom - finalTop);
+	}
+
+	// should be float 
+	static cv::Rect getMaxSumDP(Mat &inp, float &maxSum)
+	{
+		int cols = inp.cols;
+		int rows = inp.rows;
+		int sz = rows * cols;
+		float* data = (float*)inp.data;
+		maxSum = FLT_MIN;
+		// Variables to store the final output
+		float*dp = new float[sz];
+		memset(dp, 0, sz * sizeof(float));
+		dp[0] = data[0];
+		for (int c = 1; c < cols; c++)
+		{
+			dp[c] = data[c] + dp[c - 1];
+		}
+		for (int r = 1; r < rows; r++)
+		{
+			dp[r * cols] = data[r * cols] + dp[(r - 1) * cols];
+			for (int c = 1; c < cols; c++)
+			{
+				dp[c + r * cols] = data[c + r * cols] + dp[c - 1 + r * cols] + dp[c + (r - 1) * cols] - dp[c - 1 + (r - 1) * cols];
+			}
+		}
+		int finalLeft, finalRight, finalTop, finalBottom;
+		for (int r1 = 0; r1 < rows; r1++)
+		{
+			for (int c1 = 0; c1 < cols; c1++)
+			{
+				for (int r2 = r1; r2 < rows; r2++)
+				{
+					for (int c2 = c1; c2 < cols; c2++)
+					{
+						float a = dp[r2 * cols + c2];
+						float b = ((r1 > 0) ? dp[(r1 - 1) * cols + c2] : 0);
+						float c = ((c1 > 0) ? dp[r2 * cols + c1 - 1] : 0);
+						float d = (((c1 > 0) && (r1 > 0)) ? dp[(r1 - 1) * cols + c1 - 1] : 0);
+						float sum = a - b - c + d;
+						if (sum > maxSum)
+						{
+							maxSum = sum;
+							finalLeft = c1;
+							finalRight = c2 + 1;
+							finalTop = r1;
+							finalBottom = r2 + 1;
+						}
+					}
+				}
+			}
+		}
+		delete[]dp;
+		//cout << "DP maxSum = " << maxSum << endl;
+		//printf("(%d\t%d)\t(%d\t%d)\n", finalLeft, finalTop, finalRight, finalBottom);
+		return cv::Rect(finalLeft, finalTop, finalRight - finalLeft, finalBottom - finalTop);
+	}
 	// this function is trying to find athe chess board and detect the last frame with the chess board and to detect the global ROI as well
 	static cv::Rect getGlobalROI(VideoCapture &cap, int &starting_index)
 	{
@@ -910,10 +1114,12 @@ public:
 					break;
 				}
 			}
+			//cout << "first index = " << starting_index << endl;
 			int countChess = 0;
 			int countErrors = 0;
 			for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
 			{
+				//cout << "found chess at index = " << starting_index << endl;
 				// this loop to detect the last chess board
 				if (canDetectMyBoard(frame))
 				{
@@ -925,46 +1131,115 @@ public:
 					countErrors++;
 				}
 			}
-			starting_index -= (countErrors + 1);
+			starting_index = starting_index - countErrors + 1;
 		}
 		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
 		{
+			
+			//int sz = frame_height * frame_width;
+			//int* accData = (int*)accumelation.data;
+			//Mat temp = Mat::zeros(frame_height, frame_width, CV_32FC1);
+			cv::Size size = getFrameSize();
+			int width = getFrameSize().width;
+			int height = getFrameSize().height;
+			cv::Rect tempROI = cv::Rect(0, 0, width, height);
+			vector<double> diffMaxSumBox;
+			vector<double> accMaxSumBox;
+			vector<cv::Rect> maxSumBox;
+			vector<int> candidateIndex;
 			cout << "GREEN\n";
-			Mat prev, frame, accumelation = Mat::zeros(frame_height, frame_width, CV_32SC1);
-			int sz = frame_height * frame_width;
-			int* accData = (int*)accumelation.data;
-			if (cap.retrieve(prev))
+			Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32FC1);
+			if (cap.read(prev))
 			{
-				prev.convertTo(prev, CV_32S);
-
-				while (cap.retrieve(frame))
+				cv::resize(prev,prev,size);
+				int index = 1;
+				while (cap.read(frame))
 				{
-					frame.convertTo(frame, CV_32S);
-					Mat test = frame - prev;
-					int* testData = (int*)test.data;
-					for (int i = 0; i < sz; i++)
+					index++;
+					cv::resize(frame, frame, size);
+					//cout << "Frame Index = " << << endl;
+					//frame.convertTo(frame, CV_32FC1);
+					vector<float> val;
+					Mat tmp_mask = Mat::zeros(frame.size(), CV_8UC1) + 255;
+					Mat temp = getDiffBetweenFramesBR_G(prev, frame, tempROI,val,tmp_mask);
+					if (cv::mean(temp).val[0] < 0)
 					{
-						int pixelVal = testData[i * 3 + 1];
-						pixelVal -= testData[i * 3];
-						pixelVal -= testData[i * 3 + 2];
-						if (pixelVal < 0)
-						{
-							pixelVal = -pixelVal;
-						}
-						if (pixelVal > 0)
-						{
-							cout << i << "\t" << pixelVal << endl;
-						}
-						accData[i] += pixelVal;
+						temp = -temp;
 					}
-//					accumelation.convertTo(test, CV_8UC1);
-					imshow("acc", test * 255);
-					cv::waitKey(0);
+					cv::erode(temp, temp, Mat());
+					//cv::dilate(temp, temp, Mat());
+					//cv::erode(temp, temp, Mat());
+					//cv::dilate(temp, temp, Mat());
+
+					accumelation = accumelation + temp;
+					//Mat temp1;
+					//cv::threshold(accumelation, temp1, 0, 1, THRESH_BINARY);
+					//Mat ret = temp1 * 255;
+					double minn;
+					cv::minMaxIdx(accumelation, &minn, 0);
+					accumelation = accumelation - minn - 1;
+					float maxSumVal;
+					maxSumBox.push_back(getMaxSum(accumelation, maxSumVal));
+					cout << "Index = " << index << endl;
+					cout << maxSumVal << endl;
+					globalROI = *maxSumBox.rbegin();
+					printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
+					accMaxSumBox.push_back(maxSumVal);
+					if (index > framerate)
+					{
+						int errors = 0;
+						for (int i = index - framerate; i < accMaxSumBox.size(); i++)
+						{
+							if (accMaxSumBox[i] <= accMaxSumBox[i - 1])
+							{
+								errors++;
+							}
+						}
+						if (errors < (framerate / 2) && accMaxSumBox[index - 2] > accMaxSumBox[index - 3])
+						{
+							candidateIndex.push_back(index);
+						}
+						else if (candidateIndex.size() > 0)
+						{
+							starting_index = 59; // *candidateIndex.rbegin();
+							globalROI = maxSumBox[starting_index - 2]; // because it is zeros based index and index is one more than size
+							// and move it back to its original location
+							float colScale = ((float)frame_width) / width;
+							float rowScale = ((float)frame_height) / height;
+							
+							globalROI.x = globalROI.x * colScale;
+							globalROI.y = globalROI.y * rowScale;
+							globalROI.width = globalROI.width * colScale;
+							globalROI.height = globalROI.height * rowScale;
+							// and break
+							break;
+						}
+					}
+					//diffMaxSumBox.push_back(cv::sum(temp(*maxSumBox.rbegin())).val[0]);
+					//int count = 0;
+					//double avg = 0;
+					//for (int i = max(0, ((int)diffMaxSumBox.size()) - 6); i < (int)diffMaxSumBox.size(); i++)
+					//{
+					//	avg += diffMaxSumBox[i];
+					//	count++;
+					//}
+					//cout << (int)(avg / count) << endl;
+					//getMaxSumDP(temp1, maxSumVal);
+					//ret.convertTo(test, CV_8UC1);
+					//Mat test = frame.clone();
+					
+					//cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
+					//cv::resize(prev, prev, Parameters::DefaultFrameSize);
+					//imshow("frame", prev);
+					//cv::resize(ret, ret, Parameters::DefaultFrameSize);
+					//imshow("acc", ret);
+					//cv::waitKey(0);
 					//
 					prev = frame.clone();
 				}
 			}
 		}
+		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 		return globalROI;
 	}
 	/// get video frames luminance (this is the split version which splits the image into two)
@@ -994,7 +1269,7 @@ public:
 		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, false, spatialRedundancy);
 		if (color == cv::Scalar(-1, -1, -1))
 		{
-			frames = getVideoFrameLuminances(cap, ROIs, framerate, true, Parameters::globalROI);
+			frames = getVideoFrameLuminances(cap, ROIs, framerate, Parameters::globalROI);
 		}
 		else
 		{
@@ -1043,7 +1318,7 @@ public:
 		{
 			cout << "V-channel" << endl;
 		}
-		return getVideoFrameLuminances(cap, ROIs, framerate, true, globalROI, true, useAlpha)[0];
+		return getVideoFrameLuminances(cap, ROIs, framerate, globalROI, true, useAlpha)[0];
 	}
 
 	float getLuminanceWithMaskFromGray(Mat& frame, cv::Rect& ROI)
@@ -1141,7 +1416,7 @@ public:
 		cv::Rect ROI(lx, ly, hx - lx + 1, hy - ly + 1);
 		vector<cv::Rect> ROIs;
 		ROIs.push_back(ROI);
-		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate, false, cv::Rect(0, 0, frame_width, frame_height))[0];
+		return Utilities::getVideoFrameLuminances(cap, ROIs, framerate, cv::Rect(0, 0, frame_width, frame_height))[0];
 	}
 
 	/// get video frames luminance
@@ -1168,7 +1443,7 @@ public:
 		cap.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 		vector<cv::Rect> ROI;
 		ROI.push_back(cv::Rect(lowerX, lowerY, width, height));
-		return Utilities::getVideoFrameLuminances(cap, ROI, framerate, false, cv::Rect(0, 0, frame_width, frame_height))[0];
+		return Utilities::getVideoFrameLuminances(cap, ROI, framerate, cv::Rect(0, 0, frame_width, frame_height))[0];
 	}
 
 	// open a video writer to use the same codec with every one
@@ -1387,13 +1662,43 @@ public:
 
 		return board;
 	}
+
+	static void convertImgtoGray(Mat &img, Mat &gray)
+	{
+		if (img.cols > 640 && img.rows > 480)
+		{
+			gray = cv::Mat::zeros(cv::Size(640, 480), CV_8UC1); //source image
+		}
+		else
+		{
+			gray = cv::Mat::zeros(img.size(), CV_8UC1); //source image	
+		}
+
+		int channels = img.channels();
+		int cols = gray.cols;
+		int rows = gray.rows;
+		int imgCols = img.cols;
+		int imgRows = img.rows;
+		int index = 0;
+		unsigned char* imgData = (unsigned char*)img.data;
+		unsigned char* grayData = (unsigned char*)gray.data;
+		for (int r = 0; r < rows; r++)
+		{
+			for (int c = 0; c < cols; c++)
+			{
+				grayData[index++] = imgData[(imgCols * ((r * imgRows) / rows) + ((c * imgCols) / cols)) * channels];
+			}
+		}
+	}
+
 	// img: input image in BGR
 	// patternSize: interior number of corners
 	// return rectangle around the calibration points
-	static cv::Rect detectMyBoard(Mat img)
+	static cv::Rect detectMyBoard(Mat &img)
 	{
 		// create the gray image
 		Mat gray; //source image
+		//convertImgtoGray(img, gray);
 		if (img.channels() == 3)
 		{
 			cv::cvtColor(img, gray, CV_BGR2GRAY);
@@ -1404,6 +1709,7 @@ public:
 		}
 
 		cv::resize(gray, gray, cv::Size(640, 480));
+		
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -1463,10 +1769,14 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat &img, cv::Size myPattern = Parameters::patternsize)
+	static bool canDetectMyBoard(Mat &img)
 	{
 		// create the gray image
-		Mat gray; //source image
+		Mat gray;//source image
+		//convertImgtoGray(img, gray);
+		//imshow("chess", gray);
+		//cv::waitKey(0);
+		
 		if (img.channels() == 3)
 		{
 			cv::cvtColor(img, gray, CV_BGR2GRAY);
@@ -1476,11 +1786,12 @@ public:
 			gray = img.clone();
 		}
 		cv::resize(gray, gray, cv::Size(640, 480));
+		
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
 		//that do not contain any chessboard corners
-		return findChessboardCorners(gray, myPattern, corners,
+		return findChessboardCorners(gray, Parameters::patternsize, corners,
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
 	}

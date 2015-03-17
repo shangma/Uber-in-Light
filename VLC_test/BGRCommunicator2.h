@@ -22,7 +22,7 @@ public:
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, globalROI, true, false);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
 
@@ -109,17 +109,7 @@ public:
 		int fps = 0;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 
 			Parameters::sideA, Parameters::sideB, true, false);
-		/*vector<vector<float> > frames_BGR;
-	
-		for (int j = 0; j < frames.size(); j ++)
-		{
-			vector<float> tmp;
-			for (int i = 0; i < frames[j].size();i++)
-			{
-				tmp.push_back(frames[j][i]);
-			}
-			frames_BGR.push_back(tmp);
-		}*/
+		
 		return receiveN(frames, fps);
 	}
 };

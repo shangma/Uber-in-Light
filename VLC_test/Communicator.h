@@ -160,7 +160,7 @@ protected:
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
 	//int symbol_time;
-	cv::Rect globalROI;
+	//cv::Rect globalROI;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
 	vector<short> shortMsg;
@@ -168,19 +168,32 @@ protected:
 	VideoCapture videoReader;
 	VideoWriter vidWriter;
 public:
-
-	bool initImage(string inputImage, vector<short> msg, string outputVideoFile)
+	void setCommonParameters(vector<short> &msg, string outputVideoFile)
 	{
 		this->shortMsg = msg;
 		this->msg = Parameters::symbolsData.getMsgSymbols(msg);
+		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
+		switch (Parameters::synchMethod)
+		{
+		case SYNCH_CHESS:
+			Parameters::globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			break;
+		case SYNCH_GREEN_CHANNEL:
+			Parameters::globalROI = cv::Rect(0, 0, frame_width, frame_height);
+			break;
+		}
+	}
+	bool initImage(string inputImage, vector<short> &msg, string outputVideoFile)
+	{
+		
 		img = imread(inputImage);
 		cv::resize(img, img, Utilities::getFrameSize());
 		//imshow("img", img);
 		//cv::waitKey(0);
 		frame_width = img.cols;
 		frame_height = img.rows;
-		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
-		globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		
+		setCommonParameters(msg,outputVideoFile);
 		return true;
 	}
 	bool initVideo(string inputVideoFile, vector<short> msg, string outputVideoFile)
@@ -188,8 +201,6 @@ public:
 		videoReader.open(inputVideoFile);
 		if (videoReader.isOpened())
 		{
-			this->shortMsg = msg;
-			this->msg = Parameters::symbolsData.getMsgSymbols(msg);
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
 			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
@@ -198,8 +209,7 @@ public:
 
 			inputFrameUsageFrames = Parameters::fps / framerate;
 
-			vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
-			globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+			setCommonParameters(msg, outputVideoFile);
 			return true;
 		}
 		return false;
@@ -209,30 +219,30 @@ public:
 		switch (Parameters::synchMethod)
 		{
 		case SYNCH_GREEN_CHANNEL:
+		{//double frameIndex = 0;
+			if (Parameters::realVideo)
 			{
-				double frameIndex = 0;
-				vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps, 14, 0.01, -0.01);
-				for (int i = 0; i < wave.size(); i++)
+				/*if (i >= frameIndex)
 				{
-					if (Parameters::realVideo)
-					{
-						if (i >= frameIndex)
-						{
-							frameIndex += inputFrameUsageFrames;
-							videoReader.read(img);
-							cv::resize(img, img, Utilities::getFrameSize());
-						}
-					}
-					vector<Mat> BGR;
-					cv::split(img, BGR);
-					Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[i]);
-					Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[i]);
-					Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[i]);
-					Mat frame;
-					cv::merge(BGR, frame);
-					vidWriter << frame;
-				}
+				frameIndex += inputFrameUsageFrames;*/
+				videoReader.read(img);
+				cv::resize(img, img, Utilities::getFrameSize());
+				//}
 			}
+			vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps, 14, 0.008, -0.008);
+			for (int i = 0; i < wave.size(); i++)
+			{
+
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[i]);
+				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[i]);
+				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[i]);
+				Mat frame;
+				cv::merge(BGR, frame);
+				vidWriter << frame;
+			}
+		}
 			break;
 		case SYNCH_CHESS:
 			if (end)
@@ -269,7 +279,7 @@ public:
 			//cout << i << endl;
 			Mat frame = img.clone();
 			//cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(frame, globalROI, amplitudes[0][i]);
+			Utilities::updateFrameLuminance(frame, Parameters::globalROI, amplitudes[0][i]);
 			//frame.convertTo(frame, CV_32F);
 			vidWriter << frame;
 		}
@@ -292,7 +302,7 @@ public:
 			}
 			Mat tmp;
 			cv::resize(frame, tmp, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(tmp, globalROI, amplitudes[0][k]);
+			Utilities::updateFrameLuminance(tmp, Parameters::globalROI, amplitudes[0][k]);
 			vidWriter << tmp;
 		}
 	}
@@ -401,12 +411,10 @@ public:
 		for (int i = 0; i < Parameters::symbolsData.allData.size(); i++)
 		{
 			vector<vector<float> > signal;
-			for (double phase = 0; phase < MM_PI; phase += MM_PI / 4)
+			double phase = 0;
+			for (int j = 0; j < 5; j++, phase += MM_PI / 4)
 			{
-				//signals.push_back(WaveGenerator::createSampledSquareWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, 1, -1));
 				signal.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, phase));
-				//signals.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol,
-				//	Parameters::symbolsData.allData[i].frequency, Parameters::symbolsData.allData[i].frequency, -Parameters::symbolsData.allData[i].frequency));
 			}
 			signals.push_back(signal);
 		}
@@ -414,23 +422,6 @@ public:
 		int end = frames.size() - fps;
 		for (int i = fps; i < end; i += window_size)
 		{
-			/*
-			if (Parameters::symbolsData.allData.size() == 2)
-			{
-				// normalize signal
-				for (int j = 0; j < window_size; j++)
-				{
-					if (frames[j + i] > 0)
-					{
-						frames[j + i] = 1;
-					}
-					else if (frames[j + i] < 0)
-					{
-						frames[j + i] = -1;
-					}
-				}
-			}
-			*/
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
 			{
