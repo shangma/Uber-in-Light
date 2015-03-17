@@ -789,10 +789,11 @@ public:
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		frame = prev.clone();
 		int ROIsSize = ROIs.size();
+
 		while (cap.read(frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
-			if (count & 3)
+			if (count & 3 && Parameters::synchMethod == SYNCH_CHESS)
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame))
@@ -1140,44 +1141,52 @@ public:
 			//int* accData = (int*)accumelation.data;
 			//Mat temp = Mat::zeros(frame_height, frame_width, CV_32FC1);
 			cv::Size size = getFrameSize();
-			int width = getFrameSize().width;
-			int height = getFrameSize().height;
-			cv::Rect tempROI = cv::Rect(0, 0, width, height);
+			int width = frame_width;// getFrameSize().width;
+			int height = frame_height;// getFrameSize().height;
+			cv::Rect tempROI = cv::Rect(0, 0, frame_width, frame_height);
 			vector<double> diffMaxSumBox;
 			vector<double> accMaxSumBox;
 			vector<cv::Rect> maxSumBox;
 			vector<int> candidateIndex;
 			cout << "GREEN\n";
-			Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32FC1);
+			Mat prev, frame, accumelation = Mat::zeros(frame_height, frame_width, CV_32FC1);
 			if (cap.read(prev))
 			{
-				cv::resize(prev,prev,size);
+				//cv::resize(prev,prev,size);
+				Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
 				int index = 1;
 				while (cap.read(frame))
 				{
 					index++;
-					cv::resize(frame, frame, size);
+					//cv::resize(frame, frame, size);
 					//cout << "Frame Index = " << << endl;
 					//frame.convertTo(frame, CV_32FC1);
 					vector<float> val;
-					Mat tmp_mask = Mat::zeros(frame.size(), CV_8UC1) + 255;
+					
 					Mat temp = getDiffBetweenFramesBR_G(prev, frame, tempROI,val,tmp_mask);
-					if (cv::mean(temp).val[0] < 0)
+					if (val[0] < 0)
 					{
 						temp = -temp;
 					}
-					cv::erode(temp, temp, Mat());
+					//cv::erode(temp, temp, Mat());
 					//cv::dilate(temp, temp, Mat());
 					//cv::erode(temp, temp, Mat());
 					//cv::dilate(temp, temp, Mat());
-
-					accumelation = accumelation + temp;
+					
+					accumelation = accumelation + temp - 0.5;
+					// for testing only
+					{
+						Mat bkg = Mat::zeros(accumelation.size(), CV_8UC1);
+						cv::threshold(accumelation, bkg, 0, 1, THRESH_BINARY);
+						imshow("bkg", bkg);
+						cv::waitKey(10);
+					}
 					//Mat temp1;
 					//cv::threshold(accumelation, temp1, 0, 1, THRESH_BINARY);
 					//Mat ret = temp1 * 255;
-					double minn;
-					cv::minMaxIdx(accumelation, &minn, 0);
-					accumelation = accumelation - minn - 1;
+					//double minn;
+					//cv::minMaxIdx(accumelation, &minn, 0);
+					//accumelation = accumelation - minn - 1;
 					float maxSumVal;
 					maxSumBox.push_back(getMaxSum(accumelation, maxSumVal));
 					cout << "Index = " << index << endl;
@@ -1185,34 +1194,39 @@ public:
 					globalROI = *maxSumBox.rbegin();
 					printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 					accMaxSumBox.push_back(maxSumVal);
-					if (index > framerate)
+					if (index > framerate / 2)
 					{
+						int compare = std::min((int)framerate, index);
 						int errors = 0;
-						for (int i = index - framerate; i < accMaxSumBox.size(); i++)
+						for (int i = index - compare + 1; i < accMaxSumBox.size(); i++)
 						{
-							if (accMaxSumBox[i] <= accMaxSumBox[i - 1])
+							if (accMaxSumBox[i] < accMaxSumBox[i - 1] && accMaxSumBox[i - 1] < accMaxSumBox[i - 2])
 							{
 								errors++;
 							}
 						}
-						if (errors < (framerate / 2) && accMaxSumBox[index - 2] > accMaxSumBox[index - 3])
+						cout << "Errors = " << errors << endl;
+						if (errors < 2 && accMaxSumBox[index - 2] > accMaxSumBox[index - 3])
 						{
 							candidateIndex.push_back(index);
 						}
 						else if (candidateIndex.size() > 0)
 						{
-							starting_index = 59; // *candidateIndex.rbegin();
+							starting_index = *candidateIndex.rbegin() - 3;
 							globalROI = maxSumBox[starting_index - 2]; // because it is zeros based index and index is one more than size
-							// and move it back to its original location
-							float colScale = ((float)frame_width) / width;
-							float rowScale = ((float)frame_height) / height;
-							
-							globalROI.x = globalROI.x * colScale;
-							globalROI.y = globalROI.y * rowScale;
-							globalROI.width = globalROI.width * colScale;
-							globalROI.height = globalROI.height * rowScale;
-							// and break
-							break;
+							if (globalROI.width >= width / 2 && globalROI.height >= height / 2)
+							{
+								// and move it back to its original location
+								float colScale = ((float)frame_width) / width;
+								float rowScale = ((float)frame_height) / height;
+
+								globalROI.x = globalROI.x * colScale;
+								globalROI.y = globalROI.y * rowScale;
+								globalROI.width = globalROI.width * colScale;
+								globalROI.height = globalROI.height * rowScale;
+								// and break
+								break;
+							}
 						}
 					}
 					//diffMaxSumBox.push_back(cv::sum(temp(*maxSumBox.rbegin())).val[0]);
@@ -1228,12 +1242,12 @@ public:
 					//ret.convertTo(test, CV_8UC1);
 					//Mat test = frame.clone();
 					
-					//cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
+					cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
 					//cv::resize(prev, prev, Parameters::DefaultFrameSize);
-					//imshow("frame", prev);
+					imshow("frame", prev);
 					//cv::resize(ret, ret, Parameters::DefaultFrameSize);
 					//imshow("acc", ret);
-					//cv::waitKey(0);
+					cv::waitKey(10);
 					//
 					prev = frame.clone();
 				}

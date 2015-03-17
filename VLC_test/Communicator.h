@@ -154,8 +154,8 @@ protected:
 	//	}
 	//}
 protected:
-	int frame_width;
-	int frame_height;
+	//int frame_width;
+	//int frame_height;
 	//double fps;
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
@@ -179,7 +179,7 @@ public:
 			Parameters::globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
 			break;
 		case SYNCH_GREEN_CHANNEL:
-			Parameters::globalROI = cv::Rect(0, 0, frame_width, frame_height);
+			Parameters::globalROI = cv::Rect(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
 			break;
 		}
 	}
@@ -190,8 +190,8 @@ public:
 		cv::resize(img, img, Utilities::getFrameSize());
 		//imshow("img", img);
 		//cv::waitKey(0);
-		frame_width = img.cols;
-		frame_height = img.rows;
+		//frame_width = img.cols;
+		//frame_height = img.rows;
 		
 		setCommonParameters(msg,outputVideoFile);
 		return true;
@@ -203,8 +203,8 @@ public:
 		{
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
 			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
-			frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
-			frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			//frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
+			//frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			Parameters::fps = Utilities::getOuputVideoFrameRate((int)framerate);
 
 			inputFrameUsageFrames = Parameters::fps / framerate;
@@ -235,9 +235,11 @@ public:
 
 				vector<Mat> BGR;
 				cv::split(img, BGR);
+				
 				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[i]);
 				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[i]);
 				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[i]);
+				
 				Mat frame;
 				cv::merge(BGR, frame);
 				vidWriter << frame;
@@ -420,7 +422,8 @@ public:
 		}
 		int window_size = frames_per_symbol;
 		int end = frames.size() - fps;
-		for (int i = fps; i < end; i += window_size)
+		int start = (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
+		for (int i = start; i < end; i += window_size)
 		{
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
@@ -439,21 +442,6 @@ public:
 			}
 			vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
 			result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
-			//if (Detected[1] > Detected[0])
-			//{
-			//	//cout << oneDetected << endl;
-			//	result.push_back(1);
-			//}
-			//else// if (zeroDetected > oneDetected)
-			//{
-			//	//cout << zeroDetected << endl;
-			//	result.push_back(0);
-			//}
-			////cout << endl;
-			////else
-			////{
-			////	result.push_back(2);
-			////}
 		}
 		return result;
 	}

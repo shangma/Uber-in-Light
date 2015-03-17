@@ -233,4 +233,4 @@ int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
-int Parameters::synchMethod = SYNCH_CHESS;
+int Parameters::synchMethod = SYNCH_GREEN_CHANNEL;
