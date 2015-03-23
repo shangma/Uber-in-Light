@@ -1,3 +1,34 @@
+/*
+Copyright (c) 2015, mostafa izz
+izz.mostafa@gmail.com
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+* Neither the name of MyVLC nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #pragma once
 
 //#include "Properties.h"
@@ -5,6 +36,7 @@
 #include "SelectByMouse.h"
 #include "background_subtractor.h"
 #include "Parameters.h"
+#include "WaveGenerator.h"
 //#include "Properties.h"
 
 //extern class Properties;
@@ -325,10 +357,12 @@ public:
 
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
-	static Mat getDiffBetweenFramesBR_G(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, Mat &mask)
+	// the output matrix is integer
+	static void getDiffBetweenFramesBR_G(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, Mat &mask, Mat &ret)
 	{
-		Mat ret = Mat::zeros(roi.height, roi.width, CV_32F);
-		float* data = ((float*)ret.data);
+		//Mat ret = Mat::zeros(roi.height, roi.width, CV_32SC1);
+		long long luminance = 0;
+		int* data = ((int*)ret.data);
 		unsigned char * p = ((unsigned char*)prev.data);
 		unsigned char * f = ((unsigned char*)frame.data);
 		int sz = ret.cols * ret.rows;
@@ -344,15 +378,16 @@ public:
 			{
 				int a = f[i * channels + 1] + p[i * channels] + p[i * channels + 2];
 				int b = p[i * channels + 1] + f[i * channels] + f[i * channels + 2];
-				data[j] = a - b;
+				luminance += (a - b);
+				data[j] = (a - b);
 			}
 			i += inc;
 		}
 
-		float luminance = cv::mean(ret).val[0];
+		//float luminance = cv::mean(ret).val[0];
 		//float summation = (cv::sum((*add_mask)(ROIs[i])).val[0] / 255.0) + 1;
-		float summation = (cv::sum(mask).val[0] / 255.0) + 1;
-		luminance /= summation;
+		//float summation = (cv::sum(mask).val[0] / 255.0) + 1;
+		//luminance /= summation;
 		if (abs(luminance) < 0.001 && amplitudes.size())
 		{
 			amplitudes.push_back(amplitudes[amplitudes.size() - 1]);
@@ -361,21 +396,13 @@ public:
 		{
 			amplitudes.push_back(luminance);
 		}
-
-		return ret;
+		//return ret;
 	}
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
-	static void getDiffBetweenFramesBR(Mat &prev, Mat &frame, cv::Rect &roi,vector<float> &amplitudes)
+	static void getDiffBetweenFramesBR(Mat &prev, Mat &frame, cv::Rect &roi,vector<float> &amplitudes,vector<Mat*> ret = vector<Mat*>(3,0))
 	{
-		// save the ROI
-		Mat tmp, tmp1, tmp2;
-		vector<Mat> HSV1, HSV2;
-
 		// new method
-		//Mat ret = Mat::zeros(roi.height, roi.width, CV_32SC1);
-		//int* data = ((int*)ret.data);
-		long long sum = 0;
 		unsigned char * p = ((unsigned char*)prev.data);
 		unsigned char * f = ((unsigned char*)frame.data);
 		int sz = frame.cols * frame.rows;
@@ -385,19 +412,35 @@ public:
 		int i = roi.y * frame.cols + roi.x;
 		int inc = frame.cols - roi.width;
 		int channels = frame.channels();
+		long long sumBGR[3] = { 0, 0, 0 };
+		int* retData[3];
+		for (int color = 0; color < channels; color++)
+		{
+			if (ret[color] != 0)
+			{
+				retData[color] = (int*)ret[color]->data;
+			}
+		}
 		for (int r = roi.y; r < rows; r++)
 		{
 			for (int c = roi.x; c < cols; c++, j++, i++)
 			{
-				int a = f[i * channels] + p[i * channels + 2];
-				int b = f[i * channels + 2] + p[i * channels];
-				//data[j] = a - b;
-				sum += a - b;
+				for (int color = 0; color < channels; color++)
+				{
+					int tempColor = (int)f[i * channels + color] - (int)p[i * channels + color];
+					if (ret[color] != 0)
+					{
+						retData[color][j] = tempColor;
+					}
+					sumBGR[color] += tempColor;
+				}
 			}
 			i += inc;
 		}
-
-		amplitudes.push_back(sum);
+		for (int color = 0; color < 3; color++)
+		{
+			amplitudes.push_back(sumBGR[color]);
+		}
 	}
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
@@ -431,9 +474,14 @@ public:
 			}
 			i += inc;
 		}
-
-		amplitudes.push_back(sum1);
-		amplitudes.push_back(sum2);
+		int add1 = 0, add2 = 0;
+		/*if (amplitudes.size() >= 2)
+		{
+			add1 = *amplitudes.rbegin();
+			add2 = *(amplitudes.rbegin() + 1);
+		}*/
+		amplitudes.push_back(sum1 + add2);
+		amplitudes.push_back(sum2 + add1);
 	}
 	// the input frames here are the original frames
 	static void getDiffInVchannelHSV(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, Mat &mask)
@@ -758,14 +806,8 @@ public:
 		case V_CHANNEL_DIFF:
 			Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
 			break;
-		case BR_CHANNELS_DIFF:
+		case BGR_CHANNELS:
 			Utilities::getDiffBetweenFramesBR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
-			break;
-		case BR_CHANNELS_SEPARATE:
-			Utilities::getDiffBetweenFramesSeprateBR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
-			break;
-		case BR_G_CHANNELS_DIFF:
-			Utilities::getDiffBetweenFramesBR_G(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
 			break;
 		}
 	}
@@ -777,7 +819,8 @@ public:
 	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
 	{
 		Parameters::endingIndex = Parameters::startingIndex + 1;
-		vector<vector<float> > frames(ROIs.size());
+		int ROIsSize = ROIs.size();
+		vector<vector<float> > frames(ROIsSize, vector<float>());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
 		cap.read(prev);
@@ -788,12 +831,11 @@ public:
 		int count = 1;
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		frame = prev.clone();
-		int ROIsSize = ROIs.size();
-
+		
 		while (cap.read(frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
-			if (count & 3 && Parameters::synchMethod == SYNCH_CHESS)
+			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame))
@@ -807,6 +849,7 @@ public:
 			frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
 			Mat tmp_prev_BGR;
 			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
+			//printf("%d\n", count);
 			for (int i = 0; i < ROIsSize; i++)
 			{
 				extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
@@ -952,9 +995,9 @@ public:
 		return ROIs;
 	}
 
-	static float getMaxSum(float *arr, int startIncInput, int endExcInput, int &startOuput, int &endOutput)
+	static int getMaxSum(int *arr, int startIncInput, int endExcInput, int &startOuput, int &endOutput)
 	{
-		float sum_here, sum_total;
+		int sum_here, sum_total;
 		sum_here = sum_total = arr[startIncInput];
 		int start = startOuput = startIncInput, end = endOutput = startIncInput + 1;
 		for (int i = startIncInput + 1; i < endExcInput; i++)
@@ -981,13 +1024,13 @@ public:
 		return sum_total;
 	}
 
-	// should be float 
+	// should be int 
 	static cv::Rect getMaxSum(Mat &inp, float &maxSum)
 	{
 		int cols = inp.cols;
 		int rows = inp.rows;
 		int sz = rows * cols;
-		float* data = (float*)inp.data;
+		int* data = (int*)inp.data;
 		// Variables to store the final output
 		maxSum = INT_MIN;
 		int finalLeft, finalRight, finalTop, finalBottom;
@@ -995,12 +1038,12 @@ public:
 		int top, bottom, i;
 		float sum;
 		int start, finish;
-		float * temp = new float[cols];
+		int * temp = new int[cols];
 		// Set the left column
 		for (top = 0; top < rows; ++top)
 		{
 			// Initialize all elements of temp as 0
-			memset(temp, 0, cols*sizeof(float));
+			memset(temp, 0, cols*sizeof(int));
 			// Set the right column for the left column set by outer loop
 			for (bottom = top; bottom < rows; ++bottom)
 			{
@@ -1088,6 +1131,291 @@ public:
 		//printf("(%d\t%d)\t(%d\t%d)\n", finalLeft, finalTop, finalRight, finalBottom);
 		return cv::Rect(finalLeft, finalTop, finalRight - finalLeft, finalBottom - finalTop);
 	}
+	static void DetectGreenScreen(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, double &framerate, int &starting_index)
+	{
+		//int sz = frame_height * frame_width;
+		//int* accData = (int*)accumelation.data;
+
+		//cv::Size size = getFrameSize();
+		int width = frame_width;// getFrameSize().width;
+		int height = frame_height;// getFrameSize().height;
+		cv::Size size(width, height);
+		vector<double> diffMaxSumBox;
+		vector<double> accMaxSumBox;
+		vector<cv::Rect> maxSumBox;
+		vector<int> candidateIndex;
+		cout << "GREEN\n";
+		Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32SC1);
+		cv::Rect tempROI = cv::Rect(0, 0, width, height);
+		Mat temp = Mat::zeros(height, width, CV_32SC1);
+		if (cap.read(prev))
+		{
+			//cv::resize(prev,prev,size);
+			Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
+			int index = 1;
+			while (cap.read(frame))
+			{
+				index++;
+				//cv::resize(frame, frame, size);
+				//cout << "Frame Index = " << << endl;
+				//frame.convertTo(frame, CV_32FC1);
+				vector<float> val;
+
+				getDiffBetweenFramesBR_G(prev, frame, tempROI, val, tmp_mask, temp);
+				if (val[0] < 0)
+				{
+					temp = -temp;
+				}
+				//cv::erode(temp, temp, Mat());
+				//cv::dilate(temp, temp, Mat());
+				//cv::erode(temp, temp, Mat());
+				//cv::dilate(temp, temp, Mat());
+
+				accumelation = accumelation + temp - 0.5;
+				// for testing only
+				{
+					Mat bkg;// = Mat::zeros(accumelation.size(), CV_8UC1);
+					accumelation.convertTo(bkg, CV_32FC1);
+					cv::threshold(bkg, bkg, 0, 1, THRESH_BINARY);
+					imshow("bkg", bkg);
+					cv::waitKey(10);
+				}
+				//Mat temp1;
+				//cv::threshold(accumelation, temp1, 0, 1, THRESH_BINARY);
+				//Mat ret = temp1 * 255;
+				//double minn;
+				//cv::minMaxIdx(accumelation, &minn, 0);
+				//accumelation = accumelation - minn - 1;
+				float maxSumVal;
+				maxSumBox.push_back(getMaxSum(accumelation, maxSumVal));
+				cout << "Index = " << index << endl;
+				cout << maxSumVal << endl;
+				globalROI = *maxSumBox.rbegin();
+				printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
+				accMaxSumBox.push_back(maxSumVal);
+				if (index > framerate / 2)
+				{
+					int compare = std::min((int)framerate, index);
+					int errors = 0;
+					for (int i = index - compare + 1; i < accMaxSumBox.size(); i++)
+					{
+						if (accMaxSumBox[i] < accMaxSumBox[i - 1] && accMaxSumBox[i - 1] < accMaxSumBox[i - 2])
+						{
+							errors++;
+						}
+					}
+					cout << "Errors = " << errors << endl;
+					if (errors < 2 && accMaxSumBox[index - 2] > accMaxSumBox[index - 3])
+					{
+						candidateIndex.push_back(index);
+					}
+					else if (candidateIndex.size() > 0)
+					{
+						starting_index = *candidateIndex.rbegin() - 3;
+						globalROI = maxSumBox[starting_index - 2]; // because it is zeros based index and index is one more than size
+						if (globalROI.width >= width / 2 && globalROI.height >= height / 2)
+						{
+							// and move it back to its original location
+							float colScale = ((float)frame_width) / width;
+							float rowScale = ((float)frame_height) / height;
+
+							globalROI.x = globalROI.x * colScale;
+							globalROI.y = globalROI.y * rowScale;
+							globalROI.width = globalROI.width * colScale;
+							globalROI.height = globalROI.height * rowScale;
+							// and break
+							break;
+						}
+					}
+				}
+				//diffMaxSumBox.push_back(cv::sum(temp(*maxSumBox.rbegin())).val[0]);
+				//int count = 0;
+				//double avg = 0;
+				//for (int i = max(0, ((int)diffMaxSumBox.size()) - 6); i < (int)diffMaxSumBox.size(); i++)
+				//{
+				//	avg += diffMaxSumBox[i];
+				//	count++;
+				//}
+				//cout << (int)(avg / count) << endl;
+				//getMaxSumDP(temp1, maxSumVal);
+				//ret.convertTo(test, CV_8UC1);
+				//Mat test = frame.clone();
+
+				cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
+				//cv::resize(prev, prev, Parameters::DefaultFrameSize);
+				imshow("frame", prev);
+				//cv::resize(ret, ret, Parameters::DefaultFrameSize);
+				//imshow("acc", ret);
+				cv::waitKey(10);
+				//
+				prev = frame.clone();
+			}
+		}
+	}
+
+	// calculate the best fit between two signals based on cross-correlation and return the peek value
+	static vector<double> calcCrossCorrelate(vector< vector<float> > &signals, vector<float> &test, int start, int end, 
+		vector<int> &best_start, vector<int> &best_end, vector<int> &test_start)
+	{
+		//double totalBestVal = 0;
+		vector<double> bestVal(signals.size(), 0);
+		//vector<double> avgAmplitude(signals.size(), 0);
+		//vector<int> count(signals.size(), 0);
+		int tsz = end - start + 1;
+		int ssz = signals[0].size();
+		for (int shift = -ssz + 1; shift < tsz - 1; shift++)
+		{
+			vector<double> sum(signals.size(), 0);
+			//vector<double> sumAmp(signals.size(), 0);
+			vector<int> cnt(signals.size(), 0);
+			//double totalSum = 0;
+			int start_test = std::max(0, shift);
+			int end_test = std::min(shift + ssz, tsz); // exclusive
+			for (int j = start_test; j < end_test; j++)
+			{
+				for (int k = 0; k < signals.size(); k++)
+				{
+					sum[k] += signals[k][j - shift] * test[j + start];
+					cnt[k]++;
+				}
+			}
+			//sum /= cnt;
+			//cout << i << "\t" << sum << endl;
+			for (int k = 0; k < sum.size(); k++)
+			{
+				//sum[k] /= cnt[k];
+				if (sum[k] > bestVal[k])
+				{
+					bestVal[k] = sum[k];
+					best_start[k] = start_test;
+					best_end[k] = end_test;
+					test_start[k] = start_test - shift;
+					//avgAmplitude[k] = sumAmp[k] / cntAmp[k];
+				}
+			}
+		}
+		/*int maxID = 0;
+		for (int i = 1; i < bestVal.size(); i++)
+		{
+			if (bestVal[i] > bestVal[maxID])
+			{
+				maxID = i;
+			}
+		}*/
+		//cout << avgAmplitude[maxID] << "\t";
+
+		//cout << endl;
+		return bestVal;
+	}
+
+	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, double &framerate, int &starting_index)
+	{
+		//int sz = frame_height * frame_width;
+		//int* accData = (int*)accumelation.data;
+
+		//cv::Size size = getFrameSize();
+		int width = frame_width;// getFrameSize().width;
+		int height = frame_height;// getFrameSize().height;
+		cv::Size size(width,height);
+		cout << "GREEN Cross\n";
+		Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32SC1);
+		cv::Rect tempROI = cv::Rect(0, 0, width, height);
+		vector<float> val(1,0);
+		vector<Mat> frames(1, Mat::zeros(height, width, CV_32SC1));
+		vector<Mat> test_frames;
+		if (cap.read(prev))
+		{
+			cv::resize(prev,prev,size);
+			Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
+			int index = 0;
+			while (cap.read(frame) && index < framerate * 3)
+			{
+				test_frames.push_back(prev);
+				index++;
+				cv::resize(frame, frame, size);
+				Mat ret = Mat::zeros(frame.size(), CV_32SC1);
+				getDiffBetweenFramesBR_G(prev, frame, tempROI, val, tmp_mask, ret);
+				frames.push_back(ret);			
+				prev = frame.clone();
+			}
+			vector<vector<float> > signals;
+			
+			vector<float> tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 14, MM_PI);
+			vector<float> wave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 14, 0);
+			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
+			cout << "Wave size = " << wave.size() << endl;
+			signals.push_back(wave);
+			
+			vector<int> best_start(signals.size(), 0);
+			vector<int> best_end(signals.size(), 0);
+			vector<int> test_start(signals.size(), 0);
+			vector<double> res = calcCrossCorrelate(signals, val, 0, val.size() - 1, best_start, best_end, test_start);
+			//cout << best_start[0] << "\t" << best_end[0] << "\t" << test_start[0] << endl;
+			int bestInd = 0;
+			for (int i = 1; i < signals.size(); i++)
+			{
+				if (res[i] > res[bestInd])
+				{
+					bestInd = i;
+				}
+			}
+			cout << best_start[bestInd] << "\t" << best_end[bestInd] << "\t" << test_start[bestInd] << endl;
+			for (int i = best_start[bestInd], j = 0; i < best_end[bestInd], j < signals[bestInd].size(); i++,j++)
+			{
+				//Mat dst;
+				//frames[i].convertTo(frames[i], CV_32FC1);
+				//cv::erode(frames[i], frames[i], Mat());
+				//cv::erode(frames[i], frames[i], Mat());
+				//frames[i] = frames[i] * signals[bestInd][j];
+				/*double minn, maxx;
+				minMaxIdx(frames[i], &minn, &maxx);
+				frames[i] -= minn;
+				frames[i] = (frames[i] * 255) / (maxx - minn + 1);
+				frames[i].convertTo(dst, CV_8UC1);
+				Canny(dst, dst, 50, 200, 3);
+				imshow("canny", dst);
+				cv::waitKey(10);*/
+				if (val[i] > 0)
+				{
+					accumelation = accumelation + frames[i] - 1;
+				}
+				else
+				{
+					accumelation = accumelation - frames[i] - 1;
+				}
+				cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
+			}
+			starting_index = best_end[bestInd];
+			float maxSumVal = 0;
+			//Mat dst;
+			//double minn, maxx;
+			//minMaxIdx(accumelation, &minn, &maxx);
+			//accumelation -= minn;
+			//accumelation = (accumelation) / (maxx - minn + 1);
+			////accumelation.convertTo(dst, CV_8UC1);
+			////Canny(dst, dst, 50, 200, 3);
+			//accumelation = (accumelation * 2 - 1);
+			//imshow("canny", accumelation);
+			//cv::waitKey(10);
+			//accumelation *= 100;
+			//accumelation.convertTo(accumelation, CV_32SC1);
+			globalROI = getMaxSum(accumelation, maxSumVal);
+			// and move it back to its original location
+			float colScale = ((float)frame_width) / width;
+			float rowScale = ((float)frame_height) / height;
+
+			globalROI.x = globalROI.x * colScale;
+			globalROI.y = globalROI.y * rowScale;
+			globalROI.width = globalROI.width * colScale;
+			globalROI.height = globalROI.height * rowScale;
+
+			cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
+			imshow("rect", test_frames[starting_index]);
+			cv::waitKey(10);
+		}
+	}
+
+
 	// this function is trying to find athe chess board and detect the last frame with the chess board and to detect the global ROI as well
 	static cv::Rect getGlobalROI(VideoCapture &cap, int &starting_index)
 	{
@@ -1136,122 +1464,7 @@ public:
 		}
 		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
 		{
-			
-			//int sz = frame_height * frame_width;
-			//int* accData = (int*)accumelation.data;
-			//Mat temp = Mat::zeros(frame_height, frame_width, CV_32FC1);
-			cv::Size size = getFrameSize();
-			int width = frame_width;// getFrameSize().width;
-			int height = frame_height;// getFrameSize().height;
-			cv::Rect tempROI = cv::Rect(0, 0, frame_width, frame_height);
-			vector<double> diffMaxSumBox;
-			vector<double> accMaxSumBox;
-			vector<cv::Rect> maxSumBox;
-			vector<int> candidateIndex;
-			cout << "GREEN\n";
-			Mat prev, frame, accumelation = Mat::zeros(frame_height, frame_width, CV_32FC1);
-			if (cap.read(prev))
-			{
-				//cv::resize(prev,prev,size);
-				Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
-				int index = 1;
-				while (cap.read(frame))
-				{
-					index++;
-					//cv::resize(frame, frame, size);
-					//cout << "Frame Index = " << << endl;
-					//frame.convertTo(frame, CV_32FC1);
-					vector<float> val;
-					
-					Mat temp = getDiffBetweenFramesBR_G(prev, frame, tempROI,val,tmp_mask);
-					if (val[0] < 0)
-					{
-						temp = -temp;
-					}
-					//cv::erode(temp, temp, Mat());
-					//cv::dilate(temp, temp, Mat());
-					//cv::erode(temp, temp, Mat());
-					//cv::dilate(temp, temp, Mat());
-					
-					accumelation = accumelation + temp - 0.5;
-					// for testing only
-					{
-						Mat bkg = Mat::zeros(accumelation.size(), CV_8UC1);
-						cv::threshold(accumelation, bkg, 0, 1, THRESH_BINARY);
-						imshow("bkg", bkg);
-						cv::waitKey(10);
-					}
-					//Mat temp1;
-					//cv::threshold(accumelation, temp1, 0, 1, THRESH_BINARY);
-					//Mat ret = temp1 * 255;
-					//double minn;
-					//cv::minMaxIdx(accumelation, &minn, 0);
-					//accumelation = accumelation - minn - 1;
-					float maxSumVal;
-					maxSumBox.push_back(getMaxSum(accumelation, maxSumVal));
-					cout << "Index = " << index << endl;
-					cout << maxSumVal << endl;
-					globalROI = *maxSumBox.rbegin();
-					printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
-					accMaxSumBox.push_back(maxSumVal);
-					if (index > framerate / 2)
-					{
-						int compare = std::min((int)framerate, index);
-						int errors = 0;
-						for (int i = index - compare + 1; i < accMaxSumBox.size(); i++)
-						{
-							if (accMaxSumBox[i] < accMaxSumBox[i - 1] && accMaxSumBox[i - 1] < accMaxSumBox[i - 2])
-							{
-								errors++;
-							}
-						}
-						cout << "Errors = " << errors << endl;
-						if (errors < 2 && accMaxSumBox[index - 2] > accMaxSumBox[index - 3])
-						{
-							candidateIndex.push_back(index);
-						}
-						else if (candidateIndex.size() > 0)
-						{
-							starting_index = *candidateIndex.rbegin() - 3;
-							globalROI = maxSumBox[starting_index - 2]; // because it is zeros based index and index is one more than size
-							if (globalROI.width >= width / 2 && globalROI.height >= height / 2)
-							{
-								// and move it back to its original location
-								float colScale = ((float)frame_width) / width;
-								float rowScale = ((float)frame_height) / height;
-
-								globalROI.x = globalROI.x * colScale;
-								globalROI.y = globalROI.y * rowScale;
-								globalROI.width = globalROI.width * colScale;
-								globalROI.height = globalROI.height * rowScale;
-								// and break
-								break;
-							}
-						}
-					}
-					//diffMaxSumBox.push_back(cv::sum(temp(*maxSumBox.rbegin())).val[0]);
-					//int count = 0;
-					//double avg = 0;
-					//for (int i = max(0, ((int)diffMaxSumBox.size()) - 6); i < (int)diffMaxSumBox.size(); i++)
-					//{
-					//	avg += diffMaxSumBox[i];
-					//	count++;
-					//}
-					//cout << (int)(avg / count) << endl;
-					//getMaxSumDP(temp1, maxSumVal);
-					//ret.convertTo(test, CV_8UC1);
-					//Mat test = frame.clone();
-					
-					cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
-					//cv::resize(prev, prev, Parameters::DefaultFrameSize);
-					imshow("frame", prev);
-					//cv::resize(ret, ret, Parameters::DefaultFrameSize);
-					//imshow("acc", ret);
-					cv::waitKey(10);
-					//
-					prev = frame.clone();
-				}
-			}
+			DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, globalROI, framerate, starting_index);
 		}
 		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 		return globalROI;

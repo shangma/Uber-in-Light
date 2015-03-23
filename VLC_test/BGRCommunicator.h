@@ -30,33 +30,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "Communicator.h"
-
-class SplitScreenCommunicator :
-	public Communicator
+#include "SplitScreenCommunicator.h"
+class BGRCommunicator :
+	public SplitScreenCommunicator
 {
 public:
-	////////////////////////////// Split to quarters ///////////////////////////
-	int sections;
-	
-	int framesForSymbol;
+	BGRCommunicator()
+	{
+		Parameters::BKGMaskThr = 300;
+		Parameters::amplitudeExtraction = BGR_CHANNELS;
+	}
+	////////////////////////////// Split Amplitude ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		ostringstream ostr;
-		ostr << "_Split_" << outputVideoFile;
-		return ostr.str();
+		return "_RGB_" + outputVideoFile;
 	}
-
 	virtual void initCommunication()
 	{
-		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
-		
+		// divide the message into 3 parts
+		vector<SymbolData> DivMsg[3];
+		for (int i = 0; i < msg.size(); i++)
+		{
+			DivMsg[i % 3].push_back(msg[i]);
+		}
+		for (int i = 1; i < 3; i++)
+		{
+			if (DivMsg[i].size() < DivMsg[0].size())
+			{
+				DivMsg[i].push_back(DivMsg[0][0]);
+			}
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
+		}
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		
+
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
+	
 	virtual void sendImageMainLoop()
 	{
 		int amplitudes0_size = amplitudes[0].size();
@@ -65,13 +78,19 @@ public:
 		{
 			for (int k = 0; k < framesForSymbol; k++)
 			{
-				Mat frame = img.clone();
-				int innerLoopComparison = i + k;
-				for (int j = 0; j < sections && innerLoopComparison < amplitudes0_size; j++, innerLoopComparison += framesForSymbol)
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+				int innerLoopIndex = i + k;
+				for (int j = 0; j < sections && innerLoopIndex < amplitudes0_size; j++, innerLoopIndex += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
+					for (int k = 0; k < 3; k++)
+					{
+						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					}
 				}
+				Mat frame;
+				cv::merge(BGR, frame);
 				vidWriter << frame;
 			}
 		}
@@ -93,54 +112,57 @@ public:
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}
-				Mat frame = img.clone();
-				int innerLoopComparison = i + k;
-				for (int j = 0; j < sections && innerLoopComparison < ampitudesSize; j++, innerLoopComparison += framesForSymbol)
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+
+				int innerLoopIndex = i + k;
+				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
+					for (int k = 0; k < 3; k++)
+					{
+						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					}
 				}
+				Mat frame;
+				cv::merge(BGR, frame);
 				vidWriter << frame;
 			}
 		}
 	}
-
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	vector<short> receiveN(vector<vector<float> > frames, int fps)
+	virtual vector<Mat> getSplittedImages(Mat &frame)
 	{
-		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
-		sections = frames.size();// Parameters::sideA * Parameters::sideB;
-		vector<short> result;
-		if (frames.size() == 0)
-			return result;
-		vector<vector<short>> vt;
-		for (int k = 0; k < sections; k++)
-		{
-			vt.push_back(receive2(frames[k], fps));
-		}
-		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
-		for (int i = 0; i < vt[0].size(); i += symbolSize)
-		{
-			for (int j = 0; j < vt.size(); j++)
-			{
-				for (int k = 0; k < symbolSize; k++)
-				{
-					result.push_back(vt[j][i + k]);
-				}
-			}
-		}
-		return result;
+		vector<Mat> ret;
+		cv::split(frame, ret);
+		return ret;
 	}
 
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		//Parameters::BKGMaskThr = 300;
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, Parameters::sideA, Parameters::sideB, true, false);
-		return receiveN(frames, fps);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
+			Parameters::sideA, Parameters::sideB, true, false);
+		vector<vector<float> > frames_BGR;
+		for (int i = 0; i < frames.size(); i++)
+		{
+			vector<float> B,G,R;
+			for (int j = 0; j < frames[i].size(); j += 2)
+			{
+				// blue
+				B.push_back(frames[i][j]);
+				// gree
+				G.push_back(frames[i][j + 1]);
+				// red
+				R.push_back(frames[i][j + 2]);
+			}
+			frames_BGR.push_back(B);
+			frames_BGR.push_back(G);
+			frames_BGR.push_back(R);
+		}
+		return receiveN(frames_BGR, Parameters::fps);
 	}
 };
 

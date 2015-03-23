@@ -1,3 +1,34 @@
+/*
+Copyright (c) 2015, mostafa izz
+izz.mostafa@gmail.com
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+* Neither the name of MyVLC nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #pragma once
 
 #include "Utilities.h"
@@ -229,23 +260,28 @@ public:
 				cv::resize(img, img, Utilities::getFrameSize());
 				//}
 			}
-			vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps, 14, 0.008, -0.008);
-			for (int i = 0; i < wave.size(); i++)
+			vector<vector<float> > wave;
+			wave.push_back(WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 14, 0.008, -0.008, MM_PI));
+			wave.push_back(WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 14, 0.008, -0.008, 0));
+			for (int j = 0; j < wave.size(); j++)
 			{
+				for (int i = 0; i < wave[j].size(); i++)
+				{
 
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-				
-				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[i]);
-				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[i]);
-				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[i]);
-				
-				Mat frame;
-				cv::merge(BGR, frame);
-				vidWriter << frame;
+					vector<Mat> BGR;
+					cv::split(img, BGR);
+
+					Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[j][i]);
+					Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[j][i]);
+					Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[j][i]);
+
+					Mat frame;
+					cv::merge(BGR, frame);
+					vidWriter << frame;
+				}
 			}
 		}
-			break;
+		break;
 		case SYNCH_CHESS:
 			if (end)
 			{
@@ -344,63 +380,7 @@ public:
 		}
 		return receiveFFT(frames, fps, frames_per_symbol);
 	}
-	// calculate the best fit between two signals based on cross-correlation and return the peek value
-	vector<double> calcCrossCorrelate(vector< vector<float> > &signals, vector<float> &test,int start, int end)
-	{
-		//double totalBestVal = 0;
-		vector<double> bestVal(signals.size(), 0);
-		vector<double> avgAmplitude(signals.size(), 0);
-		vector<int> count(signals.size(), 0);
-		int tsz = end - start + 1;
-		int ssz = signals[0].size();
-		for (int i = -(tsz >> 1); i < (ssz >> 1);i++)
-		{	
-			vector<double> sum(signals.size(), 0);
-			vector<double> sumAmp(signals.size(), 0);
-			vector<int> cntAmp(signals.size(), 0);
-			//double totalSum = 0;
-			for (int j = std::max(0, i); j < std::min(ssz, tsz + i); j++)
-			{
-				for (int k = 0; k < signals.size(); k++)
-				{
-					sum[k] += signals[k][j] * test[j - i + start];
-					/*if (test[j - i + start] > test[j - i + start - 1] && test[j - i + start] > test[j - i + start + 1])
-					{
-						sumAmp[k] += abs(test[j - i + start]);
-						cntAmp[k]++;
-					}
-					else if (test[j - i + start] < test[j - i + start - 1] && test[j - i + start] < test[j - i + start + 1])
-					{
-						sumAmp[k] += abs(test[j - i + start]);
-						cntAmp[k]++;
-					}*/
-				}
-			}
-			//sum /= cnt;
-			//cout << i << "\t" << sum << endl;
-			for (int k = 0; k < sum.size(); k++)
-			{
-				if (sum[k] > bestVal[k])
-				{
-					bestVal[k] = sum[k];
-					//avgAmplitude[k] = sumAmp[k] / cntAmp[k];
-				}
-			}
-		}
-		int maxID = 0;
-		for (int i = 1; i < bestVal.size(); i++)
-		{
-			if(bestVal[i] > bestVal[maxID])
-			{
-				maxID = i;
-			}
-		}
-		//cout << avgAmplitude[maxID] << "\t";
-		
-		//cout << endl;
-		return bestVal;
-	}
-
+	
 	// receive using cross-correlation as classifier
 	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol)
 	{
@@ -423,12 +403,15 @@ public:
 		int window_size = frames_per_symbol;
 		int end = frames.size() - fps;
 		int start = (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
+		vector<int> best_start(signals.size(), 0);
+		vector<int> best_end(signals.size(), 0);
+		vector<int> test_start(signals.size(), 0);
 		for (int i = start; i < end; i += window_size)
 		{
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
 			{
-				vector<double> bestOfSignal = calcCrossCorrelate(signals[j], frames, i, i + window_size);
+				vector<double> bestOfSignal = Utilities::calcCrossCorrelate(signals[j], frames, i, i + window_size, best_start, best_end, test_start);
 				Detected.push_back(*max_element(bestOfSignal.begin(), bestOfSignal.end()));
 			}
 			// get maximum response

@@ -1,14 +1,47 @@
+/*
+Copyright (c) 2015, mostafa izz
+izz.mostafa@gmail.com
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+* Neither the name of MyVLC nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include "Properties.h"
 #include "SplitAmplitudeCommunicator.h"
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 #include "OldCommunicator.h"
-#include "RGBCommunicator.h"
+#include "BGR0Communicator.h"
 #include "RGBSpatialRedundancy.h"
 #include "HUECommnunicator.h"
 #include "BGRCommunicator2.h"
 #include "BGRCommunicator3.h"
 #include "BGRCommunicator4.h"
+#include "B0GRCommunicator.h"
+#include "BGR0Communicator.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 
@@ -389,7 +422,7 @@ int Properties::testSendReceive(int argc, char** argv)
 		communicator = new SplitScreenAmpDifferenceCommunicator;
 		break;
 	case 6:
-		communicator = new RGBCommunicator;
+		communicator = new BGRCommunicator;
 		break;
 	case 7:
 		communicator = new RGBSpatialRedundancyCommunicator;
@@ -406,6 +439,12 @@ int Properties::testSendReceive(int argc, char** argv)
 	case 11:
 		communicator = new BGRCommunicator4;
 		break; 
+	case 12:
+		communicator = new B0GRCommunicator;
+		break;
+	case 13:
+		communicator = new BGR0Communicator;
+		break;
 	case -1:
 		communicator = new OldCommunicator;
 		break;
@@ -513,18 +552,7 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
-	/*while (true)
-	{
-		int n;
-		cin >> n;
-		Mat test = Mat::ones(n, n, CV_32FC1);
-		((float*)test.data)[0] = -2.0f * n;
-		((float*)test.data)[n - 1] = -2.0f * n;
-		float maxSum;
-		Utilities::getMaxSum(test, maxSum);
-		Utilities::getMaxSumDP(test, maxSum);
-	}*/
-	//string release = "C:\\Users\\mostafaizz\\Documents\\Visual Studio 2013\\Projects\\ConsoleApplication1\\Release\\";
+	string release = "C:\\Users\\mostafaizz\\Documents\\Visual Studio 2013\\Projects\\ConsoleApplication1\\Release\\";
 	//string fileName = release + string(argv[1]) + ".rand";
 	//string dstfileName = release + string(argv[1]) + "org.rand";
 	//ifstream ifs(fileName);
@@ -556,7 +584,21 @@ int main(int argc, char** argv)
 
 	//Mat img = imread(release + "img2.jpg");
 	//Utilities::calcHistogram(img);
-	//Utilities::exploreVideo(release + "test\\20150311_152112_172020172__RGB2_2x3rand_4Freq8symbol_sideA3_sideB2_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 33 -> 38
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161625_775741095__RGB2_2x3rand_8Freq8symbol_sideA3_sideB2_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 26 -> 35
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161711_775767883__RGB2_5x6rand_8Freq8symbol_sideA6_sideB5_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 26 -> 17
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161755_775793936__RGB2_10x12rand_8Freq8symbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 31 -> 31
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161838_775820157__RGB2_12x15rand_8Freq8symbol_sideA15_sideB12_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 27 -> 33
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161921_775846540__RGB2_15x16rand_8Freq8symbol_sideA16_sideB15_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 26 -> 35
+	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162002_775872838__RGB2_18x20rand_8Freq8symbol_sideA20_sideB18_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	// 36 -> 36
+	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162046_775908773__RGB2_20x30rand_8Freq8symbol_sideA30_sideB20_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	//Utilities::exploreVideo(release + "test\\Tree301.avi");
 	return Properties::getInst()->testSendReceive(argc, argv);
 	
 	

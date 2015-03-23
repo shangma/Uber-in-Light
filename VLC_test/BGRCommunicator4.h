@@ -1,5 +1,36 @@
+/*
+Copyright (c) 2015, mostafa izz
+izz.mostafa@gmail.com
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+* Neither the name of MyVLC nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #pragma once
-#include "SplitScreenCommunicator.h"
+#include "BGRCommunicator.h"
 
 /*
 Do you mean brightness? Perceived brightness? Luminance?
@@ -9,7 +40,7 @@ Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B) [2]
 Luminance (perceived option 2, slower to calculate): sqrt( 0.299*R^2 + 0.587*G^2 + 0.114*B^2 )
 */
 class BGRCommunicator4 :
-	public SplitScreenCommunicator
+	public BGRCommunicator
 {
 public:
 	////////////////////////////// Green only ///////////////////////////
@@ -19,99 +50,39 @@ public:
 	}
 	virtual void initCommunication()
 	{
+		// b
+		amplitudes.push_back(vector<float>());
+		// g
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-
+		// r
+		amplitudes.push_back(vector<float>());
+		for (int i = 0; i < amplitudes[1].size(); i++)
+		{
+			amplitudes[0].push_back(-amplitudes[1][i]);
+			amplitudes[2].push_back(-amplitudes[1][i]);
+		}
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
 		sections = Parameters::sideA * Parameters::sideB;
-	}
-
-	virtual void sendImageMainLoop()
-	{
-		int amplitudes0_size = amplitudes[0].size();
-		int i_increment = (sections * framesForSymbol);
-		for (int i = 0; i < amplitudes0_size; i += i_increment)
-		{
-			for (int k = 0; k < framesForSymbol; k++)
-			{
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-				int innerLoopIndex = i + k;
-				for (int j = 0; j < sections && innerLoopIndex < amplitudes0_size; j++, innerLoopIndex += framesForSymbol)
-				{
-					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-
-					// blue is negative
-					Utilities::updateFrameLuminance(BGR[0], ROIs[j], -amplitudes[0][innerLoopIndex]);
-					// green is positive
-					Utilities::updateFrameLuminance(BGR[1], ROIs[j], amplitudes[0][innerLoopIndex]);
-					// red is negative
-					Utilities::updateFrameLuminance(BGR[2], ROIs[j], -amplitudes[0][innerLoopIndex]);
-					
-				}
-				Mat frame;
-				cv::merge(BGR, frame);
-				vidWriter << frame;
-			}
-		}
-	}
-	virtual void sendVideoMainLoop()
-	{
-		double frameIndex = 0;
-		double frameIndexIncrement = inputFrameUsageFrames*sections;
-		int ampitudesSize = amplitudes[0].size();
-		int i_increment = (sections * framesForSymbol);
-		for (int i = 0; i < ampitudesSize; i += i_increment)
-		{
-			int frameIndexComparison = i;
-			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison += sections)
-			{
-				if (frameIndexComparison >= frameIndex)
-				{
-					frameIndex += frameIndexIncrement;
-					videoReader.read(img);
-					cv::resize(img, img, Utilities::getFrameSize());
-				}
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-
-				int innerLoopIndex = i + k;
-				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
-				{
-					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					// blue is negative
-					Utilities::updateFrameLuminance(BGR[0], ROIs[j], -amplitudes[0][innerLoopIndex]);
-					// green is positive
-					Utilities::updateFrameLuminance(BGR[1], ROIs[j], amplitudes[0][innerLoopIndex]);
-					// red is negative
-					Utilities::updateFrameLuminance(BGR[2], ROIs[j], -amplitudes[0][innerLoopIndex]);
-				}
-				Mat frame;
-				cv::merge(BGR, frame);
-				vidWriter << frame;
-			}
-		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	virtual vector<Mat> getSplittedImages(Mat &frame)
-	{
-		vector<Mat> ret;
-		cv::split(frame, ret);
-		return ret;
-	}
-
-	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		Parameters::BKGMaskThr = 300;
-		Parameters::amplitudeExtraction = BR_G_CHANNELS_DIFF;
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
 			Parameters::sideA, Parameters::sideB, true, false);
-
-		return receiveN(frames, fps);
+		vector<vector<float> > G_BRDiff;
+		for (int i = 0; i < frames.size(); i++)
+		{
+			vector<float> temp;
+			for (int j = 0; j < frames[i].size(); j += 3)
+			{
+				temp.push_back(frames[i][j + 1] - frames[i][j] - frames[i][j + 2]);
+			}
+			G_BRDiff.push_back(temp);
+		}
+		return receiveN(G_BRDiff, Parameters::fps);
 	}
 };
 
