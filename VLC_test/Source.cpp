@@ -552,7 +552,7 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
-	string release = "C:\\Users\\mostafaizz\\Documents\\Visual Studio 2013\\Projects\\ConsoleApplication1\\Release\\";
+	string release = "C:\\VLC\\Release\\";
 	//string fileName = release + string(argv[1]) + ".rand";
 	//string dstfileName = release + string(argv[1]) + "org.rand";
 	//ifstream ifs(fileName);
@@ -598,7 +598,7 @@ int main(int argc, char** argv)
 	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162002_775872838__RGB2_18x20rand_8Freq8symbol_sideA20_sideB18_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	// 36 -> 36
 	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162046_775908773__RGB2_20x30rand_8Freq8symbol_sideA30_sideB20_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	//Utilities::exploreVideo(release + "test\\Tree301.avi");
+	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150324_132421_1287090311__RGB2_10x12orgrand_8Freq8orgsymbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	return Properties::getInst()->testSendReceive(argc, argv);
 	
 	

@@ -149,7 +149,7 @@ public:
 		for (int i = 0; i < frames.size(); i++)
 		{
 			vector<float> B,G,R;
-			for (int j = 0; j < frames[i].size(); j += 2)
+			for (int j = 0; j < frames[i].size(); j += 3)
 			{
 				// blue
 				B.push_back(frames[i][j]);

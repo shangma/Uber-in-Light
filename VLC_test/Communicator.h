@@ -250,35 +250,38 @@ public:
 		switch (Parameters::synchMethod)
 		{
 		case SYNCH_GREEN_CHANNEL:
-		{//double frameIndex = 0;
-			if (Parameters::realVideo)
+		{
+			double frameIndex = 0;
+			
+			vector<float> wave(1, 0);
+			vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 12, 0.008, -0.008);
+			wave.insert(wave.end(), tmp.begin(), tmp.end());
+			wave.push_back(0);
+			tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 9, 0.008, -0.008);
+			wave.insert(wave.end(), tmp.begin(), tmp.end());
+			wave.push_back(0);
+			int i = 0;
+			for (int j = 0; j < wave.size(); j++, i++)
 			{
-				/*if (i >= frameIndex)
+				if (Parameters::realVideo)
 				{
-				frameIndex += inputFrameUsageFrames;*/
-				videoReader.read(img);
-				cv::resize(img, img, Utilities::getFrameSize());
-				//}
-			}
-			vector<vector<float> > wave;
-			wave.push_back(WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 14, 0.008, -0.008, MM_PI));
-			wave.push_back(WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 14, 0.008, -0.008, 0));
-			for (int j = 0; j < wave.size(); j++)
-			{
-				for (int i = 0; i < wave[j].size(); i++)
-				{
-
-					vector<Mat> BGR;
-					cv::split(img, BGR);
-
-					Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[j][i]);
-					Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[j][i]);
-					Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[j][i]);
-
-					Mat frame;
-					cv::merge(BGR, frame);
-					vidWriter << frame;
+					if (i >= frameIndex)
+					{
+						frameIndex += inputFrameUsageFrames;
+						videoReader.read(img);
+						cv::resize(img, img, Utilities::getFrameSize());
+					}
 				}
+				vector<Mat> BGR;
+				cv::split(img, BGR);
+
+				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[j]);
+				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[j]);
+				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[j]);
+
+				Mat frame;
+				cv::merge(BGR, frame);
+				vidWriter << frame;
 			}
 		}
 		break;
@@ -401,7 +404,7 @@ public:
 			signals.push_back(signal);
 		}
 		int window_size = frames_per_symbol;
-		int end = frames.size() - fps;
+		int end = frames.size() - ((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
 		int start = (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
 		vector<int> best_start(signals.size(), 0);
 		vector<int> best_end(signals.size(), 0);
