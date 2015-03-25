@@ -1370,8 +1370,11 @@ public:
 				val.push_back(tmpVal[i + 1] - tmpVal[i] - tmpVal[i + 2]);
 			}
 			vector<vector<float> > signals;
-			vector<float> wave(framerate / 6, 0);
-			vector<float> tmpWave = WaveGenerator::createSampledSquareWave(framerate, framerate * 5 / 6, 14, 1, -1, MM_PI);
+			vector<float> wave(1, 0);
+			vector<float> tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 12, MM_PI);
+			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
+			wave.push_back(0);
+			tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 9, MM_PI);
 			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
 			signals.push_back(wave);
 
@@ -1401,7 +1404,7 @@ public:
 				}
 				//cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
 			}
-			starting_index = best_end[bestInd];
+			starting_index = best_end[bestInd] - 3;
 			float maxSumVal = 0;
 
 			globalROI = getMaxSum(accumelation, maxSumVal);
@@ -1414,9 +1417,9 @@ public:
 			globalROI.width = globalROI.width * colScale;
 			globalROI.height = globalROI.height * rowScale;
 
-			cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
-			imshow("rect", test_frames[starting_index]);
-			cv::waitKey(10);
+			//cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
+			//imshow("rect", test_frames[starting_index]);
+			//cv::waitKey(10);
 		}
 	}
 
