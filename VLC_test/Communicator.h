@@ -253,10 +253,10 @@ public:
 		{
 			double frameIndex = 0;
 			
-			vector<float> wave(1, 0);
+			vector<float> wave(Parameters::fps / 2, 0);
 			vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 12, 0.008, -0.008);
 			wave.insert(wave.end(), tmp.begin(), tmp.end());
-			wave.push_back(0);
+			wave.resize(Parameters::fps * 3 / 2, 0);
 			tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 9, 0.008, -0.008);
 			wave.insert(wave.end(), tmp.begin(), tmp.end());
 			wave.push_back(0);
