@@ -74,7 +74,7 @@ public:
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -98,7 +98,7 @@ public:
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -106,8 +106,7 @@ public:
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, Parameters::sideA, Parameters::sideB, true, true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true, true);
 		vector<vector<float> > amplitude_difference;
 		for (int j = 0; j < frames.size(); j += 2)
 		{
@@ -118,7 +117,7 @@ public:
 			}
 			amplitude_difference.push_back(tmp);
 		}
-		return receiveN(amplitude_difference, fps);
+		return receiveN(amplitude_difference);
 	}
 };
 

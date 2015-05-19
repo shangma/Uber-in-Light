@@ -85,13 +85,14 @@ public:
 		//sample[1] = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, OneFrequency, luminance, -luminance);
 		VideoWriter vidWriter;
 		int msgSize = msg.size();
-		cout << msgSize << endl;
+		cout << "msg size  = " << msgSize << endl;
 		for (int i = 0; i < msgSize; i++)
 		{
 			vector<float> sample = WaveGenerator::createSampledSquareWave(frequency, frames_per_symbol, msg[i].frequency, msg[i].amplitude, -msg[i].amplitude);
 			amplitudes.insert(amplitudes.end(), sample.begin(), sample.end());
 			//cout << msg[i].symbol;
 		}
+		cout << "amp size  = " << amplitudes.size() << endl;
 		//cout << endl;
 		return amplitudes;
 	}

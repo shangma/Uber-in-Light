@@ -12,9 +12,9 @@ namespace RandomBitsGenerator
         static void Main(string[] args)
         {
             int bitsPerSecond = 10; // bits
-            int time = 120; // seconds
-            int[] cellPerWidth = new int[] { 3, 6, 12, 15, 16, 20, 30 };
-            int[] cellPerHeight = new int[] { 2, 5, 10, 12, 15, 18, 20 };
+            int time = 30; // seconds
+            int[] cellPerWidth = new int[] { 1,2,2,3, 6, 12, 15, 16, 20, 30, 40};
+            int[] cellPerHeight = new int[] { 1,1,2,2, 5, 10, 12, 15, 18, 20, 36};
             for (int i = 0; i < cellPerHeight.Length; i++)
             {
                 StreamWriter sw = new StreamWriter(string.Format("{0:00}x{1}x{2}x{3}.rand", cellPerHeight[i], cellPerWidth[i],bitsPerSecond,time));

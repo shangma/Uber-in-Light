@@ -35,184 +35,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "WaveGenerator.h"
 
 class Communicator
-{
+{	
+private:
+	VideoWriter vidWriter;
 protected:
-	// display the given image in the given window name for the given millisecionds
-	//void displayImageForCertainPeriod(Mat img, string winName, int displayTime)
-	//{
-	//	typedef std::chrono::high_resolution_clock Clock;
-	//	typedef std::chrono::milliseconds milliseconds;
-	//	Clock::time_point t0 = Clock::now();
-	//	// start work
-	//	imshow(winName, img);
-	//	// end work
-	//	Clock::time_point t1 = Clock::now();
-	//	milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//	// wait for some time 
-	//	cvWaitKey(max(1, (int)(displayTime - ms.count())));
-	//}
-
-	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
-	/// frequency is in Hz
-	/// int bitTime in millisecond
-	//void diplay24FramesWithSomeFrequency(Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime)
-	//{
-	//	//printf("%d", (int)frequency);
-	//	// screen frequency
-	//	double screen_refresh_rate = 60; // 60Hz
-	//	int duty_cycle = (int)ceil(1000 / frequency); // seconds
-	//	if (duty_cycle & 1)
-	//	{
-	//		// make it even
-	//		++duty_cycle;
-	//	}
-	//	double time_for_the_high_amplitude = duty_cycle / 2; // in milli seconds
-	//	// the time needed for one bit is bittime milliseconds
-	//	int number_of_iterations = bitTime / (time_for_the_high_amplitude * 2);
-
-	//	for (int i = 0; i < number_of_iterations; i++)
-	//	{
-	//		displayImageForCertainPeriod(new_image1, "video", time_for_the_high_amplitude);
-	//		displayImageForCertainPeriod(new_image2, "video", duty_cycle - time_for_the_high_amplitude);
-	//	}
-	//}
-
-	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
-	/// frequency is in Hz
-	/// int bitTime in millisecond
-	/// number of frames for each cycle
-	//void addFramesWithSomeFrequency(VideoWriter & vidWriter, Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime, int frames_cycle)
-	//{
-	//	//double screen_refresh_rate = 60; // 60Hz
-	//	double duty_cycle = 1000 / frequency; // seconds
-	//	// the time needed for one bit is 400 milliseconds
-	//	int number_of_iterations = bitTime / duty_cycle;
-
-	//	for (int i = 0; i < number_of_iterations; i++)
-	//	{
-	//		for (int j = 0; j < frames_cycle / 2; j++)
-	//		{
-	//			vidWriter << new_image1;
-	//			//cout << 1;
-	//		}
-	//		for (int j = 0; j < frames_cycle / 2; j++)
-	//		{
-	//			vidWriter << new_image2;
-	//			//cout << 0;
-	//		}
-	//	}
-	//}
-
-	//void sendMessage(string imagefile, string msg)
-	//{
-	//	Mat new_image1;
-	//	Mat new_image2;
-	//	Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-	//	Rect ROI = Rect(0, 0, image.cols, image.rows);
-	//	new_image1 = image.clone();
-	//	Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-	//	new_image2 = image.clone();
-	//	Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
-
-	//	// convert the message into sequence of bits
-
-	//	for (int i = 0; i < msg.length(); i++)
-	//	{
-	//		char c = msg[i];
-	//		char x = 0;
-
-	//		for (int j = 0; j < 8; j++)
-	//		{
-	//			x = (x << 1) | ((c >> (7 - j)) & 1);
-	//			typedef std::chrono::high_resolution_clock Clock;
-	//			typedef std::chrono::milliseconds milliseconds;
-	//			Clock::time_point t0 = Clock::now();
-	//			// work done here
-	//			diplay24FramesWithSomeFrequency(ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, 1000);
-	//			// end work
-	//			Clock::time_point t1 = Clock::now();
-	//			milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//			std::cout << ms.count() << "ms\n";
-	//		}
-	//		printf("%c", x);
-	//	}
-	//}
-
-	// symbol_time: how many milliseconds will the symbol last
-	//void createOfflineVideo(string imagefile, string msg, string outputVideoFile, int symbol_time, bool createVid = true)
-	//{
-	//	if (createVid)
-	//	{
-	//		Mat new_image1;
-	//		Mat new_image2;
-	//		Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-	//		Rect ROI = Rect(0, 0, image.cols, image.rows);
-	//		new_image1 = image.clone();
-	//		Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-	//		new_image2 = image.clone();
-	//		Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
-
-
-	//		// convert the message into sequence of bits
-
-	//		// get greatest common divisor for both fps
-	//		int gcdFreq = gcd((int)FREQ[ZERO], (int)FREQ[ONE]);
-	//		int lcmFreq = FREQ[ZERO] * FREQ[ONE] / gcdFreq;
-	//		VideoWriter vidWriter;
-	//		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), lcmFreq * 2, image.size());
-	//		for (int i = 0; i < msg.length(); i++)
-	//		{
-	//			char c = msg[i];
-	//			char x = 0;
-
-	//			for (int j = 7; j >= 0; j--)
-	//			{
-	//				x = (x << 1) | ((c >> (7 - j)) & 1);
-	//				typedef std::chrono::high_resolution_clock Clock;
-	//				typedef std::chrono::milliseconds milliseconds;
-	//				Clock::time_point t0 = Clock::now();
-	//				// work done here
-	//				addFramesWithSomeFrequency(vidWriter, ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, symbol_time, lcmFreq * 2 / FREQ[(c >> (7 - j)) & 1]);
-	//				//for (int k = 0;k < )
-	//				// end work
-	//				Clock::time_point t1 = Clock::now();
-	//				milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//				//std::cout << ms.count() << "ms\n";
-	//				cout << (int)((c >> (7 - j)) & 1);
-	//			}
-	//			//printf("%c", x);
-	//		}
-	//	}
-	//}
-protected:
-	//int frame_width;
-	//int frame_height;
-	//double fps;
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
-	//int symbol_time;
-	//cv::Rect globalROI;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
 	vector<short> shortMsg;
 	vector<SymbolData> msg;
 	VideoCapture videoReader;
-	VideoWriter vidWriter;
+	void openVideoWriter(string name)
+	{
+		vidWriter = Utilities::getVideoWriter(name, Utilities::getFrameSize());
+	}
+	// frames writer
+	void writeFrame(Mat &frame)
+	{
+		Utilities::writeFrame(vidWriter, frame);
+	}
 public:
 	void setCommonParameters(vector<short> &msg, string outputVideoFile)
 	{
 		this->shortMsg = msg;
 		this->msg = Parameters::symbolsData.getMsgSymbols(msg);
-		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
-		switch (Parameters::synchMethod)
-		{
-		case SYNCH_CHESS:
-			Parameters::globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
-			break;
-		case SYNCH_GREEN_CHANNEL:
-			Parameters::globalROI = cv::Rect(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
-			break;
-		}
+		openVideoWriter(getVideoName(outputVideoFile));
+		Parameters::globalROI = Utilities::createChessBoardDataRect();
 	}
 	bool initImage(string inputImage, vector<short> &msg, string outputVideoFile)
 	{
@@ -245,14 +94,39 @@ public:
 		}
 		return false;
 	}
+	void addNonModulatedFrames(int size)
+	{
+		double frameIndex = 0;
+		int i = 0;
+		for (int j = 0; j < size; j++, i++)
+		{
+			if (Parameters::realVideo)
+			{
+				if (i >= frameIndex)
+				{
+					frameIndex += inputFrameUsageFrames;
+					videoReader.read(img);
+					cv::resize(img, img, Utilities::getFrameSize());
+				}
+			}
+			writeFrame(img);
+		}
+		//vector<float> zeros(size * Parameters::sideA * Parameters::sideB, 0);
+		////cout << zeros.size() << endl;
+		//for (int i = 0; i < amplitudes.size(); i++)
+		//{
+		//	amplitudes[i].insert(amplitudes[i].begin(), zeros.begin(), zeros.end());
+		//}
+	}
 	void addSynchFrames(bool end)
 	{
 		switch (Parameters::synchMethod)
 		{
+
 		case SYNCH_GREEN_CHANNEL:
 		{
 			double frameIndex = 0;
-			
+
 			vector<float> wave(Parameters::fps / 2, 0);
 			vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 12, 0.008, -0.008);
 			wave.insert(wave.end(), tmp.begin(), tmp.end());
@@ -261,6 +135,7 @@ public:
 			wave.insert(wave.end(), tmp.begin(), tmp.end());
 			wave.push_back(0);
 			int i = 0;
+			cv::Rect outer(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
 			for (int j = 0; j < wave.size(); j++, i++)
 			{
 				if (Parameters::realVideo)
@@ -274,34 +149,40 @@ public:
 				}
 				vector<Mat> BGR;
 				cv::split(img, BGR);
-
-				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[j]);
-				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[j]);
-				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[j]);
+				// outer frame
+				Utilities::updateFrameLuminance(BGR[0], outer, wave[j]);
+				Utilities::updateFrameLuminance(BGR[1], outer, -wave[j]);
+				Utilities::updateFrameLuminance(BGR[2], outer, wave[j]);
+				// inner
+				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -2 * wave[j]);
+				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, 2 * wave[j]);
+				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -2 * wave[j]);
 
 				Mat frame;
 				cv::merge(BGR, frame);
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
-		break;
+			break;
 		case SYNCH_CHESS:
+		{
 			if (end)
 			{
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
 				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
-				//vidWriter.release();
+
 			}
 			else
 			{
 				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+				addNonModulatedFrames(Parameters::fps);
 			}
 			break;
+		}
 		}
 		if (end)
 		{
 			vidWriter.release();
+			Parameters::done = true;
 		}
 	}
 
@@ -359,7 +240,7 @@ public:
 	// symbol_time: how many milliseconds will the symbol last
 	void sendVideo()
 	{
-		if (videoReader.isOpened())
+		if (videoReader.isOpened() || Parameters::liveTranmitter)
 		{
 			initCommunication();
 			addSynchFrames(false);
@@ -369,19 +250,20 @@ public:
 	}
 
 	
-	vector<short> receive2(vector<float> frames, int fps)
+	vector<short> receive2(vector<float> frames)
 	{
 		/*for (int i = 0; i < frames.size(); i++)
 		{
 			printf("%f\n", frames[i]);
 		}
 		*/
-		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+		//cout << "fps = " << fps << endl;
+		int frames_per_symbol = (Parameters::fps * Parameters::symbolTime / 1000);
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
-			return receiveCrossCorrelation(frames, fps, frames_per_symbol);
+			return receiveCrossCorrelation(frames, Parameters::fps, frames_per_symbol);
 		}
-		return receiveFFT(frames, fps, frames_per_symbol);
+		return receiveFFT(frames, Parameters::fps, frames_per_symbol);
 	}
 	
 	// receive using cross-correlation as classifier
@@ -396,21 +278,40 @@ public:
 		for (int i = 0; i < Parameters::symbolsData.allData.size(); i++)
 		{
 			vector<vector<float> > signal;
-			double phase = 0;
-			for (int j = 0; j < 5; j++, phase += MM_PI / 4)
+			double phase = MM_PI;
+			for (int j = 0; j < 7; j++, phase += MM_PI / 4)
+			//double phase = MM_PI;
 			{
-				signal.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, phase));
+				//vector<float> tmp = WaveGenerator::createSampledSquareWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency,1,-1, phase);
+				vector<float> tmp1 = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency,phase);
+				//tmp1[0] = tmp1[tmp1.size() - 1] = 0;
+				//signal.push_back(tmp);
+				signal.push_back(tmp1);
 			}
 			signals.push_back(signal);
 		}
 		int window_size = frames_per_symbol;
-		int end = frames.size() - ((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
-		int start = (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
+		//int end = frames.size() - ((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
+		int end = frames.size();
+		//cout << "frames.size() = " << frames.size() << endl;
+		//cout << "frames_per_symbol = " << frames_per_symbol << endl;
+		int start = 0;// (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
 		vector<int> best_start(signals.size(), 0);
 		vector<int> best_end(signals.size(), 0);
 		vector<int> test_start(signals.size(), 0);
+
+		// create gaussian kernel
+		//cout << "here" << endl;
+		//Mat gaussWin = cv::getGaussianKernel(window_size, window_size, CV_32F);
+		//float* gaussData = (float*)gaussWin.data;
+
 		for (int i = start; i < end; i += window_size)
 		{
+			//cout << i << endl;
+			/*for (int j = 0; j < window_size && i+j < end; j++)
+			{
+				frames[i + j] *= gaussData[j];
+			}*/
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
 			{
@@ -429,6 +330,7 @@ public:
 			vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
 			result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
 		}
+		//cout << "result.size() = "<< result.size() << endl;
 		return result;
 	}
 	vector<short> receiveFFT(vector<float> frames, int fps, int frames_per_symbol)
@@ -568,26 +470,23 @@ public:
 	// receive with a certain ROI ratio
 	virtual vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,1,true,false)[0];
-		return receive2(frames, fps);
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true,false)[0];
+		return receive2(frames);
 	}
 
 	// receive with a certain ROI ratio
-	virtual vector<short> receiveColor(string fileName, double ROI_Ratio, cv::Scalar color)
+	/*virtual vector<short> receiveColor(string fileName, double ROI_Ratio, cv::Scalar color)
 	{
 		puts("color");
-		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, false,color)[0];
-		return receive2(frames, fps);
-	}
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, 1, 1, true, false)[0];
+		return receive2(frames);
+	}*/
 
 	// receive with a certain ROI ratio
-	void receiveWithSelectionByHand(string fileName)
+	/*void receiveWithSelectionByHand(string fileName)
 	{
-		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, fps);
-		receive2(frames, fps);
-	}
+		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, Parameters::fps);
+		receive2(frames);
+	}*/
 
 };

@@ -42,12 +42,11 @@ public:
 
 
 	// receive with a certain ROI ratio
-	vector<short> receive(string fileName, double ROI_Ratio)
+	/*vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesOLd(fileName, fps, true, true);
+		vector<float> frames = Utilities::getVideoFrameLuminancesOLd(fileName, Parameters::fps, true, true);
 		
-		return receive2(frames, 30);
-	}
+		return receive2(frames);
+	}*/
 };
 

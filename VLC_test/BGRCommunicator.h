@@ -91,12 +91,16 @@ public:
 				}
 				Mat frame;
 				cv::merge(BGR, frame);
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
 	virtual void sendVideoMainLoop()
 	{
+		for (int i = 0; i < amplitudes.size(); i++)
+		{
+			cout << amplitudes[i].size() << endl;
+		}
 		double frameIndex = 0;
 		double frameIndexIncrement = inputFrameUsageFrames*sections;
 		int ampitudesSize = amplitudes[0].size();
@@ -112,21 +116,24 @@ public:
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-
+				//vector<Mat> BGR;
+				//cv::split(img, BGR);
+				Mat frame = img.clone();
 				int innerLoopIndex = i + k;
 				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					double BGRAmplitudes[3];
 					for (int k = 0; k < 3; k++)
 					{
-						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						BGRAmplitudes[k] = amplitudes[k][innerLoopIndex];
 					}
+					Utilities::updateFrameWithVchannel(frame, ROIs[j], BGRAmplitudes);
 				}
-				Mat frame;
-				cv::merge(BGR, frame);
-				vidWriter << frame;
+				//Mat frame;
+				//cv::merge(BGR, frame);
+				writeFrame(frame);
 			}
 		}
 	}
@@ -143,8 +150,7 @@ public:
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
-			Parameters::sideA, Parameters::sideB, true, false);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio,	true, false);
 		vector<vector<float> > frames_BGR;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -162,7 +168,7 @@ public:
 			frames_BGR.push_back(G);
 			frames_BGR.push_back(R);
 		}
-		return receiveN(frames_BGR, Parameters::fps);
+		return receiveN(frames_BGR);
 	}
 };
 

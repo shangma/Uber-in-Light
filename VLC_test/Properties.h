@@ -40,7 +40,8 @@ enum
 	RECV,
 	CNVRT,
 	EXTEND,
-	CORRELEATION
+	CORRELEATION,
+	EXPLORE
 };
 
 enum
@@ -68,7 +69,6 @@ private:
 	Properties()
 	{
 		mode = SEND;
-		outputFileName = "output.avi";
 		inputFileName = "";
 		ROI = 1;
 		type = 0;
@@ -90,7 +90,7 @@ public:
 
 	int mode; // 0 for send and 1 for receive, 2 for converting video
 	string inputFileName; // input file name for processing in case of receive, and input video/image file name in case of send
-	string outputFileName; // used in send only
+	
 	string msgFileName; // the message file Name
 	float ROI; // <= 0 means in the receiver use selection by hand and positive value means percentage
 	int type; // -1->the old HiLight work(no difference),0->normal(and default),1->split amplitude,2->split frequency,3->split amplitude and frequency, 4 -> split screen, 5-> split screen and amplitude

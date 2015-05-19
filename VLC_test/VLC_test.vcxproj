@@ -24,9 +24,11 @@
     <ClInclude Include="BGRCommunicator2.h" />
     <ClInclude Include="BGRCommunicator3.h" />
     <ClInclude Include="BGRCommunicator4.h" />
+    <ClInclude Include="concurrent_queue.h" />
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="HUECommnunicator.h" />
+    <ClInclude Include="mygl.h" />
     <ClInclude Include="OldCommunicator.h" />
     <ClInclude Include="Properties.h" />
     <ClInclude Include="Parameters.h" />
@@ -141,6 +143,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

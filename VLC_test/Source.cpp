@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BGR0Communicator.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
+#include "mygl.h"
 
 //Properties* Properties::inst = Properties::getInst();
 int Properties::returnError()
@@ -70,6 +71,11 @@ int Properties::testSendReceive(int argc, char** argv)
 		else if (!strcmp(argv[i], "-c"))
 		{
 			mode = CNVRT;
+		}
+		else if (!strcmp(argv[i], "-exp"))
+		{
+			puts("explore ");
+			mode = EXPLORE;
 		}
 		else if (!strcmp(argv[i], "-e"))
 		{
@@ -101,7 +107,7 @@ int Properties::testSendReceive(int argc, char** argv)
 			// get the file name
 			if (i < argc - 1)
 			{
-				outputFileName = argv[++i];
+				Parameters::outputFileName = argv[++i];
 			}
 			else
 			{
@@ -126,20 +132,6 @@ int Properties::testSendReceive(int argc, char** argv)
 			if (i < argc - 1)
 			{
 				msgFileName = argv[++i];
-				ifstream ifs(msgFileName);
-				if (ifs.is_open())
-				{
-					// assume the text inside
-					ifs >> text;
-					ifs.close();
-				}
-				else
-				{
-					// assume the file name is the text
-					text = msgFileName;
-				}
-				// convert the message to vector of short
-				msg = Utilities::getBinaryMessage(text);
 			}
 			else
 			{
@@ -173,30 +165,6 @@ int Properties::testSendReceive(int argc, char** argv)
 		else if (!strcmp(argv[i], "-v"))
 		{
 			Parameters::realVideo = true;
-		}
-		else if (!strcmp(argv[i], "-zero"))
-		{
-			// get the file name
-			if (i < argc - 1)
-			{
-				Parameters::symbolsData.addSymbol("0", stod(string(argv[++i])));
-			}
-			else
-			{
-				return returnError();
-			}
-		}
-		else if (!strcmp(argv[i], "-one"))
-		{
-			// get the file name
-			if (i < argc - 1)
-			{
-				Parameters::symbolsData.addSymbol("1", stod(string(argv[++i])));
-			}
-			else
-			{
-				return returnError();
-			}
 		}
 		else if (!strcmp(argv[i], "-ec"))
 		{
@@ -395,15 +363,78 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-live"))
+		{
+			Parameters::liveTranmitter = 1;
+		}
+		else if (!strcmp(argv[i], "-total"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::totalTime = stoi(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
+		else if (!strcmp(argv[i], "-seed"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::seed = stoi(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
 	}
+	if (Parameters::totalTime)
+	{
+		int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
+		//printf("length=%d\n", totalLength);
+		msg.clear();
+		std::mt19937 mt(19937);
+		std::uniform_int_distribution<int> dist(0, 1);
+		for (int i = 0; i < totalLength; i++)
+		{
+			msg.push_back(dist(mt));
+			//printf("%d", msg[i]);
+		}
+		ostringstream ostr;
+		ostr << "totaltime" << Parameters::totalTime << "_seed" << Parameters::seed;
+		msgFileName = ostr.str();
+		//puts("");
+	}
+	else if (msgFileName.size())
+	{
+		ifstream ifs(msgFileName);
+		if (ifs.is_open())
+		{
+			// assume the text inside
+			ifs >> text;
+			ifs.close();
+		}
+		else
+		{
+			// assume the file name is the text
+			text = msgFileName;
+		}
+		// convert the message to vector of short
+		msg = Utilities::getBinaryMessage(text);
+	}
+	else if (mode == SEND || mode == RECV)
+	{
+		return returnError();
+	}
+
 	if (inputFileName == "")
 	{
 		return returnError();
-	}
-	if (mode == SEND && text == "")
-	{
-		return returnError();
-	}
+	}	
 	switch (type)
 	{
 	case SPATIAL_REDUNDANCY:
@@ -455,6 +486,8 @@ int Properties::testSendReceive(int argc, char** argv)
 	switch (mode)
 	{
 	case SEND:
+	{
+		std::thread startTrans(displayGlut, argc, argv);
 		if (errorCorrection == HAMMING){
 			MyHamming hamming;
 			msg = hamming.EncodeMessage(msg, false);
@@ -473,7 +506,7 @@ int Properties::testSendReceive(int argc, char** argv)
 		if (Parameters::realVideo)
 		{
 			if (communicator->initVideo(inputFileName, msg,
-				Utilities::createOuputVideoName(msgFileName, inputFileName, outputFileName)))
+				Utilities::createOuputVideoName(msgFileName, inputFileName, Parameters::outputFileName)))
 			{
 				communicator->sendVideo();
 			}
@@ -481,12 +514,14 @@ int Properties::testSendReceive(int argc, char** argv)
 		else
 		{
 			if (communicator->initImage(inputFileName, msg,
-				Utilities::createOuputVideoName(msgFileName, inputFileName, outputFileName)))
+				Utilities::createOuputVideoName(msgFileName, inputFileName, Parameters::outputFileName)))
 			{
 				communicator->sendImage();
 			}
 		}
+		startTrans.join();
 		break;
+	}
 	case RECV:
 
 		if (ROI > 0 && ROI <= 1)
@@ -494,14 +529,14 @@ int Properties::testSendReceive(int argc, char** argv)
 
 			// then we have ROI
 			vector<short> received;
-			if (!color)
-			{
+			//if (!color)
+			//{
 				received = communicator->receive(inputFileName, ROI);
-			}
+			/*}
 			else
 			{
 				received = communicator->receiveColor(inputFileName, ROI, cv::Scalar(0, 0, 230));
-			}
+			}*/
 			for (int i = 0; i < msg.size(); i++)
 			{
 				cout << msg[i];
@@ -523,24 +558,32 @@ int Properties::testSendReceive(int argc, char** argv)
 			}
 			cout << endl;
 			Utilities::LCS_greedy(msg, received);// , inputFileName);
+			// calculate symbol errors
+			vector<SymbolData> msgSymbols = Parameters::symbolsData.getMsgSymbols(msg);
+			vector<SymbolData> recSymbols = Parameters::symbolsData.getMsgSymbols(received);
+			//Utilities::LCS_greedy(msgSymbols, recSymbols);
 		}
-		else
+		/*else
 		{
 			communicator->receiveWithSelectionByHand(inputFileName);
-		}
+		}*/
 		break;
 	case CNVRT:
 		// convert argv2 video to argv3 as a video with the framerate in argv4
 		// argv3 must end with .avi
-		Utilities::convertVideo(inputFileName, outputFileName, Parameters::fps, Parameters::start_second, Parameters::end_second);
+		Utilities::convertVideo(inputFileName, Parameters::outputFileName, Parameters::fps, Parameters::start_second, Parameters::end_second);
 		break;
 	case EXTEND:
 		// extend the video by repeating
-		Utilities::repeatVideo(inputFileName, outputFileName, Parameters::fps, extendN, Parameters::start_second, Parameters::end_second);
+		Utilities::repeatVideo(inputFileName, Parameters::outputFileName, Parameters::fps, extendN, Parameters::start_second, Parameters::end_second);
 		break;
 	case CORRELEATION:
 		Utilities::correlateVideoDifference(inputFileName, Parameters::start_second, Parameters::end_second, correlation);
 		break;
+	case EXPLORE:
+		Utilities::exploreVideo(inputFileName);
+		break;
+
 	}
 
 	return 0;
@@ -550,8 +593,28 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 	return communicator->getSplittedImages(frame);
 }
 
+#include <omp.h>
+
 int main(int argc, char** argv)
 {
+	//omp_set_dynamic(0);
+	int num = omp_get_num_procs();
+	omp_set_num_threads(num / 2); // half of the processors
+	/*Mat res = Utilities::getGaussian2D(1280, 720);
+
+	cout << res.cols << endl;
+	cout << res.rows << endl;
+	double minV, maxV;
+	minMaxIdx(res, &minV, &maxV);
+	res -= minV;
+	res /= (maxV - minV);
+	imshow("kernel", res);
+	cv::waitKey();
+	return 0;*/
+	/*vector<float> v = Utilities::getSynchSignal(30);
+	for (int i = 0; i < v.size(); i++)
+		cout << v[i] << endl;
+	return 0;*/
 	string release = "C:\\VLC\\Release\\";
 	//string fileName = release + string(argv[1]) + ".rand";
 	//string dstfileName = release + string(argv[1]) + "org.rand";
@@ -597,8 +660,8 @@ int main(int argc, char** argv)
 	// 26 -> 35
 	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162002_775872838__RGB2_18x20rand_8Freq8symbol_sideA20_sideB18_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	// 36 -> 36
-	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162046_775908773__RGB2_20x30rand_8Freq8symbol_sideA30_sideB20_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150324_132421_1287090311__RGB2_10x12orgrand_8Freq8orgsymbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
+	//Utilities::exploreVideo(release + "8Freq4org300msRGB2ThroughputLive\\1390782957__RGB2_totaltime60_seed1_8Freq4orgsymbol_sideA3_sideB2_full1_300ms_levels_XVID_d1mp4_output.avi");
+	//Utilities::exploreVideo(release + "HiLightLowFreq\\combined\\20150503_155751.mp4");
 	return Properties::getInst()->testSendReceive(argc, argv);
 	
 	

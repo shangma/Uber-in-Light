@@ -72,7 +72,7 @@ public:
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -100,7 +100,7 @@ public:
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -108,9 +108,8 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	vector<short> receiveN(vector<vector<float> > frames, int fps)
+	vector<short> receiveN(vector<vector<float> > frames)
 	{
-		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		sections = frames.size();// Parameters::sideA * Parameters::sideB;
 		vector<short> result;
 		if (frames.size() == 0)
@@ -118,7 +117,7 @@ public:
 		vector<vector<short>> vt;
 		for (int k = 0; k < sections; k++)
 		{
-			vt.push_back(receive2(frames[k], fps));
+			vt.push_back(receive2(frames[k]));
 		}
 		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
 		for (int i = 0; i < vt[0].size(); i += symbolSize)
@@ -138,9 +137,8 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		//Parameters::BKGMaskThr = 300;
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, Parameters::sideA, Parameters::sideB, true, false);
-		return receiveN(frames, fps);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true, false);
+		return receiveN(frames);
 	}
 };
 

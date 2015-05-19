@@ -74,7 +74,7 @@ public:
 				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][i]);
 			}
 			cv::merge(BGR, frame);
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual void sendVideoMainLoop()
@@ -98,7 +98,7 @@ public:
 				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][k]);
 			}
 			cv::merge(BGR, tmp);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,8 +111,7 @@ public:
 	{
 		Parameters::BKGMaskThr = 10;
 		Parameters::CommunicatorSpecificSplit = 1;
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true, true);
 		vector<float> frames_BGR[3];
 		for (int i = 0; i < frames[0].size(); i++)
 		{
@@ -121,7 +120,7 @@ public:
 		vector<short> tmp_res[3];
 		for (int i = 0; i < 3; i++)
 		{
-			tmp_res[i] = receive2(frames_BGR[i], fps);
+			tmp_res[i] = receive2(frames_BGR[i]);
 		}
 		vector<short> res;
 		for (int i = 0; i < tmp_res[0].size(); i++)

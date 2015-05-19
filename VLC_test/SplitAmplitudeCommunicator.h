@@ -60,7 +60,7 @@ public:
 			Mat frame = img.clone();
 			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes[0][i]);
 			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes[1][i]);
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual void sendVideoMainLoop()
@@ -78,7 +78,7 @@ public:
 			cv::resize(frame, tmp, Utilities::getFrameSize());
 			Utilities::updateFrameLuminance(tmp, ROIs[0], amplitudes[0][k]);
 			Utilities::updateFrameLuminance(tmp, ROIs[1], amplitudes[1][k]);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,8 +89,7 @@ public:
 	// receive with a certain ROI ratio
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1,true,true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true, true);
 		vector<float> amplitude_difference;
 		//double avg = 0;
 		for (int i = 0; i < frames[0].size(); i++)
@@ -99,7 +98,7 @@ public:
 			//avg = std::max((double)abs(amplitude_difference[i]),avg);
 		}
 		//cout << "Avg amplitude = " << avg << endl;
-		return receive2(amplitude_difference, fps);
+		return receive2(amplitude_difference);
 	}
 };
 

@@ -116,24 +116,65 @@ public:
 		int* vData = (int*)Parameters::vLayers[key].data;
 		//unsigned char* maskData = (unsigned char*)mask.data;
 		unsigned char* data = (unsigned char*)frame.data;
-		int rows = ROI.y + ROI.height;
-		int cols = ROI.x + ROI.width;
-		int inc = frame.cols - ROI.width;
-		int channels = frame.channels();
-		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++)
+		const int rows = ROI.y + ROI.height;
+		const int cols = ROI.width;
+		const int inc = frame.cols - ROI.width;
+		const int channels = frame.channels();
+		const int ROIx = ROI.x;
+		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++, i += cols + inc, j += cols)
 		{
-			for (int c = ROI.x; c < cols; c++, j++, i++)
+			#pragma omp parallel for
+			for (int c = 0; c < cols; c++)
 			{
 				// copy back
 				for (int k = 0; k < channels; k++)
 				{
-					int ind = i * channels + k;
+					const int ind = (i + c) * channels + k;
 					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
-					int tmp = (vData[j] + data[ind]);
+					const int tmp = (vData[j + c] + data[ind]);
 					data[ind] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
-			i += inc;
+		}
+	}
+	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double* percentageVector)
+	{
+		unsigned char* frameData = (unsigned char*)frame.data;
+		const int channels = frame.channels();
+		const int rows = ROI.y + ROI.height;
+		const int cols = ROI.width;
+		const int frameCols = frame.cols * channels;
+		const int ROIx = ROI.x;
+		int *vData[4];
+		for (int i = 0; i < channels; i++)
+		{
+			long long a = (percentageVector[i] * 10000);
+			long long b = frame.cols;
+			long long c = frame.rows;
+			long long key = (a << 30) | (b << 15) | (c);
+			map<long long, Mat>::iterator vLayerIterator = Parameters::vLayers.find(key);
+			if (vLayerIterator == Parameters::vLayers.end())
+			{
+				Parameters::vLayers[key] = createVLayer(ROI.width, ROI.height, percentageVector[i]);
+			}
+			// and copy
+			vData[i] = (int*)Parameters::vLayers[key].data;
+		}
+		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++, i += frameCols, j += cols)
+		{
+			unsigned char* data = &frameData[i];
+			#pragma omp parallel for
+			for (int c = 0; c < cols; c++)
+			{
+				// copy back
+				for (int k = 0; k < channels; k++)
+				{
+					//const int ind = i + c * channels + k;
+					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
+					const int tmp = (vData[k][j + c] + data[c + k]);
+					data[c + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+				}
+			}
 		}
 	}
 	static void updateFrameWithAlpha(Mat &frame, Rect ROI, double percentage)
@@ -397,7 +438,7 @@ public:
 	}
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
-	static void getDiffInBGR(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, int thresh = 300, vector<Mat*> ret = vector<Mat*>(3, 0))
+	static void getDiffInBGR(Mat *gaussMask, Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, int thresh = 300, vector<Mat*> ret = vector<Mat*>(3, 0))
 	{
 		// new method
 		unsigned char * p = ((unsigned char*)prev.data);
@@ -409,7 +450,7 @@ public:
 		int i = roi.y * frame.cols + roi.x;
 		int inc = frame.cols - roi.width;
 		int channels = frame.channels();
-		long long sumBGR[3] = { 0, 0, 0 };
+		float sumBGR[3] = { 0, 0, 0 };
 		long long countBGR[3] = { 0, 0, 0 };
 		int* retData[3];
 		for (int color = 0; color < channels; color++)
@@ -425,13 +466,19 @@ public:
 			{
 				for (int color = 0; color < channels; color++)
 				{
-					int tempColor = (int)f[i * channels + color] - (int)p[i * channels + color];
-					int testColor = (tempColor > 0) ? tempColor : -tempColor;
+					//float tempAvg = ((int)f[i * channels + color] - (int)p[i * channels + color]) / 2;
+					//float tempColor = (int)f[i * channels + color] - tempAvg;
+					float tempColor = (int)p[i * channels + color] - (int)f[i * channels + color];
+					float testColor = (tempColor > 0) ? tempColor : -tempColor;
 					if (testColor <= thresh)
 					{
 						if (ret[color] != 0)
 						{
 							retData[color][j] = tempColor;
+						}
+						if (gaussMask)
+						{
+							tempColor *= ((float*)(gaussMask->data))[j];
 						}
 						sumBGR[color] += tempColor;
 						countBGR[color]++;
@@ -443,8 +490,11 @@ public:
 		for (int color = 0; color < 3; color++)
 		{
 			float val = sumBGR[color];
-			amplitudes.push_back(val / countBGR[color]);
+			val /= countBGR[color];
+			//cout << val << "\t";
+			amplitudes.push_back(val);
 		}
+		//cout << endl;
 	}
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
@@ -840,27 +890,37 @@ public:
 	{
 		for (int i = 0; i < n; i++)
 		{
-			vidWriter << dummyFrame;
+			writeFrame(vidWriter,dummyFrame);
 		}
 	}
 
 	// this method is combining the system parameters into a string to be used in the output video name
 	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
-		ostringstream outputVideoStream;
-		outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
-		outputVideoStream << Parameters::getSide() << "_";
-		outputVideoStream << Parameters::getFull() << "_";
-		outputVideoStream << Parameters::symbolTime << "ms_" << "levels_";
-		outputVideoStream << Parameters::getCodec() << "_" << inputVideoFile << "_";
-		string str = outputVideoStream.str();
-		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
-		str.erase(end_pos, str.end());
-		end_pos = std::remove(str.begin(), str.end(), '.');
-		str.erase(end_pos, str.end());
-		end_pos = std::remove(str.begin(), str.end(), '\\');
-		str.erase(end_pos, str.end());
-		return str + outputVideoFile;
+		if (outputVideoFile.size() > 4)
+		{
+			return outputVideoFile;
+		}
+		else
+		{
+			ostringstream outputVideoStream;
+			outputVideoStream << inputMessage << "_" << Parameters::symbolsData.toString() << "_";
+			outputVideoStream << Parameters::getSide() << "_";
+			outputVideoStream << Parameters::getFull() << "_";
+			outputVideoStream << Parameters::symbolTime << "ms_" << "levels_";
+			outputVideoStream << Parameters::getCodec() << "_" << inputVideoFile << "_";
+			string str = outputVideoStream.str();
+			//puts(str.c_str());
+			std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
+			str.erase(end_pos, str.end());
+			end_pos = std::remove(str.begin(), str.end(), '.');
+			str.erase(end_pos, str.end());
+			end_pos = std::remove(str.begin(), str.end(), '\\');
+			str.erase(end_pos, str.end());
+			str += "output.avi";
+			//puts(str.c_str());
+			return str;
+		}
 	}
 
 	static void extractOneFrameLuminance(Mat *add_mask, vector<cv::Rect> &ROIs, 
@@ -878,32 +938,55 @@ public:
 			Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
 			break;
 		case BGR_CHANNELS:
-			Utilities::getDiffInBGR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
+			Utilities::getDiffInBGR(add_mask, tmp_prev, tmp_frame, ROIs[i], frames[i]);
 			break;
 		}
+	}
+
+	static bool ReadNextFrame(VideoCapture &cap, Mat &frame)
+	{
+		Mat img;
+		if (cap.read(img))
+		{
+			cv::warpPerspective(img, frame, Parameters::homography, img.size());
+			//frame = img;
+			//imshow("frame", frame);
+			cv::waitKey(0);
+			return true;
+		}
+		return false;
 	}
 
 	/// get video frames luminance
 	// VideoCapture as input
 	// ROI as input
 	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
+	static vector<vector<float> > getVideoFrameLuminances(VideoCapture &cap, vector<cv::Rect> &ROIs, double fps, cv::Rect globalROI, 
+		bool oldMethod = false, bool useAlpha = true)
 	{
 		Parameters::endingIndex = Parameters::startingIndex + 1;
 		int ROIsSize = ROIs.size();
 		vector<vector<float> > frames(ROIsSize, vector<float>());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
-		cap.read(prev);
+		//cap.read(prev);
+		ReadNextFrame(cap, prev);
 		double test_frame_rate = fps; // 30
 		//cap.read(prev);
 		//prev = prev(ROI);
 		double nextIndex = 0; 
-		int count = 1;
+		int count = 0;
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		//frame = prev.clone();
 		vector<float> synchFrames;
-		while (cap.read(frame))
+		vector<float> synchSignal = getSynchSignal(fps);
+		int synchSignalSize = synchSignal.size();
+		vector<Mat> gaussKernels;
+		for (int i = 0; i < ROIsSize; i++)
+		{
+			gaussKernels.push_back(getGaussian2D(ROIs[i].width,ROIs[i].height));
+		}
+		while (ReadNextFrame(cap, frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
 			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
@@ -916,21 +999,41 @@ public:
 			}
 			else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
 			{
-				vector<float> tmpV;
-				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
-				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
+				//vector<float> tmpV;
+				//Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
+				//synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
+				//if (synchFrames.size() > synchSignalSize)
+				//{
+				//	float tmpSum = 0;
+
+				//	for (int i = count - synchSignalSize, j = 0; i < count; i++, j++)
+				//	{
+				//		tmpSum += synchFrames[i] * synchSignal[j];
+				//	}
+				//	//cout << "tmpSum = " << tmpSum << endl;
+				//	if (tmpSum > Parameters::synchSignalSum)
+				//	{
+				//		cout << "tmpSum = " << tmpSum << endl;
+				//		for (int i = 0; i < ROIsSize; i++)
+				//		{
+				//			int  newSize = frames[i].size();
+				//			newSize -= (synchSignalSize - fps/9) * 3;
+				//			frames[i].resize(newSize);
+				//		}
+				//		break;
+				//	}
+				//}
 			}
 
-			Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
+			//Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
 			Mat tmp_frame_BGR;
-			frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
+			frame(globalROI).copyTo(tmp_frame_BGR);
 			Mat tmp_prev_BGR;
-			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
+			prev(globalROI).copyTo(tmp_prev_BGR);
 			//printf("%d\n", count);
 			for (int i = 0; i < ROIsSize; i++)
 			{
 				extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
-				
 			}
 			prev = frame.clone();
 		}
@@ -939,62 +1042,7 @@ public:
 		return frames;
 	}
 
-	/// get video frames luminance
-	// VideoCapture as input
-	// ROI as input
-	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminancesNext(VideoCapture &cap, vector<cv::Rect> &ROIs, 
-		double fps, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
-	{
-		Parameters::endingIndex = Parameters::startingIndex + 1;
-		int ROIsSize = ROIs.size();
-		vector<vector<float> > frames(ROIsSize, vector<float>());
-		cout << "Processing Frames..." << endl;
-		Mat frame, prev, next;
-		cap.read(prev);
-		double test_frame_rate = fps; // 30
-		cap.read(frame);
-		//prev = prev(ROI);
-		double nextIndex = 0;
-		int count = 1;
-		//Mat mask, prev_mask; = getBinaryMask(prev);
-		//frame = prev.clone();
-		vector<float> synchFrames;
-		while (cap.read(next))
-		{
-			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
-			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
-			{
-				//Mat temp;
-				if (canDetectMyBoard(frame))
-				{
-					break;
-				}
-			}
-			else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
-			{
-				vector<float> tmpV;
-				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
-				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
-			}
-
-			//Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
-			//Mat tmp_frame_BGR;
-			//frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
-			//Mat tmp_prev_BGR;
-			//prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
-			//printf("%d\n", count);
-			for (int i = 0; i < ROIsSize; i++)
-			{
-				Utilities::getDiffInBGRnext(prev, frame, next, ROIs[i], frames[i]);
-			}
-			prev = frame.clone();
-			frame = next.clone();
-		}
-		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
-		cout << "last index = " << Parameters::endingIndex << endl;
-		return frames;
-	}
+	
 
 	/// get video frames luminance with tracking color
 	// VideoCapture as input
@@ -1490,7 +1538,7 @@ public:
 		float cross = d1.x*d2.y - d1.y*d2.x;
 		if (abs(cross) < /*EPS*/1e-8)
 			return false;
-
+		
 		double t1 = (x.x * d2.y - x.y * d2.x) / cross;
 		r = o1 + d1 * t1;
 		return true;
@@ -1502,6 +1550,12 @@ public:
 		src.convertTo(src, CV_32FC1);
 		Mat thr_Mat;
 		threshold(src, thr_Mat, 0, 1, THRESH_BINARY);
+		//
+		//erode(thr_Mat, thr_Mat, Mat());
+		/*dilate(thr_Mat, thr_Mat, Mat());
+		erode(thr_Mat, thr_Mat, Mat());
+		dilate(thr_Mat, thr_Mat, Mat());*/
+
 		float *dp_src = new float[src.cols * src.rows];
 		Utilities::accumelateSum(src, dp_src);
 		float *dp = new float[src.cols * src.rows];
@@ -1513,16 +1567,21 @@ public:
 		//tmp.copyTo(tmp, src);
 		//src = tmp;
 		Mat dst;// , cdst;
-		Canny(tmp, dst, 50, 200, 3);
+		thr_Mat *= 255;
+		thr_Mat.convertTo(thr_Mat, CV_8UC1);
+		Canny(thr_Mat, dst, 50, 200, 3);
 		//cvtColor(dst, cdst, CV_GRAY2BGR);
+		imshow("thr_mat", thr_Mat);
+		imshow("canny", dst);
+		waitKey(0);
 
 		// detect lines
 		vector<Vec4i> lines;
 		int W = std::max(img.cols, img.rows);
 		cout << "Hough\n";
-		HoughLinesP(dst, lines, 1, CV_PI / 180, W / 32, W / 32, W);
+		HoughLinesP(dst, lines, 1, CV_PI / 180, 10, 0, W);
 		int cnt = 0;
-		cout << "Display\n";
+		cout << "filtering lines\n";
 		float tan_theta = 0.05;
 		float alpha = 0.02;
 		vector<Vec4i> dir_lines[4]; // left, right, top, bottom
@@ -1589,6 +1648,7 @@ public:
 				{
 					for (int d = 0; d < dir_lines[3].size(); d++)
 					{
+						
 						vector<Point2f> p(4);
 						intersection(dir_lines[0][l], dir_lines[2][u], p[0]);
 						intersection(dir_lines[1][r], dir_lines[2][u], p[1]);
@@ -1614,25 +1674,28 @@ public:
 								r2 = p[i].y;
 							}
 						}
-						double tmpRes = getRectSum(dp, src.cols, src.rows, c1, r1, c2, r2) / ((c2 - c1) * (r2 - r1));
-						if (tmpRes > bestRes)
+						if (c1 != c2 && r1 != r2 && c1 >= 0 && c2 < src.cols && r1 >= 0 && r2 < src.rows)
 						{
-							bestRes = tmpRes;
-							bestPts = p;
+							//cout << ++cnt << " " << c1 << " " << " " << r1 << " " << c2 << " " << " " << r2 << endl;
+							double tmpRes = getRectSum(dp, src.cols, src.rows, c1, r1, c2, r2) / ((c2 - c1) * (r2 - r1));
+							if (tmpRes > bestRes)
+							{
+								bestRes = tmpRes;
+								bestPts = p;
+							}
 						}
 					}
 				}
 			}
 		}
+		cout << "End Intersection\n";
 		for (int i = 0; i < 4; i++)
 		{
 			line(img, bestPts[i],
 				bestPts[(i + 1)%4], Scalar(255, 0, 0), 3, 8);
 		}
 		//imshow("source", tmp);
-		//imshow("detected lines", img);
-
-		//waitKey(0);
+		
 		int c1 = 10000000, c2 = 0, r1 = 100000000, r2 = 0;
 		for (int i = 0; i < 4; i++)
 		{
@@ -1653,7 +1716,21 @@ public:
 				r2 = bestPts[i].y;
 			}
 		}
+		delete[]dp;
+		delete[]dp_src;
 		return cv::Rect(c1, r1, c2 - c1 + 1, r2 - r1 + 1);
+	}
+	static vector<float> getSynchSignal(double framerate)
+	{
+		vector<vector<float> > signals;
+		vector<float> wave(framerate / 2, 0);
+		vector<float> tmpWave = WaveGenerator::createSampledSquareWave(framerate, framerate / 2, 12, 1,-1, MM_PI);
+		wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
+		wave.resize(framerate * 3 / 2, 0);
+		tmpWave = WaveGenerator::createSampledSquareWave(framerate, framerate / 2, 9,1, -1, MM_PI);
+		wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
+
+		return wave;
 	}
 	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, double &framerate, int &starting_index)
 	{
@@ -1661,8 +1738,8 @@ public:
 		//int* accData = (int*)accumelation.data;
 
 		//cv::Size size = getFrameSize();
-		int width = frame_width;// getFrameSize().width;
-		int height = frame_height;// getFrameSize().height;
+		int width = getFrameSize().width;
+		int height = getFrameSize().height;
 		cv::Size size(width, height);
 		cout << "GREEN Cross\n";
 		Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32SC1);
@@ -1685,7 +1762,7 @@ public:
 				ret[0] = &tmpRet[0];
 				ret[1] = &tmpRet[1];
 				ret[2] = &tmpRet[2];
-				getDiffInBGR(prev, frame, tempROI, tmpVal, 10, ret);
+				getDiffInBGR(0,prev, frame, tempROI, tmpVal, 10, ret);
 				frames.push_back(tmpRet[1] - tmpRet[0] - tmpRet[2]);
 				prev = frame.clone();
 			}
@@ -1693,15 +1770,10 @@ public:
 			for (int i = 0; i < tmpVal.size(); i += 3)
 			{
 				val.push_back(tmpVal[i + 1] - tmpVal[i] - tmpVal[i + 2]);
+				//cout << i/3 << " = " << val[i/3] << endl;
 			}
 			vector<vector<float> > signals;
-			vector<float> wave(framerate/2, 0);
-			vector<float> tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 12, MM_PI);
-			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
-			wave.resize(framerate * 3 / 2, 0);
-			tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 9, MM_PI);
-			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
-			signals.push_back(wave);
+			signals.push_back(getSynchSignal(framerate));
 
 			vector<int> best_start(signals.size(), 0);
 			vector<int> best_end(signals.size(), 0);
@@ -1717,35 +1789,60 @@ public:
 				}
 			}
 			cout << best_start[bestInd] << "\t" << best_end[bestInd] << "\t" << test_start[bestInd] << "\t" << res[bestInd] << endl;
-			
+			Parameters::synchSignalSum = res[bestInd];
+			//int sz = width * height;
+			float thr = 0;
 			for (int i = best_start[bestInd], j = 0; i < best_end[bestInd], j < signals[bestInd].size(); i++, j++)
 			{
-				if (val[i] > 0)
+
+				val[i] = val[i] * signals[bestInd][j];
+				//cout << j << " = " << val[i] << endl;
+				if (val[i] > thr)
 				{
-					accumelation = accumelation + frames[i] - 1;
+					accumelation = accumelation + (frames[i] * signals[bestInd][j]);
 				}
-				else
+				/*
+				else if (val[i] < -thr)
 				{
-					accumelation = accumelation - frames[i] - 1;
+					accumelation = accumelation - frames[i];
 				}
+				*/
 				//cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
 			}
 			starting_index = best_end[bestInd];
 			float maxSumVal = 0;
-			globalROI = detectanddrawhough(accumelation.clone(), test_frames[starting_index]);
+			//globalROI = 
+			//detectanddrawhough(accumelation.clone(), test_frames[starting_index]);
 			//globalROI = getMaxSum(accumelation, maxSumVal);
+			
+			Mat tmp, tmp1;
+			accumelation.convertTo(tmp, CV_32FC1);
+			//double minn, maxx;
+		//	minMaxLoc(tmp, &minn, &maxx);
+			//tmp -= minn;
+			//tmp /= (maxx - minn + 1);
+			threshold(tmp, tmp, 0, 1, CV_THRESH_BINARY);
+			/*tmp = (tmp - 0.5) * 2;
+			threshold(tmp, tmp1, 0, 1, CV_THRESH_BINARY_INV);*/
+			//tmp.convertTo(accumelation, CV_32SC1);
+			globalROI = getMaxSum(accumelation, maxSumVal);
+
 			// and move it back to its original location
 			float colScale = ((float)frame_width) / width;
 			float rowScale = ((float)frame_height) / height;
+
+			
+			cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
+			imshow("rect", test_frames[starting_index]);
+			imshow("mask", tmp);
+			//imshow("neg mask", tmp1);
+			cv::waitKey(0);
 
 			globalROI.x = globalROI.x * colScale;
 			globalROI.y = globalROI.y * rowScale;
 			globalROI.width = globalROI.width * colScale;
 			globalROI.height = globalROI.height * rowScale;
 
-			cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
-			imshow("rect", test_frames[starting_index]);
-			cv::waitKey(100);
 		}
 	}
 
@@ -1784,7 +1881,7 @@ public:
 					ret[0] = &tmpRet[0];
 					ret[1] = &tmpRet[1];
 					ret[2] = &tmpRet[2];
-					getDiffInBGR(prev, frame, globalROI, tmpVal, 10, ret);
+					getDiffInBGR(0, prev, frame, globalROI, tmpVal, 10, ret);
 					frames.push_back(tmpRet[1] - tmpRet[0] - tmpRet[2]);
 					prev = frame.clone();
 				}
@@ -1867,20 +1964,20 @@ public:
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		cap.set(CV_CAP_PROP_POS_FRAMES, framerate * Parameters::start_second); //Set index to last frame
+		cap.set(CV_CAP_PROP_POS_FRAMES, starting_index); //Set index to last frame
 		// try to detect the chess board
 		Mat frame;
 		globalROI.width = frame_width;
 		globalROI.height = frame_height;
-		cout << "we are here\n";
+		cout << "index before start = " << starting_index << endl;;
 		if (Parameters::synchMethod == SYNCH_CHESS)
 		{
-			starting_index = 0;
 			for (; cap.read(frame); starting_index++)
 			{
 				// this loop to detect the first chess board
 				if (canDetectMyBoard(frame))
 				{
+					starting_index++;
 					break;
 				}
 			}
@@ -1891,71 +1988,83 @@ public:
 			{
 				//cout << "found chess at index = " << starting_index << endl;
 				// this loop to detect the last chess board
-				if (canDetectMyBoard(frame))
-				{
-					globalROI = detectMyBoard(frame);
-					countErrors = 0;
-				}
-				else
+				cv::Rect tmp = detectMyBoard(frame);
+				if (tmp.width == 0)
 				{
 					countErrors++;
 				}
+				else
+				{
+					countErrors = 0;
+					globalROI = tmp;
+				}
 			}
-			starting_index = starting_index - countErrors + 1;
+			//starting_index -= countErrors;
+			if (framerate < 45)
+			{
+				starting_index--;
+			}
+			cout << starting_index << endl;
 		}
 		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
 		{
-			DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, globalROI, framerate, starting_index);
+			//DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, globalROI, framerate, starting_index);
 			//DetectGreenScreenFFT(frame_width, frame_height, cap, globalROI, framerate, starting_index);
 		}
 		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 		return globalROI;
 	}
+
+	// create 2D gaussian kernel with default parameters
+	static cv::Mat getGaussian2D(int cols, int rows)
+	{
+		Mat kernelX = getGaussianKernel(cols, (cols * 0.5), CV_32F);
+		Mat kernelY = getGaussianKernel(rows, (rows * 0.5), CV_32F);
+		Mat res = kernelY * kernelX.t();
+
+		return res;
+	}
+
 	/// get video frames luminance (this is the split version which splits the image into two)
 	// video name as input
 	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
 	// int &framerate: is output parameter
 	// divisions: supports 2 and 4 only for now
 	// ROI: is the area of interest only for the whole image
-	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int sideA,int sideB,bool useGlobalROI,
-		bool spatialRedundancy,cv::Scalar color = cv::Scalar(-1,-1,-1))
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, bool useGlobalROI, bool spatialRedundancy)
 	{
 		vector<vector<float> > frames;
 		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
-		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		Parameters::fps = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the rounded frame rate
+		cout << "Rounded fps = " << Parameters::fps << endl;
 		// try to detect the chess board
 		Parameters::globalROI = cv::Rect(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+		Parameters::startingIndex = Parameters::start_second * Parameters::fps;
 		if (useGlobalROI)
 		{
 			Parameters::globalROI = getGlobalROI(cap, Parameters::startingIndex);
 		}
-		Parameters::startingIndex += Parameters::start_second * framerate;
+		//Parameters::startingIndex += Parameters::start_second * framerate;
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, false, spatialRedundancy);
-		if (color == cv::Scalar(-1, -1, -1))
-		{
-			frames = getVideoFrameLuminances(cap, ROIs, framerate, Parameters::globalROI);
-			//frames = getVideoFrameLuminancesNext(cap, ROIs, framerate, Parameters::globalROI);
-		}
-		else
-		{
-			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, Parameters::globalROI, color);
-		}
+		vector<cv::Rect> ROIs = getDivisions(Parameters::sideA, Parameters::sideB, percent, false, Parameters::globalROI, false, spatialRedundancy);
+		
+		frames = getVideoFrameLuminances(cap, ROIs, Parameters::fps, Parameters::globalROI);
+			
 		if (Parameters::endSecondFile.length() > 0)
 		{
 			ofstream endSecond(Parameters::endSecondFile);
-			endSecond << (Parameters::endingIndex * 1.0) / framerate;
+			endSecond << (Parameters::endingIndex * 1.0) / Parameters::fps;
 			endSecond.close();
 		}
 		//framerate = 30; // because we sample at 30 fps
-		if (((Parameters::endingIndex - Parameters::startingIndex) / framerate) < 3)
+		if (((Parameters::endingIndex - Parameters::startingIndex) / Parameters::fps) < 3)
 		{
 			Parameters::start_second = cap.get(CV_CAP_PROP_POS_MSEC) * 1.0 / 1000.0;
-			return getVideoFrameLuminancesSplitted(videoName, percent, framerate, sideA,sideB, useGlobalROI, spatialRedundancy, color);
+			return getVideoFrameLuminancesSplitted(videoName, percent, useGlobalROI, spatialRedundancy);
 		}
 		return frames;
 	}
@@ -2174,9 +2283,8 @@ public:
 		}
 		delete []l;
 	}
-
 	// calculate best greedy match
-	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg,string videoName = "")
+	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg, string videoName = "")
 	{
 		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
 		int lcs = 0;
@@ -2184,6 +2292,11 @@ public:
 		int o_sz = orig_msg.size();
 		int best_i;
 		vector<int> errors;
+		vector<int> accErrors(10, 0);
+		vector<int> rowErrors(Parameters::sideB, 0);
+		vector<int> colErrors(Parameters::sideA, 0);
+		vector<int> cellErrors(Parameters::sideA * Parameters::sideB, 0);
+		vector<int> bitErrors(Parameters::getSymbolLength(), 0);
 		//for (int i = 1 - t_sz; i < o_sz; i++)
 		for (int i = 0; i < 1; i++)
 		{
@@ -2194,6 +2307,11 @@ public:
 				if (orig_msg[j] ^ test_msg[j - i])
 				{
 					tempErrors.push_back(j - i);
+					accErrors[(j * accErrors.size()) / o_sz]++;
+					rowErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) / Parameters::sideA]++;
+					colErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) % Parameters::sideA]++;
+					cellErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB))]++;
+					bitErrors[j % 3]++;
 				}
 				else
 				{
@@ -2211,53 +2329,76 @@ public:
 		double percent = lcs;
 		percent /= orig_msg.size();
 		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
-		if (videoName.size() > 0)
+		// then print error percentages
+		// assume 10 slices
+		for (int i = 0; i < accErrors.size(); i++)
 		{
-			VideoCapture videoReader;
-			videoReader.open(videoName);
-			if (videoReader.isOpened())
-			{
-				Mat frame;
-				int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
-				int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
-				int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
-				int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
+			printf("Error Percentage in range of frames from %d%% to %d%% = %0.2llf%%\n", i * 100 / accErrors.size(), (i + 1) * 100 / accErrors.size(), (accErrors[i] * 100.0) / (orig_msg.size() / accErrors.size()));
+		}
+		puts("Row Errors");
+		for (int i = 0; i < rowErrors.size(); i++)
+		{
+			printf("Error Percentage in row %d = %0.2llf%%\n", i + 1, (rowErrors[i] * 100.0) / (orig_msg.size() / rowErrors.size()));
+		}
+		puts("Column Errors");
+		for (int i = 0; i < colErrors.size(); i++)
+		{
+			printf("Error Percentage in column %d = %0.2llf%%\n", i + 1, (colErrors[i] * 100.0) / (orig_msg.size() / colErrors.size()));
+		}
+		puts("Grid Errors");
+		for (int i = 0; i < cellErrors.size(); i++)
+		{
+			printf("Error Percentage in Cell %d = %0.2llf%%\n", i + 1, (cellErrors[i] * 100.0) / (orig_msg.size() / cellErrors.size()));
+		}
+		puts("Bit Errors");
+		for (int i = 0; i < bitErrors.size(); i++)
+		{
+			printf("Error Percentage in bit %d = %0.2llf%%\n", i + 1, (bitErrors[i] * 100.0) / (orig_msg.size() / bitErrors.size()));
+		}
+	}
 
-				puts("Errors:");
-				
-				// for testing the correctness of this only
-				errors.clear();
-				for (int i = 0; i < errors.size(); i++)
+	// calculate best greedy match
+	static void LCS_greedy(vector<SymbolData> orig_msg, vector<SymbolData> test_msg)
+	{
+		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
+		int lcs = 0;
+		int t_sz = test_msg.size();
+		int o_sz = orig_msg.size();
+		int best_i;
+		vector<int> errors;
+		//for (int i = 1 - t_sz; i < o_sz; i++)
+		map<string, int> errorMap;
+		for (int i = 0; i < 1; i++)
+		{
+			int sum = 0;
+			vector<int> tempErrors;
+			for (int j = std::max(0, i); j < std::min(o_sz, t_sz + i); j++)
+			{
+				if (orig_msg[j].symbol == test_msg[j - i].symbol)
 				{
-					ostringstream outputName;
-					outputName << std::setfill('0') << std::setw(10);
-					int start_data = 30 * (errors[i] + 1);
-					int end_data = start_data + 30;
-					int start_second = framerate * (errors[i] + 1);
-					int end_second = start_second + framerate;
-					outputName << start_second / framerate << "_" << end_second / framerate << "_" << orig_msg[errors[i]] << "_" << test_msg[errors[i]];
-					VideoWriter vidWriter;
-					string outVideo = outputName.str() + ".avi";
-					string outFrameValues = outputName.str() + ".frames";
-					//cout << "ROI: (" << Parameters::globalROI.x << "," << Parameters::globalROI.y << ")\t(";
-					//cout << Parameters::globalROI.width << "," << Parameters::globalROI.height << ")\n";
-					videoReader.set(CV_CAP_PROP_POS_FRAMES, start_second + Parameters::startingIndex);
-					vidWriter.open(outVideo, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(Parameters::globalROI.width, Parameters::globalROI.height));
-					for (int j = 0; j <= framerate; j++)
-					{
-						videoReader >> frame;
-						vidWriter << frame(Parameters::globalROI);
-					}
-					ofstream outFrames(outFrameValues);
-					for (int j = start_data; j <= end_data; j++)
-					{
-						outFrames << Parameters::amplitudes[j] << endl;
-					}
-					outFrames.close();
-					printf("%d\n", errors[i]);
+					++sum;
+				}
+				else
+				{
+					errorMap[orig_msg[j].symbol]++;
 				}
 			}
+			//cout << i << "\t" << sum << endl;
+			if (sum > lcs)
+			{
+				lcs = sum;
+				best_i = i;
+				errors = tempErrors;
+			}
 		}
+		map<string, int>::iterator it = errorMap.begin();
+		for (; it != errorMap.end(); it++)
+		{
+			cout << it->first << "\t: " << it->second << endl;
+		}
+		double percent = lcs;
+		percent /= orig_msg.size();
+		printf("Longest Common Symbol Sequence at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);	
 	}
 
 	// create binary message from string message
@@ -2333,6 +2474,40 @@ public:
 		return board;
 	}
 
+	static Rect createChessBoardDataRect()
+	{
+		double boarderPercentage = 0.95;
+		int xStart = (Parameters::DefaultFrameSize.width * (1 - boarderPercentage)) / 2;
+		int yStart = (Parameters::DefaultFrameSize.height * (1 - boarderPercentage)) / 2;
+		int w = Parameters::DefaultFrameSize.width * boarderPercentage;
+		int h = Parameters::DefaultFrameSize.height * boarderPercentage;
+
+		cv::Rect res(xStart,yStart, w, h);
+		return res;
+	}
+
+	static vector<Point2f> getChessBoardInternalCorners()
+	{
+		double boarderPercentage = 0.95;
+		int cols = Utilities::getFrameSize().width;
+		int rows = Utilities::getFrameSize().height;
+		
+		int xStep = (cols * boarderPercentage) / (Parameters::patternsize.width + 1);
+		int yStep = (rows * boarderPercentage) / (Parameters::patternsize.height + 1);
+		int xStart = (cols * (1 - boarderPercentage)) / 2;
+		int yStart = (rows * (1 - boarderPercentage)) / 2;
+		vector<Point2f> res;
+		for (int y = 1;y <= Parameters::patternsize.height; y++)
+		{
+			for (int x = 1; x <= Parameters::patternsize.width; x++)
+			{
+				res.push_back(cv::Point2f(xStart + x*xStep, yStart + y*yStep));
+			}
+		}
+
+		return res;
+	}
+
 	static void convertImgtoGray(Mat &img, Mat &gray)
 	{
 		if (img.cols > 640 && img.rows > 480)
@@ -2379,7 +2554,6 @@ public:
 		}
 
 		cv::resize(gray, gray, cv::Size(640, 480));
-		
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -2388,7 +2562,7 @@ public:
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
 
-		cv::Rect result;
+		cv::Rect result(0, 0, 0, 0);
 		if (patternfound)
 		{
 			cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
@@ -2405,21 +2579,54 @@ public:
 		cv::waitKey(0);
 		*/
 		
-		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
-		for (int i = 0; i < corners.size(); i++)
+		// sort on y
+		for (int i = corners.size(); i > 0; i--)
 		{
-			xl = std::min(xl, corners[i].x);
-			yl = std::min(yl, corners[i].y);
-			xh = std::max(xh, corners[i].x);
-			yh = std::max(yh, corners[i].y);
+			for (int j = 0; j < i - 1; j++)
+			{
+				if (corners[j].x > corners[j + 1].x)
+				{
+					std::swap(corners[j], corners[j + 1]);
+				}
+			}
 		}
+		// sort points on x
+		for (int i = corners.size(); i > 0; i--)
+		{
+			for (int j = 0; j < i - 1; j++)
+			{
+				if ((corners[j].y - corners[j + 1].y) > 2)
+				{
+					std::swap(corners[j], corners[j + 1]);
+				}
+			}
+		}
+
+		//puts("corners");
+		Parameters::DefaultFrameSize.width = 1280;
+		Parameters::DefaultFrameSize.height = 720;
+		vector<Point2f> orig = Utilities::getChessBoardInternalCorners();
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
+		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
+		vector<float> dist(corners.size(), 0);
+		int firstIndex = 0;
+		for (int i = 0; i < corners.size(); i++)
+		{
+			corners[i].x *= colScale;
+			corners[i].y *= rowScale;
+
+			//cout << corners[i].x << "\t" << corners[i].y << endl;
+			xl = std::min(xl, orig[i].x);
+			yl = std::min(yl, orig[i].y);
+			xh = std::max(xh, orig[i].x);
+			yh = std::max(yh, orig[i].y);
+		}
+		result = cv::Rect(xl,yl, (xh - xl + 1),(yh - yl + 1));
 		
-		result.x = xl * colScale;
-		result.y = yl * rowScale;
-		result.width = (xh - xl + 1) * colScale;
-		result.height = (yh - yl + 1) * rowScale;
+
+		Parameters::homography = findHomography(corners, orig);
+
 		// then scale to full screen if required to do so
 		if (Parameters::fullScreen)
 		{
@@ -2430,8 +2637,14 @@ public:
 			result.width += cellWidth * 2;
 			result.height += cellHeight * 2;
 		}
-		/*cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
-		imshow("img", img);
+
+		/*Mat frame;
+		cv::warpPerspective(img, frame, Parameters::homography, img.size());
+		cv::rectangle(frame, result, cv::Scalar(255, 0, 0), 2);
+		cv::resize(img, img, cv::Size(640, 480));
+		cv::resize(frame, frame, cv::Size(640, 480));
+		imshow("orig", img);
+		imshow("transform", frame);
 		cv::waitKey(0);*/
 		return result;
 	}
@@ -2554,5 +2767,23 @@ public:
 			true, // the histogram is uniform
 			false);
 		return hist;
+	}
+	// frames writer
+	static	void writeFrame(VideoWriter &vidWriter, Mat &frame)
+	{
+		if (!Parameters::liveTranmitter)
+		{
+			vidWriter << frame;
+			Parameters::outputFrameIndex++;
+		}
+		else
+		{
+			while (Parameters::transmitterQueue.size() > 10)
+			{
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
+			}
+			Parameters::transmitterQueue.push(frame);
+			//std::thread startTrans(Utilities::displayFrame);
+		}
 	}
 };

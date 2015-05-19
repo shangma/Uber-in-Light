@@ -102,9 +102,13 @@ namespace RenameRecordedFiles
         static string getRandFileName(string new_name)
         {
             int last = new_name.IndexOf("rand_");
-            int first = new_name.Substring(0, last).LastIndexOf("_") + 1;
+            if (last >= 0)
+            {
+                int first = new_name.Substring(0, last).LastIndexOf("_") + 1;
 
-            return new_name.Substring(first, last - first) + ".rand";
+                return "-t " + new_name.Substring(first, last - first) + ".rand";
+            }
+            return "";
         }
         static string getSymbolTime(string new_name)
         {
@@ -141,6 +145,26 @@ namespace RenameRecordedFiles
             }
             return ret;
         }
+        static string getTotalTime(string new_name)
+        {
+            Regex reg = new Regex(@"_totaltime\d+");
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                return "-total " + m.Value.Substring(10, m.Value.Length - 10);
+            }
+            return "";
+        }
+        static string getSeed(string new_name)
+        {
+            Regex reg = new Regex(@"_seed\d+");
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                return "-seed " + m.Value.Substring(5, m.Value.Length - 5);
+            }
+            return "";
+        }
         static string getFullScreen(string new_name)
         {
             string ret = "";
@@ -160,7 +184,7 @@ namespace RenameRecordedFiles
             string time = getSymbolTime(new_name);
             string sideLength = getSideLength(new_name);
             string fullScreen = getFullScreen(new_name);
-            return string.Format(@"VLC_tester.exe -decode {4} -r {3} -t {5} {7} {8} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
+            return string.Format(@"VLC_tester.exe -decode {4} -r {3} {5} {7} {8} -roi 1 -m {1} -ec {2} -time {6} {9} {10} -if {0}\\",
                 folder, 
                 mode, 
                 correction_code, 
@@ -169,7 +193,9 @@ namespace RenameRecordedFiles
                 getRandFileName(new_name), 
                 time,
                 sideLength,
-                fullScreen);
+                fullScreen,
+                getTotalTime(new_name),
+                getSeed(new_name));
         }
 
         static void RenameSeparateFiles(string[] aviFiles, string[] mp4Files, string[] movFiles, DirectoryInfo dinf)
@@ -243,7 +269,7 @@ namespace RenameRecordedFiles
                 sw.WriteLine(@"{2} -start {4} > {0}\\{3}_{1}.mp4.txt",
                     dinf.Name, avif.Name.Substring(0, avif.Name.Length - 4),
                     getCommand(avif.Name, dinf.Name) + videoFile, mp4f.Name, start);
-                start += getDuration(aviFiles[i]);
+                start += getDuration(aviFiles[i]) + 1;
             }
             sw.Close();
         }

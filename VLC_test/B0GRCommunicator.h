@@ -77,8 +77,7 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
-			Parameters::sideA, Parameters::sideB, true, false);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, true, false);
 		vector<vector<float> > frames_GR;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -94,6 +93,6 @@ public:
 			frames_GR.push_back(G);
 			frames_GR.push_back(R);
 		}
-		return receiveN(frames_GR, Parameters::fps);
+		return receiveN(frames_GR);
 	}
 };
