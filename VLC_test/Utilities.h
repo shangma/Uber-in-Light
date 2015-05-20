@@ -141,7 +141,7 @@ public:
 	{
 		unsigned char* frameData = (unsigned char*)frame.data;
 		const int channels = frame.channels();
-		const int rows = ROI.y + ROI.height;
+		const int rows = ROI.height;
 		const int cols = ROI.width;
 		const int frameCols = frame.cols * channels;
 		const int ROIx = ROI.x;
@@ -160,7 +160,7 @@ public:
 			// and copy
 			vData[i] = (int*)Parameters::vLayers[key].data;
 		}
-		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++, i += frameCols, j += cols)
+		for (int r = 0, i = (ROI.y * frame.cols + ROI.x) * channels, j = 0; r < rows; r++, i += frameCols, j += cols)
 		{
 			unsigned char* data = &frameData[i];
 			#pragma omp parallel for
@@ -171,8 +171,8 @@ public:
 				{
 					//const int ind = i + c * channels + k;
 					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
-					const int tmp = (vData[k][j + c] + data[c + k]);
-					data[c + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+					const int tmp = (vData[k][j + c] + data[c * channels + k]);
+					data[c * channels + k] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
 		}
@@ -1127,10 +1127,10 @@ public:
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
-						x * sectionWidth + (1 - percent)*sectionWidth,
-						y * sectionHeight + (1 - percent)*sectionHeight,
-						percent * sectionWidth,
-						percent * sectionHeight));
+						x * sectionWidth + (1 - percent)*sectionWidth + 1,
+						y * sectionHeight + (1 - percent)*sectionHeight + 1,
+						percent * sectionWidth - 1,
+						percent * sectionHeight - 1));
 				}
 			}
 
@@ -1148,10 +1148,10 @@ public:
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
-						x * sectionWidth + widthStart,
-						y * sectionHeight + heightStart,
-						sectionWidth,
-						sectionHeight));
+						x * sectionWidth + widthStart + 1,
+						y * sectionHeight + heightStart + 1,
+						sectionWidth - 1,
+						sectionHeight - 1));
 				}
 			}
 		}

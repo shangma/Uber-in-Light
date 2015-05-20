@@ -70,6 +70,8 @@ bool bInit = false;
 void displayFunc(void) {
 	if (Parameters::done && !Parameters::transmitterQueue.size())
 	{
+		long long milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - Parameters::transmissionStartTime).count();
+		cout << "Time = " << milli << " ms" << endl;
 		exit(0);
 	}
 	if (!bInit) {

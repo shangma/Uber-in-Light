@@ -662,8 +662,10 @@ int main(int argc, char** argv)
 	// 36 -> 36
 	//Utilities::exploreVideo(release + "8Freq4org300msRGB2ThroughputLive\\1390782957__RGB2_totaltime60_seed1_8Freq4orgsymbol_sideA3_sideB2_full1_300ms_levels_XVID_d1mp4_output.avi");
 	//Utilities::exploreVideo(release + "HiLightLowFreq\\combined\\20150503_155751.mp4");
-	return Properties::getInst()->testSendReceive(argc, argv);
-	
+	std::chrono::system_clock::time_point transmissionStartTime = std::chrono::system_clock::now();
+	Properties::getInst()->testSendReceive(argc, argv);
+	long long milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - transmissionStartTime).count();
+	cout << "Time = " << milli << "ms" << endl;
 	
 	return 0;
 }
