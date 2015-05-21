@@ -840,7 +840,7 @@ public:
 	{
 		for (int i = 0; i < n; i++)
 		{
-			vidWriter << dummyFrame;
+			writeFrame(vidWriter,dummyFrame);
 		}
 	}
 
@@ -2554,5 +2554,31 @@ public:
 			true, // the histogram is uniform
 			false);
 		return hist;
+	}
+
+	static	void writeFrame(VideoWriter &vidWriter, Mat &frame)
+	{
+		if (!Parameters::liveTranmitter)
+		{
+			vidWriter << frame;
+			Parameters::outputFrameIndex++;
+		}
+		else
+		{
+			while (Parameters::transmitterQueue.size() > 10)
+			{
+				std::this_thread::sleep_for(std::chrono::microseconds(100));
+			}
+			Parameters::transmitterQueue.push(frame);
+			//std::thread startTrans(Utilities::displayFrame);
+		}
+	}
+
+
+	void createWhiteNoiseVideo(string videoName)
+	{
+		std::mt19937 mt(19937);
+		std::uniform_int_distribution<int> dist(0, 1);
+		//int length = Parameters::fps * Parameters::
 	}
 };

@@ -24,6 +24,7 @@
     <ClInclude Include="BGRCommunicator2.h" />
     <ClInclude Include="BGRCommunicator3.h" />
     <ClInclude Include="BGRCommunicator4.h" />
+    <ClInclude Include="concurrent_queue.h" />
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="HUECommnunicator.h" />

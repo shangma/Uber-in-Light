@@ -36,168 +36,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Communicator
 {
+private:
+	VideoWriter vidWriter;
 protected:
-	// display the given image in the given window name for the given millisecionds
-	//void displayImageForCertainPeriod(Mat img, string winName, int displayTime)
-	//{
-	//	typedef std::chrono::high_resolution_clock Clock;
-	//	typedef std::chrono::milliseconds milliseconds;
-	//	Clock::time_point t0 = Clock::now();
-	//	// start work
-	//	imshow(winName, img);
-	//	// end work
-	//	Clock::time_point t1 = Clock::now();
-	//	milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//	// wait for some time 
-	//	cvWaitKey(max(1, (int)(displayTime - ms.count())));
-	//}
-
-	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
-	/// frequency is in Hz
-	/// int bitTime in millisecond
-	//void diplay24FramesWithSomeFrequency(Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime)
-	//{
-	//	//printf("%d", (int)frequency);
-	//	// screen frequency
-	//	double screen_refresh_rate = 60; // 60Hz
-	//	int duty_cycle = (int)ceil(1000 / frequency); // seconds
-	//	if (duty_cycle & 1)
-	//	{
-	//		// make it even
-	//		++duty_cycle;
-	//	}
-	//	double time_for_the_high_amplitude = duty_cycle / 2; // in milli seconds
-	//	// the time needed for one bit is bittime milliseconds
-	//	int number_of_iterations = bitTime / (time_for_the_high_amplitude * 2);
-
-	//	for (int i = 0; i < number_of_iterations; i++)
-	//	{
-	//		displayImageForCertainPeriod(new_image1, "video", time_for_the_high_amplitude);
-	//		displayImageForCertainPeriod(new_image2, "video", duty_cycle - time_for_the_high_amplitude);
-	//	}
-	//}
-
-	/// generate sequence of 24 frame that should be displayed with the given frequency in the given region of interest
-	/// frequency is in Hz
-	/// int bitTime in millisecond
-	/// number of frames for each cycle
-	//void addFramesWithSomeFrequency(VideoWriter & vidWriter, Rect ROI, double frequency, Mat& new_image1, Mat& new_image2, int bitTime, int frames_cycle)
-	//{
-	//	//double screen_refresh_rate = 60; // 60Hz
-	//	double duty_cycle = 1000 / frequency; // seconds
-	//	// the time needed for one bit is 400 milliseconds
-	//	int number_of_iterations = bitTime / duty_cycle;
-
-	//	for (int i = 0; i < number_of_iterations; i++)
-	//	{
-	//		for (int j = 0; j < frames_cycle / 2; j++)
-	//		{
-	//			vidWriter << new_image1;
-	//			//cout << 1;
-	//		}
-	//		for (int j = 0; j < frames_cycle / 2; j++)
-	//		{
-	//			vidWriter << new_image2;
-	//			//cout << 0;
-	//		}
-	//	}
-	//}
-
-	//void sendMessage(string imagefile, string msg)
-	//{
-	//	Mat new_image1;
-	//	Mat new_image2;
-	//	Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-	//	Rect ROI = Rect(0, 0, image.cols, image.rows);
-	//	new_image1 = image.clone();
-	//	Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-	//	new_image2 = image.clone();
-	//	Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
-
-	//	// convert the message into sequence of bits
-
-	//	for (int i = 0; i < msg.length(); i++)
-	//	{
-	//		char c = msg[i];
-	//		char x = 0;
-
-	//		for (int j = 0; j < 8; j++)
-	//		{
-	//			x = (x << 1) | ((c >> (7 - j)) & 1);
-	//			typedef std::chrono::high_resolution_clock Clock;
-	//			typedef std::chrono::milliseconds milliseconds;
-	//			Clock::time_point t0 = Clock::now();
-	//			// work done here
-	//			diplay24FramesWithSomeFrequency(ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, 1000);
-	//			// end work
-	//			Clock::time_point t1 = Clock::now();
-	//			milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//			std::cout << ms.count() << "ms\n";
-	//		}
-	//		printf("%c", x);
-	//	}
-	//}
-
-	// symbol_time: how many milliseconds will the symbol last
-	//void createOfflineVideo(string imagefile, string msg, string outputVideoFile, int symbol_time, bool createVid = true)
-	//{
-	//	if (createVid)
-	//	{
-	//		Mat new_image1;
-	//		Mat new_image2;
-	//		Mat image = imread(imagefile, IMREAD_COLOR); // Read the file
-	//		Rect ROI = Rect(0, 0, image.cols, image.rows);
-	//		new_image1 = image.clone();
-	//		Utilities::updateFrameWithAlpha(new_image1, ROI, LUMINANCE[1]);
-	//		new_image2 = image.clone();
-	//		Utilities::updateFrameWithAlpha(new_image2, ROI, LUMINANCE[0]);
-
-
-	//		// convert the message into sequence of bits
-
-	//		// get greatest common divisor for both fps
-	//		int gcdFreq = gcd((int)FREQ[ZERO], (int)FREQ[ONE]);
-	//		int lcmFreq = FREQ[ZERO] * FREQ[ONE] / gcdFreq;
-	//		VideoWriter vidWriter;
-	//		vidWriter.open(outputVideoFile, CV_FOURCC('D', 'I', 'V', 'X'), lcmFreq * 2, image.size());
-	//		for (int i = 0; i < msg.length(); i++)
-	//		{
-	//			char c = msg[i];
-	//			char x = 0;
-
-	//			for (int j = 7; j >= 0; j--)
-	//			{
-	//				x = (x << 1) | ((c >> (7 - j)) & 1);
-	//				typedef std::chrono::high_resolution_clock Clock;
-	//				typedef std::chrono::milliseconds milliseconds;
-	//				Clock::time_point t0 = Clock::now();
-	//				// work done here
-	//				addFramesWithSomeFrequency(vidWriter, ROI, FREQ[(c >> (7 - j)) & 1], new_image1, new_image2, symbol_time, lcmFreq * 2 / FREQ[(c >> (7 - j)) & 1]);
-	//				//for (int k = 0;k < )
-	//				// end work
-	//				Clock::time_point t1 = Clock::now();
-	//				milliseconds ms = std::chrono::duration_cast<milliseconds>(t1 - t0);
-	//				//std::cout << ms.count() << "ms\n";
-	//				cout << (int)((c >> (7 - j)) & 1);
-	//			}
-	//			//printf("%c", x);
-	//		}
-	//	}
-	//}
-protected:
-	//int frame_width;
-	//int frame_height;
-	//double fps;
+	
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
-	//int symbol_time;
-	//cv::Rect globalROI;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
 	vector<short> shortMsg;
 	vector<SymbolData> msg;
 	VideoCapture videoReader;
-	VideoWriter vidWriter;
+	void writeFrame(Mat &frame)
+	{
+		Utilities::writeFrame(vidWriter,frame);
+	}
 public:
 	void setCommonParameters(vector<short> &msg, string outputVideoFile)
 	{
@@ -281,14 +134,14 @@ public:
 
 				Mat frame;
 				cv::merge(BGR, frame);
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 		break;
 		case SYNCH_CHESS:
 			if (end)
 			{
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
 				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
 				//vidWriter.release();
 			}
@@ -301,6 +154,7 @@ public:
 		}
 		if (end)
 		{
+			Parameters::done = true;
 			vidWriter.release();
 		}
 	}
@@ -322,7 +176,7 @@ public:
 			//cv::resize(img, frame, Utilities::getFrameSize());
 			Utilities::updateFrameLuminance(frame, Parameters::globalROI, amplitudes[0][i]);
 			//frame.convertTo(frame, CV_32F);
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual vector<Mat> getSplittedImages(Mat &frame)
@@ -344,7 +198,7 @@ public:
 			Mat tmp;
 			cv::resize(frame, tmp, Utilities::getFrameSize());
 			Utilities::updateFrameLuminance(tmp, Parameters::globalROI, amplitudes[0][k]);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	// symbol_time: how many milliseconds will the symbol last

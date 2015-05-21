@@ -44,6 +44,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "BGR0Communicator.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
+#include "mygl.h"
 
 //Properties* Properties::inst = Properties::getInst();
 int Properties::returnError()
@@ -395,15 +396,79 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-live"))
+		{
+			Parameters::liveTranmitter = 1;
+		}
+		else if (!strcmp(argv[i], "-total"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::totalTime = stoi(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
+		else if (!strcmp(argv[i], "-seed"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::seed = stoi(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
 	}
+	if (Parameters::totalTime)
+	{
+		int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
+		//printf("length=%d\n", totalLength);
+		msg.clear();
+		std::mt19937 mt(19937);
+		std::uniform_int_distribution<int> dist(0, 1);
+		for (int i = 0; i < totalLength; i++)
+		{
+			msg.push_back(dist(mt));
+			//printf("%d", msg[i]);
+		}
+		ostringstream ostr;
+		ostr << "totaltime" << Parameters::totalTime << "_seed" << Parameters::seed;
+		msgFileName = ostr.str();
+		//puts("");
+	}
+	else if (msgFileName.size())
+	{
+		ifstream ifs(msgFileName);
+		if (ifs.is_open())
+		{
+			// assume the text inside
+			ifs >> text;
+			ifs.close();
+		}
+		else
+		{
+			// assume the file name is the text
+			text = msgFileName;
+		}
+		// convert the message to vector of short
+		msg = Utilities::getBinaryMessage(text);
+	}
+	else if (mode == SEND || mode == RECV)
+	{
+		return returnError();
+	}
+
 	if (inputFileName == "")
 	{
 		return returnError();
 	}
-	if (mode == SEND && text == "")
-	{
-		return returnError();
-	}
+
 	switch (type)
 	{
 	case SPATIAL_REDUNDANCY:
@@ -455,6 +520,8 @@ int Properties::testSendReceive(int argc, char** argv)
 	switch (mode)
 	{
 	case SEND:
+	{
+		std::thread startTrans(displayGlut, argc, argv);
 		if (errorCorrection == HAMMING){
 			MyHamming hamming;
 			msg = hamming.EncodeMessage(msg, false);
@@ -486,7 +553,9 @@ int Properties::testSendReceive(int argc, char** argv)
 				communicator->sendImage();
 			}
 		}
+		startTrans.join();
 		break;
+	}
 	case RECV:
 
 		if (ROI > 0 && ROI <= 1)

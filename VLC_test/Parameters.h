@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 #include "opencv2/core/core.hpp"
+#include "concurrent_queue.h"
 
 using namespace std;
 
@@ -201,6 +202,15 @@ struct Parameters
 	static int amplitudeExtraction;
 	static bool realVideo;
 	static int synchMethod;
+
+	static int liveTranmitter;
+	static std::chrono::system_clock::time_point transmissionStartTime;
+	static int outputFrameIndex;
+	static Queue<cv::Mat> transmitterQueue;
+	static bool done;
+	static string displayName;
+	static int totalTime;
+	static int seed;
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -235,6 +245,10 @@ struct Parameters
 	{
 		return codec;
 	}
+	static int getSymbolLength()
+	{
+		return symbolsData.allData[0].symbol.size();
+	}
 private:
 	static string codec; //I420, DIB ,DIVX, XVID
 };
@@ -263,3 +277,12 @@ int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
 int Parameters::synchMethod = SYNCH_GREEN_CHANNEL;
+
+int Parameters::liveTranmitter = 0;
+std::chrono::system_clock::time_point Parameters::transmissionStartTime;
+int Parameters::outputFrameIndex = 0;
+Queue<cv::Mat> Parameters::transmitterQueue;
+bool Parameters::done = false;
+string Parameters::displayName = "Video";
+int Parameters::totalTime = 0;
+int Parameters::seed = 1;

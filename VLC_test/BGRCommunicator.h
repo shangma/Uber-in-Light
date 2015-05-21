@@ -91,7 +91,7 @@ public:
 				}
 				Mat frame;
 				cv::merge(BGR, frame);
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -126,7 +126,7 @@ public:
 				}
 				Mat frame;
 				cv::merge(BGR, frame);
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}

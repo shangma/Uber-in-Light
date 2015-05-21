@@ -72,7 +72,7 @@ public:
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -100,7 +100,7 @@ public:
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}

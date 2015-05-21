@@ -60,7 +60,7 @@ public:
 			Mat frame = img.clone();
 			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes[0][i]);
 			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes[1][i]);
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual void sendVideoMainLoop()
@@ -78,7 +78,7 @@ public:
 			cv::resize(frame, tmp, Utilities::getFrameSize());
 			Utilities::updateFrameLuminance(tmp, ROIs[0], amplitudes[0][k]);
 			Utilities::updateFrameLuminance(tmp, ROIs[1], amplitudes[1][k]);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////

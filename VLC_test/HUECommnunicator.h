@@ -109,7 +109,7 @@ public:
 			{
 				//Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes[j][i],masks[j]);
 			}
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual void sendVideoMainLoop()
@@ -132,7 +132,7 @@ public:
 				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][k]);
 			}
 			cv::merge(BGR, tmp);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////

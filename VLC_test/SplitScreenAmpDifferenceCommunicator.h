@@ -74,7 +74,7 @@ public:
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}
@@ -98,7 +98,7 @@ public:
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
 					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
-				vidWriter << frame;
+				writeFrame(frame);
 			}
 		}
 	}

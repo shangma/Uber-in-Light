@@ -74,7 +74,7 @@ public:
 				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][i]);
 			}
 			cv::merge(BGR, frame);
-			vidWriter << frame;
+			writeFrame(frame);
 		}
 	}
 	virtual void sendVideoMainLoop()
@@ -98,7 +98,7 @@ public:
 				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][k]);
 			}
 			cv::merge(BGR, tmp);
-			vidWriter << tmp;
+			writeFrame(tmp);
 		}
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
