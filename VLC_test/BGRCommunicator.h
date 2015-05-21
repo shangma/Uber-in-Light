@@ -80,7 +80,7 @@ public:
 			{
 				//vector<Mat> BGR;
 				//cv::split(img, BGR);
-				Mat frame(img);
+				Mat frame(img.clone());
 				int innerLoopIndex = i + k;
 				for (int j = 0; j < sections && innerLoopIndex < amplitudes0_size; j++, innerLoopIndex += framesForSymbol)
 				{
@@ -114,20 +114,23 @@ public:
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-
+				//vector<Mat> BGR;
+				//cv::split(img, BGR);
+				Mat frame(img.clone());
 				int innerLoopIndex = i + k;
 				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
 				{
+					double tmpAmplitudes[4];
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					for (int k = 0; k < 3; k++)
 					{
-						Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
 					}
+					Utilities::updateFrameWithVchannel(frame, ROIs[j], tmpAmplitudes);
 				}
-				Mat frame;
-				cv::merge(BGR, frame);
+				//Mat frame;
+				//cv::merge(BGR, frame);
 				writeFrame(frame);
 			}
 		}
