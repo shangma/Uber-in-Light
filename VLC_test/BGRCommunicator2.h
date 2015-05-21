@@ -68,6 +68,7 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
+		Parameters::BKGMaskThr = 300;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps, 
 			Parameters::sideA, Parameters::sideB, true, false);
 		vector<vector<float> > BRDiff;

@@ -71,8 +71,8 @@ public:
 				for (int j = 0; j < sections && (i + (j * framesForSymbol) + k) < amplitudes[0].size(); j++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
-					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j * 2], amplitudes[0][i + (j * framesForSymbol) + k]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j * 2 + 1], amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
 				writeFrame(frame);
 			}
@@ -95,8 +95,8 @@ public:
 				for (int j = 0; j < sections && (i + (j * framesForSymbol) + k) < amplitudes[0].size(); j++)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j * 2],	amplitudes[0][i + (j * framesForSymbol) + k]);
-					Utilities::updateFrameLuminance(frame, ROIs[j * 2 + 1],	amplitudes[1][i + (j * framesForSymbol) + k]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j * 2], amplitudes[0][i + (j * framesForSymbol) + k]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j * 2 + 1], amplitudes[1][i + (j * framesForSymbol) + k]);
 				}
 				writeFrame(frame);
 			}

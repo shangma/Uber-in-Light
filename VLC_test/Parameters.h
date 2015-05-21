@@ -202,7 +202,7 @@ struct Parameters
 	static int amplitudeExtraction;
 	static bool realVideo;
 	static int synchMethod;
-
+	static cv::Mat homography;
 	static int liveTranmitter;
 	static std::chrono::system_clock::time_point transmissionStartTime;
 	static int outputFrameIndex;
@@ -276,8 +276,8 @@ int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
-int Parameters::synchMethod = SYNCH_GREEN_CHANNEL;
-
+int Parameters::synchMethod = SYNCH_CHESS;
+cv::Mat Parameters::homography;
 int Parameters::liveTranmitter = 0;
 std::chrono::system_clock::time_point Parameters::transmissionStartTime;
 int Parameters::outputFrameIndex = 0;

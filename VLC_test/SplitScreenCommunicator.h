@@ -70,7 +70,7 @@ public:
 				for (int j = 0; j < sections && innerLoopComparison < amplitudes0_size; j++, innerLoopComparison += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
 				writeFrame(frame);
 			}
@@ -98,7 +98,7 @@ public:
 				for (int j = 0; j < sections && innerLoopComparison < ampitudesSize; j++, innerLoopComparison += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					Utilities::updateFrameLuminance(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
+					Utilities::updateFrameWithVchannel(frame, ROIs[j], amplitudes[0][innerLoopComparison]);
 				}
 				writeFrame(frame);
 			}

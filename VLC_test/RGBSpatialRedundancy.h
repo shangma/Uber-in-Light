@@ -70,8 +70,8 @@ public:
 			cv::split(frame, BGR);
 			for (int j = 0; j < 3; j++)
 			{
-				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][i]);
-				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][i]);
+				Utilities::updateFrameWithVchannel(BGR[j], ROIs[0], amplitudes[j][i]);
+				Utilities::updateFrameWithVchannel(BGR[j], ROIs[1], -amplitudes[j][i]);
 			}
 			cv::merge(BGR, frame);
 			writeFrame(frame);
@@ -94,8 +94,8 @@ public:
 			cv::split(tmp, BGR);
 			for (int j = 0; j < 3; j++)
 			{
-				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][k]);
-				Utilities::updateFrameLuminance(BGR[j], ROIs[1], -amplitudes[j][k]);
+				Utilities::updateFrameWithVchannel(BGR[j], ROIs[0], amplitudes[j][k]);
+				Utilities::updateFrameWithVchannel(BGR[j], ROIs[1], -amplitudes[j][k]);
 			}
 			cv::merge(BGR, tmp);
 			writeFrame(tmp);

@@ -54,17 +54,6 @@ public:
 	/// This function will not check the range for the ROI
 	/// this function adds alpha to the value channel in the selected ROI
 	// the mask must be same size as the ROI and the colors must be 0 and 1 means use this pixel
-	static void updateFrameLuminance(Mat &frame, Rect &ROI, double percentage, bool useAlpha = false)
-	{
-		if (useAlpha)
-		{
-			updateFrameWithAlpha(frame, ROI, percentage);
-		}
-		else
-		{
-			updateFrameWithVchannel(frame, ROI, percentage);
-		}
-	}
 	static Mat createVLayer(int &width, int &height, double &percentage)
 	{
 		//Mat aux = frame(ROI);
@@ -130,6 +119,47 @@ public:
 					int ind = i * channels + k;
 					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
 					int tmp = (vData[j] + data[ind]);
+					data[ind] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
+				}
+			}
+			i += inc;
+		}
+	}
+	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double* percentageArr)
+	{
+
+		unsigned char* data = (unsigned char*)frame.data;
+		const int rows = ROI.y + ROI.height;
+		const int cols = ROI.x + ROI.width;
+		const int inc = frame.cols - ROI.width;
+		const int channels = frame.channels();
+		int *vData[4];
+		for (int i = 0; i < channels; i++)
+		{
+			long long a = (percentageArr[i] * 10000);
+			long long b = frame.cols;
+			long long c = frame.rows;
+			long long key = (a << 30) | (b << 15) | (c);
+			map<long long, Mat>::iterator vLayerIterator = Parameters::vLayers.find(key);
+			if (vLayerIterator == Parameters::vLayers.end())
+			{
+				Parameters::vLayers[key] = createVLayer(ROI.width, ROI.height, percentageArr[i]);
+			}
+			// and copy
+			vData[i] = (int*)Parameters::vLayers[key].data;
+			//unsigned char* maskData = (unsigned char*)mask.data;
+		}
+		
+		for (int r = ROI.y, i = ROI.y * frame.cols + ROI.x, j = 0; r < rows; r++)
+		{
+			for (int c = ROI.x; c < cols; c++, j++, i++)
+			{
+				// copy back
+				for (int k = 0; k < channels; k++)
+				{
+					int ind = i * channels + k;
+					//int tmp = (vData[j] * maskData[i + k] + data[ind]);
+					int tmp = (vData[k][j] + data[ind]);
 					data[ind] = tmp > 255 ? 255 : (tmp < 0) ? 0 : tmp;
 				}
 			}
@@ -883,6 +913,20 @@ public:
 		}
 	}
 
+	static bool ReadNextFrame(VideoCapture &cap, Mat &frame)
+	{
+		Mat img;
+		if (cap.read(img))
+		{
+			cv::warpPerspective(img, frame, Parameters::homography, Parameters::DefaultFrameSize);
+			//frame = img;
+			//imshow("frame", frame);
+			//cv::waitKey(0);
+			return true;
+		}
+		return false;
+	}
+
 	/// get video frames luminance
 	// VideoCapture as input
 	// ROI as input
@@ -894,7 +938,7 @@ public:
 		vector<vector<float> > frames(ROIsSize, vector<float>());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
-		cap.read(prev);
+		ReadNextFrame(cap, prev);
 		double test_frame_rate = fps; // 30
 		//cap.read(prev);
 		//prev = prev(ROI);
@@ -903,7 +947,7 @@ public:
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		//frame = prev.clone();
 		vector<float> synchFrames;
-		while (cap.read(frame))
+		while (ReadNextFrame(cap, frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
 			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
@@ -921,16 +965,16 @@ public:
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
 
-			Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
-			Mat tmp_frame_BGR;
-			frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
-			Mat tmp_prev_BGR;
-			prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
+			//Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
+			//Mat tmp_frame_BGR;
+			//frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
+			//Mat tmp_prev_BGR;
+			//prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
 			//printf("%d\n", count);
 			for (int i = 0; i < ROIsSize; i++)
 			{
-				extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
-				
+				//extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
+				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
 			}
 			prev = frame.clone();
 		}
@@ -1079,10 +1123,10 @@ public:
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
-						x * sectionWidth + (1 - percent)*sectionWidth,
-						y * sectionHeight + (1 - percent)*sectionHeight,
-						percent * sectionWidth,
-						percent * sectionHeight));
+						x * sectionWidth + (1 - percent)*sectionWidth + 1,
+						y * sectionHeight + (1 - percent)*sectionHeight + 1,
+						percent * sectionWidth - 1,
+						percent * sectionHeight - 1));
 				}
 			}
 
@@ -1100,10 +1144,10 @@ public:
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					ROIs.push_back(cv::Rect(
-						x * sectionWidth + widthStart,
-						y * sectionHeight + heightStart,
-						sectionWidth,
-						sectionHeight));
+						x * sectionWidth + widthStart + 1,
+						y * sectionHeight + heightStart + 1,
+						sectionWidth - 1,
+						sectionHeight - 1));
 				}
 			}
 		}
@@ -1867,20 +1911,20 @@ public:
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
-		cap.set(CV_CAP_PROP_POS_FRAMES, framerate * Parameters::start_second); //Set index to last frame
+		cap.set(CV_CAP_PROP_POS_FRAMES, starting_index); //Set index to last frame
 		// try to detect the chess board
 		Mat frame;
 		globalROI.width = frame_width;
 		globalROI.height = frame_height;
-		cout << "we are here\n";
+		cout << "index before start = " << starting_index << endl;;
 		if (Parameters::synchMethod == SYNCH_CHESS)
 		{
-			starting_index = 0;
 			for (; cap.read(frame); starting_index++)
 			{
 				// this loop to detect the first chess board
 				if (canDetectMyBoard(frame))
 				{
+					starting_index++;
 					break;
 				}
 			}
@@ -1891,17 +1935,22 @@ public:
 			{
 				//cout << "found chess at index = " << starting_index << endl;
 				// this loop to detect the last chess board
-				if (canDetectMyBoard(frame))
-				{
-					globalROI = detectMyBoard(frame);
-					countErrors = 0;
-				}
-				else
+				cv::Rect tmp = detectMyBoard(frame);
+				if (tmp.width == 0)
 				{
 					countErrors++;
 				}
+				else
+				{
+					countErrors = 0;
+					globalROI = tmp;
+				}
 			}
-			starting_index = starting_index - countErrors + 1;
+			if (framerate < 45)
+			{
+				starting_index--;
+			}
+			cout << starting_index << endl;
 		}
 		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
 		{
@@ -1924,27 +1973,22 @@ public:
 		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
-		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+		cout << "Rounded fps = " << framerate << endl;
+		Parameters::startingIndex = Parameters::start_second * framerate;
 		// try to detect the chess board
 		Parameters::globalROI = cv::Rect(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		if (useGlobalROI)
 		{
 			Parameters::globalROI = getGlobalROI(cap, Parameters::startingIndex);
 		}
-		Parameters::startingIndex += Parameters::start_second * framerate;
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, false, spatialRedundancy);
-		if (color == cv::Scalar(-1, -1, -1))
-		{
-			frames = getVideoFrameLuminances(cap, ROIs, framerate, Parameters::globalROI);
-			//frames = getVideoFrameLuminancesNext(cap, ROIs, framerate, Parameters::globalROI);
-		}
-		else
-		{
-			frames = getVideoFrameLuminancesWithColorTracking(cap, ROIs, framerate, true, Parameters::globalROI, color);
-		}
+		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, true, spatialRedundancy);
+		
+		frames = getVideoFrameLuminances(cap, ROIs, framerate, Parameters::globalROI);
+		
 		if (Parameters::endSecondFile.length() > 0)
 		{
 			ofstream endSecond(Parameters::endSecondFile);
@@ -2176,7 +2220,7 @@ public:
 	}
 
 	// calculate best greedy match
-	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg,string videoName = "")
+	static void LCS_greedy(vector<short> orig_msg, vector<short> test_msg, string videoName = "")
 	{
 		printf("%d and %d\r\n", orig_msg.size(), test_msg.size());
 		int lcs = 0;
@@ -2184,6 +2228,11 @@ public:
 		int o_sz = orig_msg.size();
 		int best_i;
 		vector<int> errors;
+		vector<int> accErrors(10, 0);
+		vector<int> rowErrors(Parameters::sideB, 0);
+		vector<int> colErrors(Parameters::sideA, 0);
+		vector<int> cellErrors(Parameters::sideA * Parameters::sideB, 0);
+		vector<int> bitErrors(Parameters::getSymbolLength(), 0);
 		//for (int i = 1 - t_sz; i < o_sz; i++)
 		for (int i = 0; i < 1; i++)
 		{
@@ -2194,6 +2243,11 @@ public:
 				if (orig_msg[j] ^ test_msg[j - i])
 				{
 					tempErrors.push_back(j - i);
+					accErrors[(j * accErrors.size()) / o_sz]++;
+					rowErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) / Parameters::sideA]++;
+					colErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) % Parameters::sideA]++;
+					cellErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB))]++;
+					bitErrors[j % 3]++;
 				}
 				else
 				{
@@ -2211,52 +2265,31 @@ public:
 		double percent = lcs;
 		percent /= orig_msg.size();
 		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
-		if (videoName.size() > 0)
+		// then print error percentages
+		// assume 10 slices
+		for (int i = 0; i < accErrors.size(); i++)
 		{
-			VideoCapture videoReader;
-			videoReader.open(videoName);
-			if (videoReader.isOpened())
-			{
-				Mat frame;
-				int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
-				int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
-				int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
-				int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
-
-				puts("Errors:");
-				
-				// for testing the correctness of this only
-				errors.clear();
-				for (int i = 0; i < errors.size(); i++)
-				{
-					ostringstream outputName;
-					outputName << std::setfill('0') << std::setw(10);
-					int start_data = 30 * (errors[i] + 1);
-					int end_data = start_data + 30;
-					int start_second = framerate * (errors[i] + 1);
-					int end_second = start_second + framerate;
-					outputName << start_second / framerate << "_" << end_second / framerate << "_" << orig_msg[errors[i]] << "_" << test_msg[errors[i]];
-					VideoWriter vidWriter;
-					string outVideo = outputName.str() + ".avi";
-					string outFrameValues = outputName.str() + ".frames";
-					//cout << "ROI: (" << Parameters::globalROI.x << "," << Parameters::globalROI.y << ")\t(";
-					//cout << Parameters::globalROI.width << "," << Parameters::globalROI.height << ")\n";
-					videoReader.set(CV_CAP_PROP_POS_FRAMES, start_second + Parameters::startingIndex);
-					vidWriter.open(outVideo, CV_FOURCC('D', 'I', 'V', 'X'), framerate, cv::Size(Parameters::globalROI.width, Parameters::globalROI.height));
-					for (int j = 0; j <= framerate; j++)
-					{
-						videoReader >> frame;
-						vidWriter << frame(Parameters::globalROI);
-					}
-					ofstream outFrames(outFrameValues);
-					for (int j = start_data; j <= end_data; j++)
-					{
-						outFrames << Parameters::amplitudes[j] << endl;
-					}
-					outFrames.close();
-					printf("%d\n", errors[i]);
-				}
-			}
+			printf("Error Percentage in range of frames from %d%% to %d%% = %0.2llf%%\n", i * 100 / accErrors.size(), (i + 1) * 100 / accErrors.size(), (accErrors[i] * 100.0) / (orig_msg.size() / accErrors.size()));
+		}
+		puts("Row Errors");
+		for (int i = 0; i < rowErrors.size(); i++)
+		{
+			printf("Error Percentage in row %d = %0.2llf%%\n", i + 1, (rowErrors[i] * 100.0) / (orig_msg.size() / rowErrors.size()));
+		}
+		puts("Column Errors");
+		for (int i = 0; i < colErrors.size(); i++)
+		{
+			printf("Error Percentage in column %d = %0.2llf%%\n", i + 1, (colErrors[i] * 100.0) / (orig_msg.size() / colErrors.size()));
+		}
+		puts("Grid Errors");
+		for (int i = 0; i < cellErrors.size(); i++)
+		{
+			printf("Error Percentage in Cell %d = %0.2llf%%\n", i + 1, (cellErrors[i] * 100.0) / (orig_msg.size() / cellErrors.size()));
+		}
+		puts("Bit Errors");
+		for (int i = 0; i < bitErrors.size(); i++)
+		{
+			printf("Error Percentage in bit %d = %0.2llf%%\n", i + 1, (bitErrors[i] * 100.0) / (orig_msg.size() / bitErrors.size()));
 		}
 	}
 
@@ -2333,6 +2366,41 @@ public:
 		return board;
 	}
 
+	static Rect createChessBoardDataRect()
+	{
+		double boarderPercentage = 0.95;
+		int xStart = (Parameters::DefaultFrameSize.width * (1 - boarderPercentage)) / 2;
+		int yStart = (Parameters::DefaultFrameSize.height * (1 - boarderPercentage)) / 2;
+		int w = Parameters::DefaultFrameSize.width * boarderPercentage;
+		int h = Parameters::DefaultFrameSize.height * boarderPercentage;
+
+		cv::Rect res(xStart, yStart, w, h);
+		return res;
+	}
+
+	static vector<Point2f> getChessBoardInternalCorners()
+	{
+		double boarderPercentage = 0.95;
+		int cols = Utilities::getFrameSize().width;
+		int rows = Utilities::getFrameSize().height;
+
+		int xStep = (cols * boarderPercentage) / (Parameters::patternsize.width + 1);
+		int yStep = (rows * boarderPercentage) / (Parameters::patternsize.height + 1);
+		int xStart = (cols * (1 - boarderPercentage)) / 2;
+		int yStart = (rows * (1 - boarderPercentage)) / 2;
+		vector<Point2f> res;
+		for (int y = 1; y <= Parameters::patternsize.height; y++)
+		{
+			for (int x = 1; x <= Parameters::patternsize.width; x++)
+			{
+				res.push_back(cv::Point2f(xStart + x*xStep, yStart + y*yStep));
+			}
+		}
+
+		return res;
+	}
+
+
 	static void convertImgtoGray(Mat &img, Mat &gray)
 	{
 		if (img.cols > 640 && img.rows > 480)
@@ -2379,7 +2447,6 @@ public:
 		}
 
 		cv::resize(gray, gray, cv::Size(640, 480));
-		
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -2388,7 +2455,7 @@ public:
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
 
-		cv::Rect result;
+		cv::Rect result(0, 0, 0, 0);
 		if (patternfound)
 		{
 			cornerSubPix(gray, corners, Size(11, 11), Size(-1, -1),
@@ -2404,34 +2471,73 @@ public:
 		imshow("img", temp);
 		cv::waitKey(0);
 		*/
-		
-		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
-		for (int i = 0; i < corners.size(); i++)
+
+		// sort on y
+		for (int i = corners.size(); i > 0; i--)
 		{
-			xl = std::min(xl, corners[i].x);
-			yl = std::min(yl, corners[i].y);
-			xh = std::max(xh, corners[i].x);
-			yh = std::max(yh, corners[i].y);
+			for (int j = 0; j < i - 1; j++)
+			{
+				if (corners[j].x > corners[j + 1].x)
+				{
+					std::swap(corners[j], corners[j + 1]);
+				}
+			}
 		}
+		// sort points on x
+		for (int i = corners.size(); i > 0; i--)
+		{
+			for (int j = 0; j < i - 1; j++)
+			{
+				if ((corners[j].y - corners[j + 1].y) > 2)
+				{
+					std::swap(corners[j], corners[j + 1]);
+				}
+			}
+		}
+
+		//puts("corners");
+		Parameters::DefaultFrameSize.width = img.cols;
+		Parameters::DefaultFrameSize.height = img.rows;
+		vector<Point2f> orig = Utilities::getChessBoardInternalCorners();
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
-		
-		result.x = xl * colScale;
-		result.y = yl * rowScale;
-		result.width = (xh - xl + 1) * colScale;
-		result.height = (yh - yl + 1) * rowScale;
+		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
+		vector<float> dist(corners.size(), 0);
+		int firstIndex = 0;
+		for (int i = 0; i < corners.size(); i++)
+		{
+			corners[i].x *= colScale;
+			corners[i].y *= rowScale;
+
+			//cout << corners[i].x << "\t" << corners[i].y << endl;
+			xl = std::min(xl, orig[i].x);
+			yl = std::min(yl, orig[i].y);
+			xh = std::max(xh, orig[i].x);
+			yh = std::max(yh, orig[i].y);
+		}
+		result = cv::Rect(xl, yl, (xh - xl + 1), (yh - yl + 1));
+
+
+		Parameters::homography = findHomography(corners, orig);
+
 		// then scale to full screen if required to do so
 		if (Parameters::fullScreen)
 		{
-			double cellWidth = (result.width * 1.0) /(Parameters::patternsize.width - 1);
+			double cellWidth = (result.width * 1.0) / (Parameters::patternsize.width - 1);
 			double cellHeight = (result.height * 1.0) / (Parameters::patternsize.height - 1);
 			result.x -= cellWidth;
 			result.y -= cellHeight;
 			result.width += cellWidth * 2;
 			result.height += cellHeight * 2;
 		}
-		/*cv::rectangle(img, result, cv::Scalar(255, 0, 0), 2);
-		imshow("img", img);
+
+		/*Mat frame;
+		cv::warpPerspective(img, frame, Parameters::homography, img.size());
+		cv::rectangle(frame, result, cv::Scalar(255, 0, 0), 2);
+		cv::resize(img, img, cv::Size(640, 480));
+		cv::resize(frame, frame, cv::Size(640, 480));
+		imshow("orig", img);
+		imshow("transform", frame);
 		cv::waitKey(0);*/
 		return result;
 	}
@@ -2446,7 +2552,7 @@ public:
 		//convertImgtoGray(img, gray);
 		//imshow("chess", gray);
 		//cv::waitKey(0);
-		
+
 		if (img.channels() == 3)
 		{
 			cv::cvtColor(img, gray, CV_BGR2GRAY);
@@ -2456,7 +2562,7 @@ public:
 			gray = img.clone();
 		}
 		cv::resize(gray, gray, cv::Size(640, 480));
-		
+
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images

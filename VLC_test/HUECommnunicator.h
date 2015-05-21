@@ -129,7 +129,7 @@ public:
 			cv::split(tmp, BGR);
 			for (int j = 0; j < 3; j++)
 			{
-				Utilities::updateFrameLuminance(BGR[j], ROIs[0], amplitudes[j][k]);
+				Utilities::updateFrameWithVchannel(BGR[j], ROIs[0], amplitudes[j][k]);
 			}
 			cv::merge(BGR, tmp);
 			writeFrame(tmp);

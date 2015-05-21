@@ -78,37 +78,39 @@ public:
 		{
 			for (int k = 0; k < framesForSymbol; k++)
 			{
-				vector<Mat> BGR;
-				cv::split(img, BGR);
+				//vector<Mat> BGR;
+				//cv::split(img, BGR);
+				Mat frame(img);
 				int innerLoopIndex = i + k;
 				for (int j = 0; j < sections && innerLoopIndex < amplitudes0_size; j++, innerLoopIndex += framesForSymbol)
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
+					double tmpAmplitudes[3];
 					for (int k = 0; k < 3; k++)
 					{
-						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
 					}
+					Utilities::updateFrameWithVchannel(frame, ROIs[j], tmpAmplitudes);
 				}
-				Mat frame;
-				cv::merge(BGR, frame);
+				//Mat frame;
+				//cv::merge(BGR, frame);
 				writeFrame(frame);
 			}
 		}
 	}
 	virtual void sendVideoMainLoop()
 	{
-		double frameIndex = 0;
-		double frameIndexIncrement = inputFrameUsageFrames*sections;
+		//double frameIndexIncrement = inputFrameUsageFrames*sections;
 		int ampitudesSize = amplitudes[0].size();
 		int i_increment = (sections * framesForSymbol);
 		for (int i = 0; i < ampitudesSize; i += i_increment)
 		{
-			int frameIndexComparison = i;
-			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison += sections)
+			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison++)
 			{
 				if (frameIndexComparison >= frameIndex)
 				{
-					frameIndex += frameIndexIncrement;
+					frameIndex += inputFrameUsageFrames;
 					videoReader.read(img);
 					cv::resize(img, img, Utilities::getFrameSize());
 				}
@@ -121,7 +123,7 @@ public:
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					for (int k = 0; k < 3; k++)
 					{
-						Utilities::updateFrameLuminance(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+						Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
 					}
 				}
 				Mat frame;

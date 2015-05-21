@@ -39,7 +39,8 @@ class Communicator
 private:
 	VideoWriter vidWriter;
 protected:
-	
+	double frameIndex = 0;
+	int frameIndexComparison = 0;
 	double inputFrameUsageFrames; // used for videos
 	Mat img;
 	vector<vector<float> > amplitudes;
@@ -128,9 +129,9 @@ public:
 				vector<Mat> BGR;
 				cv::split(img, BGR);
 
-				Utilities::updateFrameLuminance(BGR[0], Parameters::globalROI, -wave[j]);
-				Utilities::updateFrameLuminance(BGR[1], Parameters::globalROI, wave[j]);
-				Utilities::updateFrameLuminance(BGR[2], Parameters::globalROI, -wave[j]);
+				Utilities::updateFrameWithVchannel(BGR[0], Parameters::globalROI, -wave[j]);
+				Utilities::updateFrameWithVchannel(BGR[1], Parameters::globalROI, wave[j]);
+				Utilities::updateFrameWithVchannel(BGR[2], Parameters::globalROI, -wave[j]);
 
 				Mat frame;
 				cv::merge(BGR, frame);
@@ -148,7 +149,8 @@ public:
 			else
 			{
 				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+				addNonModulatedFrames(Parameters::fps);
 			}
 			break;
 		}
@@ -156,6 +158,21 @@ public:
 		{
 			Parameters::done = true;
 			vidWriter.release();
+		}
+	}
+
+	void addNonModulatedFrames(int len)
+	{
+		for (int i = 0; i < len; i++, frameIndexComparison++)
+		{
+			if (Parameters::realVideo && frameIndexComparison >= frameIndex)
+			{
+				frameIndex += inputFrameUsageFrames;
+				videoReader >> img;
+			}
+			Mat frame;
+			resize(img, frame, Parameters::DefaultFrameSize);
+			writeFrame(frame);
 		}
 	}
 
@@ -174,7 +191,7 @@ public:
 			//cout << i << endl;
 			Mat frame = img.clone();
 			//cv::resize(img, frame, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(frame, Parameters::globalROI, amplitudes[0][i]);
+			Utilities::updateFrameWithVchannel(frame, Parameters::globalROI, amplitudes[0][i]);
 			//frame.convertTo(frame, CV_32F);
 			writeFrame(frame);
 		}
@@ -197,7 +214,7 @@ public:
 			}
 			Mat tmp;
 			cv::resize(frame, tmp, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(tmp, Parameters::globalROI, amplitudes[0][k]);
+			Utilities::updateFrameWithVchannel(tmp, Parameters::globalROI, amplitudes[0][k]);
 			writeFrame(tmp);
 		}
 	}
@@ -250,16 +267,21 @@ public:
 		for (int i = 0; i < Parameters::symbolsData.allData.size(); i++)
 		{
 			vector<vector<float> > signal;
-			double phase = 0;
-			for (int j = 0; j < 5; j++, phase += MM_PI / 4)
+			double phase = MM_PI;
+			for (int j = 0; j < 7; j++, phase += MM_PI / 4)
+				//double phase = MM_PI;
 			{
-				signal.push_back(WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, phase));
+				//vector<float> tmp = WaveGenerator::createSampledSquareWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency,1,-1, phase);
+				vector<float> tmp1 = WaveGenerator::createSampledSineWave(fps, frames_per_symbol, Parameters::symbolsData.allData[i].frequency, phase);
+				//tmp1[0] = tmp1[tmp1.size() - 1] = 0;
+				//signal.push_back(tmp);
+				signal.push_back(tmp1);
 			}
 			signals.push_back(signal);
 		}
 		int window_size = frames_per_symbol;
-		int end = frames.size() - ((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
-		int start = (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
+		int end = frames.size();// -((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
+		int start = 0;// (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
 		vector<int> best_start(signals.size(), 0);
 		vector<int> best_end(signals.size(), 0);
 		vector<int> test_start(signals.size(), 0);

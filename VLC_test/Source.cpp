@@ -619,6 +619,8 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 	return communicator->getSplittedImages(frame);
 }
 
+#include <omp.h>
+
 int main(int argc, char** argv)
 {
 	string release = "C:\\VLC\\Release\\";
@@ -668,8 +670,13 @@ int main(int argc, char** argv)
 	// 36 -> 36
 	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162046_775908773__RGB2_20x30rand_8Freq8symbol_sideA30_sideB20_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150324_132421_1287090311__RGB2_10x12orgrand_8Freq8orgsymbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	return Properties::getInst()->testSendReceive(argc, argv);
-	
+	int num = omp_get_num_procs();
+	omp_set_num_threads(num / 2); // half of the processors
+	//return mainX(argc, argv);
+	std::chrono::system_clock::time_point transmissionStartTime = std::chrono::system_clock::now();
+	Properties::getInst()->testSendReceive(argc, argv);
+	long long milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - transmissionStartTime).count();
+	cout << "Time = " << milli << "ms" << endl;
 	
 	return 0;
 }

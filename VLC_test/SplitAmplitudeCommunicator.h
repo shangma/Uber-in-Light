@@ -58,8 +58,8 @@ public:
 		for (int i = 0; i < amplitudes[0].size(); i++)
 		{
 			Mat frame = img.clone();
-			Utilities::updateFrameLuminance(frame, ROIs[0], amplitudes[0][i]);
-			Utilities::updateFrameLuminance(frame, ROIs[1], amplitudes[1][i]);
+			Utilities::updateFrameWithVchannel(frame, ROIs[0], amplitudes[0][i]);
+			Utilities::updateFrameWithVchannel(frame, ROIs[1], amplitudes[1][i]);
 			writeFrame(frame);
 		}
 	}
@@ -76,8 +76,8 @@ public:
 			}
 			Mat tmp;
 			cv::resize(frame, tmp, Utilities::getFrameSize());
-			Utilities::updateFrameLuminance(tmp, ROIs[0], amplitudes[0][k]);
-			Utilities::updateFrameLuminance(tmp, ROIs[1], amplitudes[1][k]);
+			Utilities::updateFrameWithVchannel(tmp, ROIs[0], amplitudes[0][k]);
+			Utilities::updateFrameWithVchannel(tmp, ROIs[1], amplitudes[1][k]);
 			writeFrame(tmp);
 		}
 	}
