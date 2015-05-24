@@ -85,6 +85,10 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-noise"))
+		{
+			mode = WHITE_NOISE;
+		}
 		else if (!strcmp(argv[i], "-if"))
 		{
 			// get the file name
@@ -425,48 +429,46 @@ int Properties::testSendReceive(int argc, char** argv)
 			}
 		}
 	}
-	if (Parameters::totalTime)
+	if (mode == SEND || mode == RECV)
 	{
-		int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
-		//printf("length=%d\n", totalLength);
-		msg.clear();
-		std::mt19937 mt(19937);
-		std::uniform_int_distribution<int> dist(0, 1);
-		for (int i = 0; i < totalLength; i++)
+		if (Parameters::totalTime)
 		{
-			msg.push_back(dist(mt));
-			//printf("%d", msg[i]);
+			int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
+			//printf("length=%d\n", totalLength);
+			msg.clear();
+			std::mt19937 mt(19937);
+			std::uniform_int_distribution<int> dist(0, 1);
+			for (int i = 0; i < totalLength; i++)
+			{
+				msg.push_back(dist(mt));
+				//printf("%d", msg[i]);
+			}
+			ostringstream ostr;
+			ostr << "totaltime" << Parameters::totalTime << "_seed" << Parameters::seed;
+			msgFileName = ostr.str();
+			//puts("");
 		}
-		ostringstream ostr;
-		ostr << "totaltime" << Parameters::totalTime << "_seed" << Parameters::seed;
-		msgFileName = ostr.str();
-		//puts("");
-	}
-	else if (msgFileName.size())
-	{
-		ifstream ifs(msgFileName);
-		if (ifs.is_open())
+		else if (msgFileName.size())
 		{
-			// assume the text inside
-			ifs >> text;
-			ifs.close();
+			ifstream ifs(msgFileName);
+			if (ifs.is_open())
+			{
+				// assume the text inside
+				ifs >> text;
+				ifs.close();
+			}
+			else
+			{
+				// assume the file name is the text
+				text = msgFileName;
+			}
+			// convert the message to vector of short
+			msg = Utilities::getBinaryMessage(text);
 		}
 		else
 		{
-			// assume the file name is the text
-			text = msgFileName;
+			return returnError();
 		}
-		// convert the message to vector of short
-		msg = Utilities::getBinaryMessage(text);
-	}
-	else if (mode == SEND || mode == RECV)
-	{
-		return returnError();
-	}
-
-	if (inputFileName == "")
-	{
-		return returnError();
 	}
 
 	switch (type)
@@ -610,6 +612,10 @@ int Properties::testSendReceive(int argc, char** argv)
 	case CORRELEATION:
 		Utilities::correlateVideoDifference(inputFileName, Parameters::start_second, Parameters::end_second, correlation);
 		break;
+	case WHITE_NOISE:
+		Utilities::createWhiteNoiseVideo(outputFileName);
+		break;
+
 	}
 
 	return 0;

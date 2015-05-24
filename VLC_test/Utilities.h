@@ -2678,13 +2678,29 @@ public:
 			Parameters::transmitterQueue.push(frame);
 			//std::thread startTrans(Utilities::displayFrame);
 		}
-	}
+	} 
 
-
-	void createWhiteNoiseVideo(string videoName)
+	static void createWhiteNoiseVideo(string outputName)
 	{
 		std::mt19937 mt(19937);
 		std::uniform_int_distribution<int> dist(0, 1);
-		//int length = Parameters::fps * Parameters::
+		int length = Parameters::fps * Parameters::totalTime;
+		int size = Parameters::DefaultFrameSize.width * Parameters::DefaultFrameSize.height;
+		string codec = Parameters::getCodec();
+		VideoWriter vidWriter(outputName, CV_FOURCC(codec[0], codec[1], codec[2], codec[3])
+			, Parameters::fps, Parameters::DefaultFrameSize);
+		for (int i = 0; i < length; i++)
+		{
+			Mat newFrame = Mat::zeros(Parameters::DefaultFrameSize, CV_8UC3);
+			unsigned char* frameData = (unsigned char*)newFrame.data;
+			for (int j = 0; j < size; j++)
+			{
+				if (dist(mt))
+				{
+					frameData[j * 3] = frameData[j * 3 + 1] = frameData[j * 3 + 2] = 255;
+				}
+			}
+			vidWriter << newFrame;
+		}
 	}
 };
