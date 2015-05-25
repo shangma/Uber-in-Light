@@ -2233,6 +2233,7 @@ public:
 		vector<int> colErrors(Parameters::sideA, 0);
 		vector<int> cellErrors(Parameters::sideA * Parameters::sideB, 0);
 		vector<int> bitErrors(Parameters::getSymbolLength(), 0);
+		vector<int> symbolErrors(o_sz / Parameters::getSymbolLength(), 0);
 		//for (int i = 1 - t_sz; i < o_sz; i++)
 		for (int i = 0; i < 1; i++)
 		{
@@ -2247,7 +2248,8 @@ public:
 					rowErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) / Parameters::sideA]++;
 					colErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB)) % Parameters::sideA]++;
 					cellErrors[((j / Parameters::getSymbolLength()) % (Parameters::sideA*Parameters::sideB))]++;
-					bitErrors[j % 3]++;
+					bitErrors[j % Parameters::getSymbolLength()]++;
+					symbolErrors[j / Parameters::getSymbolLength()] = 1;
 				}
 				else
 				{
@@ -2291,6 +2293,16 @@ public:
 		{
 			printf("Error Percentage in bit %d = %0.2llf%%\n", i + 1, (bitErrors[i] * 100.0) / (orig_msg.size() / bitErrors.size()));
 		}
+		puts("symbol errors");
+		int cntErrors = 0;
+		for (int i = 0; i < symbolErrors.size(); i++)
+		{
+			if (symbolErrors[i])
+			{
+				cntErrors++;
+			}
+		}
+		printf("Symbols accuracy = %0.2llf%%\n", 100*(1.0 - (cntErrors * 1.0 / symbolErrors.size())));
 	}
 
 	// create binary message from string message
