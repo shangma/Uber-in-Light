@@ -85,6 +85,10 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-exp"))
+		{
+			mode = EXPLORE;
+		}
 		else if (!strcmp(argv[i], "-noise"))
 		{
 			mode = WHITE_NOISE;
@@ -614,6 +618,9 @@ int Properties::testSendReceive(int argc, char** argv)
 		break;
 	case WHITE_NOISE:
 		Utilities::createWhiteNoiseVideo(outputFileName);
+		break;
+	case EXPLORE:
+		Utilities::exploreVideo(inputFileName);
 		break;
 
 	}
