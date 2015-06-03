@@ -815,7 +815,8 @@ public:
 					{
 						vector<float> diff;
 						Mat mask = Mat::zeros(frame.size(), CV_8UC1) + 255;
-						getDiffInVchannelHSV(frame, next, cv::Rect(0, 0, frame_width, frame_height), diff,mask);
+						Rect tmpRect = cv::Rect(0, 0, frame_width, frame_height);
+						getDiffInVchannelHSV(frame, next, tmpRect, diff, mask);
 						correlations[i] += diff[0];
 						
 						frame.convertTo(frame, CV_32F);
@@ -899,14 +900,23 @@ public:
 		switch (Parameters::amplitudeExtraction)
 		{
 		case ALPHA_CHANNEL:
-			Utilities::getIntensity(tmp_frame(ROIs[i]), frames[i], (*add_mask)(ROIs[i]));
+		{
+			Mat tmpMask = (*add_mask)(ROIs[i]);
+			Utilities::getIntensity(tmp_frame(ROIs[i]), frames[i], tmpMask);
 			break;
+		}
 		case V_CHANNEL:
-			Utilities::getVchannel(tmp_frame(ROIs[i]), frames[i], (*add_mask)(ROIs[i]));
+		{
+			Mat tmpMask = (*add_mask)(ROIs[i]);
+			Utilities::getVchannel(tmp_frame(ROIs[i]), frames[i], tmpMask);
 			break;
+		}
 		case V_CHANNEL_DIFF:
-			Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], (*add_mask)(ROIs[i]));
+		{
+			Mat tmpMask = (*add_mask)(ROIs[i]);
+			Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], tmpMask);
 			break;
+		}
 		case BGR_CHANNELS:
 			Utilities::getDiffInBGR(tmp_prev, tmp_frame, ROIs[i], frames[i]);
 			break;
@@ -1092,7 +1102,8 @@ public:
 			prev(globalROI).copyTo(tmp_prev, add_mask);
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], add_mask(ROIs[i]));
+				Mat tmpMask = add_mask(ROIs[i]);
+				Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], tmpMask);
 			}
 			prev = frame.clone();
 		}
@@ -2590,6 +2601,7 @@ public:
 	*/
 	static void exploreVideo(string videoName)
 	{
+		cout << "explore : " << videoName << endl;
 		VideoCapture cap(videoName);
 		
 		if (cap.isOpened())

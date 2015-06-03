@@ -61,8 +61,11 @@ public:
 		switch (Parameters::synchMethod)
 		{
 		case SYNCH_CHESS:
-			Parameters::globalROI = Utilities::detectMyBoard(Utilities::createChessBoard());
+		{
+			Mat chess = Utilities::createChessBoard();
+			Parameters::globalROI = Utilities::detectMyBoard(chess);
 			break;
+		}
 		case SYNCH_GREEN_CHANNEL:
 			Parameters::globalROI = cv::Rect(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
 			break;
