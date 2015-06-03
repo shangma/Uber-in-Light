@@ -649,7 +649,12 @@ public:
 		VideoCapture videoReader(inputVideo);
 		if (videoReader.isOpened())
 		{
-			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int framerate;
+#ifdef __unix__         
+			framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+			framerate = 0.5 + videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			while (frame_height > 1000)
@@ -680,7 +685,12 @@ public:
 		if (videoReader.isOpened())
 		{
 			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
-			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int framerate;
+#ifdef __unix__         
+			framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+			framerate = 0.5 + videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			while (frame_height > 1000)
@@ -738,7 +748,12 @@ public:
 		if (videoReader.isOpened())
 		{
 			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
-			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int framerate;
+#ifdef __unix__         
+			framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+			framerate = 0.5 + videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			while (frame_height > 1000)
@@ -795,7 +810,12 @@ public:
 		{
 			Mat frame, next;
 			int numberOfFrames = videoReader.get(CV_CAP_PROP_FRAME_COUNT); // get frame count
-			int framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			int framerate;
+#ifdef __unix__         
+			framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+			framerate = 0.5 + videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 			int frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			int frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			int starting_frame = starting_second * framerate;
@@ -1712,7 +1732,7 @@ public:
 		}
 		return cv::Rect(c1, r1, c2 - c1 + 1, r2 - r1 + 1);
 	}
-	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, double &framerate, int &starting_index)
+	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, int &framerate, int &starting_index)
 	{
 		//int sz = frame_height * frame_width;
 		//int* accData = (int*)accumelation.data;
@@ -1920,7 +1940,12 @@ public:
 		cv::Rect globalROI(0, 0, 1, 1);
 		if (!cap.isOpened())  // check if we succeeded
 			return globalROI;
-		double framerate = cap.get(CV_CAP_PROP_FPS);
+		int framerate;
+#ifdef __unix__         
+		framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
@@ -1986,7 +2011,11 @@ public:
 		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
+#ifdef __unix__         
+		framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
 		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 		cout << "Rounded fps = " << framerate << endl;
 		Parameters::startingIndex = Parameters::start_second * framerate;
 		// try to detect the chess board
@@ -2023,7 +2052,11 @@ public:
 		VideoCapture cap(videoName); // open the default camera
 		if (!cap.isOpened())  // check if we succeeded
 			return vector<float>();
-		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#ifdef __unix__         
+		framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 		// try to detect the chess board
 		int index = 0;
 		cv::Rect globalROI(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
@@ -2120,7 +2153,11 @@ public:
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#ifdef __unix__         
+		framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 		cout << count << endl;
@@ -2157,7 +2194,11 @@ public:
 		if (!cap.isOpened())  // check if we succeeded
 			return frames;
 		double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
-		framerate = cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#ifdef __unix__         
+		framerate = Parameters::fps;
+#elif defined(_WIN32) || defined(WIN32) 
+		framerate = 0.5 + cap.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
 		int frame_width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 		// the ROI
