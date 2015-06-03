@@ -901,14 +901,16 @@ public:
 		{
 		case ALPHA_CHANNEL:
 		{
+			Mat frame1 = tmp_frame(ROIs[i]);
 			Mat tmpMask = (*add_mask)(ROIs[i]);
-			Utilities::getIntensity(tmp_frame(ROIs[i]), frames[i], tmpMask);
+			Utilities::getIntensity(frame1, frames[i], tmpMask);
 			break;
 		}
 		case V_CHANNEL:
 		{
+			Mat frame1 = tmp_frame(ROIs[i]);
 			Mat tmpMask = (*add_mask)(ROIs[i]);
-			Utilities::getVchannel(tmp_frame(ROIs[i]), frames[i], tmpMask);
+			Utilities::getVchannel(frame1, frames[i], tmpMask);
 			break;
 		}
 		case V_CHANNEL_DIFF:
