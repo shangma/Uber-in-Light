@@ -24,6 +24,14 @@ public:
 		Mat newImage;
 		Parameters::transmitterQueue.pop(newImage);
 
+
+		ostringstream ostr;
+		ostr << "Frame No. = " << Parameters::outputFrameIndex;
+		string txt = ostr.str();
+		cv::Scalar white(255, 255, 255);
+		rectangle(newImage, Rect(20, 10, 200, 30), white, -1);
+		putText(newImage, txt, cvPoint(30, 30),
+			FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(0, 0, 0), 1, CV_AA);
 		//countFrames();
 		long long expectedMicroseconds = Parameters::outputFrameIndex;
 		expectedMicroseconds *= 1000000 / Parameters::fps;
@@ -34,6 +42,7 @@ public:
 		{
 			std::this_thread::sleep_for(std::chrono::microseconds(expectedMicroseconds - currentMicroseonds));
 		}
+		
 		imshow(Parameters::displayName, newImage);
 		cv::waitKey(1);
 		//currentMicroseonds = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now() - Parameters::transmissionStartTime).count();
@@ -52,7 +61,7 @@ public:
 		if (Parameters::liveTranmitterCV)
 		{
 			namedWindow(Parameters::displayName, WINDOW_NORMAL);
-			setWindowProperty(Parameters::displayName, CV_WND_PROP_FULLSCREEN, 1); //( on or off)
+			//setWindowProperty(Parameters::displayName, CV_WND_PROP_FULLSCREEN, 1); //( on or off)
 
 			while (!Parameters::done)
 			{
