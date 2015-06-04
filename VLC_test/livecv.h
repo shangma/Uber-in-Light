@@ -24,14 +24,13 @@ public:
 		Mat newImage;
 		Parameters::transmitterQueue.pop(newImage);
 
-
-		ostringstream ostr;
+		/*ostringstream ostr;
 		ostr << "Frame No. = " << Parameters::outputFrameIndex;
 		string txt = ostr.str();
 		cv::Scalar white(255, 255, 255);
 		rectangle(newImage, Rect(20, 10, 200, 30), white, -1);
 		putText(newImage, txt, cvPoint(30, 30),
-			FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(0, 0, 0), 1, CV_AA);
+			FONT_HERSHEY_COMPLEX_SMALL, 0.8, cvScalar(0, 0, 0), 1, CV_AA);*/
 		//countFrames();
 		long long expectedMicroseconds = Parameters::outputFrameIndex;
 		expectedMicroseconds *= 1000000 / Parameters::fps;

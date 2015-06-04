@@ -180,6 +180,18 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-ifps"))
+		{
+			// get the file name
+			if (i < argc - 1)
+			{
+				Parameters::ifps = stod(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
 		else if (!strcmp(argv[i], "-v"))
 		{
 			Parameters::realVideo = true;

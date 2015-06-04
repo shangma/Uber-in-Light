@@ -186,6 +186,7 @@ struct Parameters
 	static cv::Rect globalROI;
 	static vector<float> amplitudes;
 	static int fps;
+	static double ifps;
 	static int DecodingMethod;
 	//static double LUMINANCE;
 	//enum{ ZERO = 0, ONE };
@@ -261,6 +262,7 @@ int Parameters::endingIndex = 0;
 cv::Rect Parameters::globalROI = cv::Rect(0,0,1,1);
 vector<float> Parameters::amplitudes = vector<float>();
 int Parameters::fps = 0;
+double Parameters::ifps = 0;
 float Parameters::symbolTime = 1000;
 int Parameters::DecodingMethod = FFT_RANDOM_GUESS;
 //double Parameters::LUMINANCE = 0.005;

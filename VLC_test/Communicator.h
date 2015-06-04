@@ -90,7 +90,13 @@ public:
 		if (videoReader.isOpened())
 		{
 			videoReader.set(CV_CAP_PROP_POS_FRAMES, 0); //Set index to last frame
-			double framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+			double framerate;
+#ifdef __unix__         
+			framerate = Parameters::ifps;
+#elif defined(_WIN32) || defined(WIN32) 
+			framerate = videoReader.get(CV_CAP_PROP_FPS); //get the frame rate
+#endif
+			
 			//frame_width = videoReader.get(CV_CAP_PROP_FRAME_WIDTH);
 			//frame_height = videoReader.get(CV_CAP_PROP_FRAME_HEIGHT);
 			Parameters::fps = Utilities::getOuputVideoFrameRate((int)framerate);
