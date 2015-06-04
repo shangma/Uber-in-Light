@@ -2264,7 +2264,7 @@ public:
 		int lcs = l[orig_msg.size()][test_msg.size()];
 		double percent = lcs;
 		percent /= orig_msg.size();
-		printf("Longest Common SubString Length = %d = %0.2llf%%\r\n", lcs, 100*percent);
+		printf("Longest Common SubString Length = %d = %0.2f%%\r\n", lcs, 100*percent);
 		// deallocate
 		for (int i = 0; i <= orig_msg.size(); i++)
 		{
@@ -2320,32 +2320,32 @@ public:
 		}
 		double percent = lcs;
 		percent /= orig_msg.size();
-		printf("Longest Common SubString at index = %d Length = %d = %0.2llf%%\r\n", best_i, lcs, 100 * percent);
+		printf("Longest Common SubString at index = %d Length = %d = %0.2f%%\r\n", best_i, lcs, 100 * percent);
 		// then print error percentages
 		// assume 10 slices
 		for (int i = 0; i < accErrors.size(); i++)
 		{
-			printf("Error Percentage in range of frames from %d%% to %d%% = %0.2llf%%\n", i * 100 / accErrors.size(), (i + 1) * 100 / accErrors.size(), (accErrors[i] * 100.0) / (orig_msg.size() / accErrors.size()));
+			printf("Error Percentage in range of frames from %d%% to %d%% = %0.2f%%\n", i * 100 / accErrors.size(), (i + 1) * 100 / accErrors.size(), (accErrors[i] * 100.0) / (orig_msg.size() / accErrors.size()));
 		}
 		puts("Row Errors");
 		for (int i = 0; i < rowErrors.size(); i++)
 		{
-			printf("Error Percentage in row %d = %0.2llf%%\n", i + 1, (rowErrors[i] * 100.0) / (orig_msg.size() / rowErrors.size()));
+			printf("Error Percentage in row %d = %0.2f%%\n", i + 1, (rowErrors[i] * 100.0) / (orig_msg.size() / rowErrors.size()));
 		}
 		puts("Column Errors");
 		for (int i = 0; i < colErrors.size(); i++)
 		{
-			printf("Error Percentage in column %d = %0.2llf%%\n", i + 1, (colErrors[i] * 100.0) / (orig_msg.size() / colErrors.size()));
+			printf("Error Percentage in column %d = %0.2f%%\n", i + 1, (colErrors[i] * 100.0) / (orig_msg.size() / colErrors.size()));
 		}
 		puts("Grid Errors");
 		for (int i = 0; i < cellErrors.size(); i++)
 		{
-			printf("Error Percentage in Cell %d = %0.2llf%%\n", i + 1, (cellErrors[i] * 100.0) / (orig_msg.size() / cellErrors.size()));
+			printf("Error Percentage in Cell %d = %0.2f%%\n", i + 1, (cellErrors[i] * 100.0) / (orig_msg.size() / cellErrors.size()));
 		}
 		puts("Bit Errors");
 		for (int i = 0; i < bitErrors.size(); i++)
 		{
-			printf("Error Percentage in bit %d = %0.2llf%%\n", i + 1, (bitErrors[i] * 100.0) / (orig_msg.size() / bitErrors.size()));
+			printf("Error Percentage in bit %d = %0.2f%%\n", i + 1, (bitErrors[i] * 100.0) / (orig_msg.size() / bitErrors.size()));
 		}
 		puts("symbol errors");
 		int cntErrors = 0;
@@ -2356,7 +2356,7 @@ public:
 				cntErrors++;
 			}
 		}
-		printf("Symbols accuracy = %0.2llf%%\n", 100*(1.0 - (cntErrors * 1.0 / symbolErrors.size())));
+		printf("Symbols accuracy = %0.2f%%\n", 100*(1.0 - (cntErrors * 1.0 / symbolErrors.size())));
 	}
 
 	// create binary message from string message
