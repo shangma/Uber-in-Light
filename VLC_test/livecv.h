@@ -61,7 +61,7 @@ public:
 		if (Parameters::liveTranmitterCV)
 		{
 			namedWindow(Parameters::displayName, WINDOW_NORMAL);
-			//setWindowProperty(Parameters::displayName, CV_WND_PROP_FULLSCREEN, 1); //( on or off)
+			setWindowProperty(Parameters::displayName, CV_WND_PROP_FULLSCREEN, 1); //( on or off)
 
 			while (!Parameters::done)
 			{
