@@ -50,7 +50,7 @@ protected:
 	VideoCapture videoReader;
 	void writeFrame(Mat &frame)
 	{
-		Utilities::writeFrame(vidWriter,frame);
+		Utilities::writeFrame(vidWriter,frame.clone());
 	}
 public:
 	void setCommonParameters(vector<short> &msg, string outputVideoFile)
