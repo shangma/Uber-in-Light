@@ -28,6 +28,7 @@
     <ClInclude Include="Hamming.h" />
     <ClInclude Include="Header.h" />
     <ClInclude Include="HUECommnunicator.h" />
+    <ClInclude Include="livecv.h" />
     <ClInclude Include="mygl.h" />
     <ClInclude Include="OldCommunicator.h" />
     <ClInclude Include="Properties.h" />

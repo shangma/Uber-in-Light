@@ -2731,12 +2731,7 @@ public:
 
 	static	void writeFrame(VideoWriter &vidWriter, Mat &frame)
 	{
-		if (!Parameters::liveTranmitter)
-		{
-			vidWriter << frame;
-			Parameters::outputFrameIndex++;
-		}
-		else
+		if (Parameters::liveTranmitter || Parameters::liveTranmitterCV)
 		{
 			while (Parameters::transmitterQueue.size() > 10)
 			{
@@ -2744,6 +2739,11 @@ public:
 			}
 			Parameters::transmitterQueue.push(frame);
 			//std::thread startTrans(Utilities::displayFrame);
+		}
+		else
+		{
+			vidWriter << frame;
+			Parameters::outputFrameIndex++;
 		}
 	} 
 

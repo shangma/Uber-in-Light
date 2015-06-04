@@ -207,6 +207,7 @@ struct Parameters
 	static int synchMethod;
 	static cv::Mat homography;
 	static int liveTranmitter;
+	static int liveTranmitterCV;
 	static std::chrono::system_clock::time_point transmissionStartTime;
 	static int outputFrameIndex;
 	static Queue<cv::Mat> transmitterQueue;
@@ -282,6 +283,7 @@ bool Parameters::realVideo = false;
 int Parameters::synchMethod = SYNCH_CHESS;
 cv::Mat Parameters::homography;
 int Parameters::liveTranmitter = 0;
+int Parameters::liveTranmitterCV = 0;
 std::chrono::system_clock::time_point Parameters::transmissionStartTime;
 int Parameters::outputFrameIndex = 0;
 Queue<cv::Mat> Parameters::transmitterQueue;

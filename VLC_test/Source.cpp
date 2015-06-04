@@ -45,6 +45,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Hamming.h"
 #include "ReedSolomon.h"
 #include "mygl.h"
+#include "livecv.h"
 
 //Properties* Properties::inst = Properties::getInst();
 int Properties::returnError()
@@ -408,6 +409,10 @@ int Properties::testSendReceive(int argc, char** argv)
 		{
 			Parameters::liveTranmitter = 1;
 		}
+		else if (!strcmp(argv[i], "-livecv"))
+		{
+			Parameters::liveTranmitterCV = 1;
+		}
 		else if (!strcmp(argv[i], "-total"))
 		{
 			// the amplitude
@@ -528,6 +533,7 @@ int Properties::testSendReceive(int argc, char** argv)
 	case SEND:
 	{
 		std::thread startTrans(displayGlut, argc, argv);
+		std::thread startTransLiveCV(LiveCV::displayMainLoop);
 		if (errorCorrection == HAMMING){
 			MyHamming hamming;
 			msg = hamming.EncodeMessage(msg, false);
@@ -559,6 +565,7 @@ int Properties::testSendReceive(int argc, char** argv)
 				communicator->sendImage();
 			}
 		}
+		startTransLiveCV.join();
 		startTrans.join();
 		break;
 	}
