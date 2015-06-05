@@ -144,7 +144,6 @@ struct AllSymbolsData
 	vector<SymbolData> getMsgSymbols(vector<short>& msg)
 	{
 		vector<SymbolData> res;
-		ofstream frequencies("freq.txt");
 		for (int i = 0; i < msg.size();i++)
 		{
 			string ostr;
@@ -154,7 +153,6 @@ struct AllSymbolsData
 				SymbolData* symbolPtr = getSymbol(ostr);
 				if (symbolPtr != 0)
 				{
-					frequencies << symbolPtr->frequency << ",";
 					res.push_back(*symbolPtr);
 					ostr.clear();
 					//i += j;
@@ -173,7 +171,8 @@ struct AllSymbolsData
 				}
 			}
 		}
-		frequencies.close();
+		
+		
 		return res;
 	}
 };

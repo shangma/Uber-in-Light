@@ -57,6 +57,17 @@ public:
 	{
 		this->shortMsg = msg;
 		this->msg = Parameters::symbolsData.getMsgSymbols(msg);
+		for (int i = 0; i < (Parameters::sideA * Parameters::sideB); i++)
+		{
+			ostringstream ostr;
+			ostr << "freq" << setw(5) << setfill('0') << i << ".txt";
+			ofstream frequencies(ostr.str());
+			for (int j = i; j < this->msg.size(); j += (Parameters::sideA * Parameters::sideB))
+			{
+				frequencies << this->msg[j].frequency << ",";
+			}
+			frequencies.close();
+		}
 		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
 		switch (Parameters::synchMethod)
 		{
@@ -294,7 +305,10 @@ public:
 		vector<int> best_start(signals.size(), 0);
 		vector<int> best_end(signals.size(), 0);
 		vector<int> test_start(signals.size(), 0);
-		ofstream outputFrames("outputframes.txt");
+		static int cellNumber = 0;
+		ostringstream outputframes;
+		outputframes << "outputframes" << setw(5) << setfill('0') << cellNumber++ << ".txt";
+		ofstream outputFrames(outputframes.str());
 		for (int i = start; i < end; i += window_size)
 		{
 			for (int j = 0; j < window_size; j++)
