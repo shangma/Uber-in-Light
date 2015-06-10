@@ -99,13 +99,6 @@ namespace RenameRecordedFiles
                 return ("-zero " + zero.ToString() + "-one" + one.ToString());
             }
         }
-        static string getRandFileName(string new_name)
-        {
-            int last = new_name.IndexOf("rand_");
-            int first = new_name.Substring(0, last).LastIndexOf("_") + 1;
-
-            return new_name.Substring(first, last - first) + ".rand";
-        }
         static string getSymbolTime(string new_name)
         {
             Regex reg = new Regex(@"_\d+ms_");
@@ -152,6 +145,28 @@ namespace RenameRecordedFiles
             }
             return ret;
         }
+        static string getTotalTime(string new_name)
+        {
+            string ret = "";
+            Regex reg = new Regex(@"_totaltime\d_");
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                ret = "-total " + m.Value.Substring(10, m.Value.Length - 11);
+            }
+            return ret;
+        }
+        static string getSeed(string new_name)
+        {
+            string ret = "";
+            Regex reg = new Regex(@"_seed\d_");
+            if (reg.IsMatch(new_name))
+            {
+                Match m = reg.Match(new_name);
+                ret = "-seed " + m.Value.Substring(5, m.Value.Length - 6);
+            }
+            return ret;
+        }
         static string getCommand(string new_name, string folder)
         {
             int mode = getMode(new_name); /// 0 -  normal, 1 -> AmpDifference
@@ -160,16 +175,18 @@ namespace RenameRecordedFiles
             string time = getSymbolTime(new_name);
             string sideLength = getSideLength(new_name);
             string fullScreen = getFullScreen(new_name);
-            return string.Format(@"VLC_tester.exe -decode {4} -r {3} -t {5} {7} {8} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
+            return string.Format(@"VLC_tester.exe -decode {4} -r {3} {5} {7} {8} {9} {10} -roi 1 -m {1} -ec {2} -time {6} -if {0}\\",
                 folder, 
                 mode, 
                 correction_code, 
                 symbols, 
                 (int)Decodeing.CROSS_CORRELATION,
-                getRandFileName(new_name), 
+                "", 
                 time,
                 sideLength,
-                fullScreen);
+                fullScreen,
+                getTotalTime(new_name),
+                getSeed(new_name));
         }
 
         static void RenameSeparateFiles(string[] aviFiles, string[] mp4Files, string[] movFiles, DirectoryInfo dinf)
@@ -265,6 +282,17 @@ namespace RenameRecordedFiles
             {
                 RenameSeparateFiles(aviFiles, mp4Files, movFiles, dinf);
             }
+            // write play batch file
+            StreamWriter sw = new StreamWriter(@"play.bat");
+            sw.WriteLine("pause");
+            foreach (string aviFile in aviFiles)
+            {
+                FileInfo finf = new FileInfo(aviFile);
+                sw.WriteLine("\"C:\\Program Files (x86)\\K-Lite Codec Pack\\MPC-HC\\mpc-hc.exe\"  {0} /fullscreen /play /close", finf.Name);
+                //sw.WriteLine("taskkill /F /IM mpc-hc.exe");
+                sw.WriteLine("pause");
+            }
+            sw.Close();
         }   
     }
 }
