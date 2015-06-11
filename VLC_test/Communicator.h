@@ -270,13 +270,14 @@ public:
 		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
-			return receiveCrossCorrelation(frames, fps, frames_per_symbol);
+			vector<double> symbolDataVec;
+			return receiveCrossCorrelation(frames, fps, frames_per_symbol, symbolDataVec);
 		}
 		return receiveFFT(frames, fps, frames_per_symbol);
 	}
 	
 	// receive using cross-correlation as classifier
-	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol)
+	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol, vector<double> & retSymbols)
 	{
 		// return array
 		vector<short> result;
@@ -331,6 +332,7 @@ public:
 					maxIdx = j;
 				}
 			}
+			retSymbols.push_back(Parameters::symbolsData.allData[maxIdx].frequency);
 			vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
 			result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
 		}
@@ -342,8 +344,6 @@ public:
 		Parameters::amplitudes = frames;
 		vector<short> result;
 		vector<vector<int> > detection(Parameters::symbolsData.allData.size(), vector<int>(frames.size(), 0));
-		//vector<int> zero_detected(frames.size(), 0);
-		//vector<int> one_detected(frames.size(), 0);
 		vector<int> other_detected(frames.size(), 0);
 		int window_size = frames_per_symbol;
 		for (int i = 0; i < frames.size() - fps; i++)
@@ -376,21 +376,6 @@ public:
 			{
 				for (int j = 0; j < window_size; j++) other_detected[i + j]++;
 			}
-			//if (abs(temp[maxi].freq - Parameters::FREQ[0]) < EPSILON)
-			//{
-			//	// ZERO detectd
-			//	for (int j = 0; j < window_size; j++) zero_detected[i + j]++;
-			//}
-			//else if (abs(temp[maxi].freq - Parameters::FREQ[1]) < EPSILON)
-			//{
-			//	// one detected
-			//	for (int j = 0; j < window_size; j++) one_detected[i + j]++;
-			//}
-			//else
-			//{
-			//	// other detected
-			//	for (int j = 0; j < window_size; j++) other_detected[i + j]++;
-			//}
 			
 		}
 		// then check for the first frame that has 60% or more with one of the two symbols (0,1), 

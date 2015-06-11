@@ -148,7 +148,7 @@ namespace RenameRecordedFiles
         static string getTotalTime(string new_name)
         {
             string ret = "";
-            Regex reg = new Regex(@"_totaltime\d_");
+            Regex reg = new Regex(@"_totaltime\d+_");
             if (reg.IsMatch(new_name))
             {
                 Match m = reg.Match(new_name);
@@ -159,7 +159,7 @@ namespace RenameRecordedFiles
         static string getSeed(string new_name)
         {
             string ret = "";
-            Regex reg = new Regex(@"_seed\d_");
+            Regex reg = new Regex(@"_seed\d+_");
             if (reg.IsMatch(new_name))
             {
                 Match m = reg.Match(new_name);
@@ -197,11 +197,15 @@ namespace RenameRecordedFiles
                 FileInfo avif = new FileInfo(aviFiles[i % aviFiles.Length]);
                 FileInfo mp4f = new FileInfo(mp4Files[i]);
                 string new_name = Path.GetFileNameWithoutExtension(mp4f.Name);
-                if (!mp4f.Name.Contains(Path.GetFileNameWithoutExtension(avif.Name)))
+                if (mp4f.Name.Contains("_output"))
                 {
-                    new_name += "_" + Path.GetFileNameWithoutExtension(avif.Name);
+                    new_name = mp4f.Name;
                 }
-                new_name += ".mp4";
+                else
+                {
+                    new_name += "_" + Path.GetFileNameWithoutExtension(avif.Name) + ".mp4"; ;
+                }
+              
                 try
                 {
                     File.Move(mp4Files[i], new_name);

@@ -1481,25 +1481,13 @@ public:
 	static vector<double> calcCrossCorrelate(vector< vector<float> > &signals, vector<float> &test, int start, int end, 
 		vector<int> &best_start, vector<int> &best_end, vector<int> &test_start, int absolute = 0, int display = 0)
 	{
-		//if (display)
-		//{
-		//	for (int i = 0; i < test.size(); i++)
-		//	{
-		//		cout << i << "\t->\t" << test[i] << endl;
-		//	}
-		//}
-		//double totalBestVal = 0;
 		vector<double> bestVal(signals.size(), 0);
-		//vector<double> avgAmplitude(signals.size(), 0);
-		//vector<int> count(signals.size(), 0);
 		int tsz = end - start + 1;
 		int ssz = signals[0].size();
 		for (int shift = -ssz + 1; shift < tsz - 1; shift++)
 		{
 			vector<double> sum(signals.size(), 0);
-			//vector<double> sumAmp(signals.size(), 0);
 			vector<int> cnt(signals.size(), 0);
-			//double totalSum = 0;
 			int start_test = std::max(0, shift);
 			int end_test = std::min(shift + ssz, tsz); // exclusive
 			for (int j = start_test; j < end_test; j++)
@@ -1509,46 +1497,19 @@ public:
 					sum[k] += signals[k][j - shift] * test[j + start];
 					cnt[k]++;
 				}
-				//if (absolute)
-				//{
-				//	for (int k = 0; k < signals.size(); k++)
-				//	{
-				//		sum[k] = (sum[k] > 0) ? sum[k] : -sum[k];
-				//	}
-				//}
 			}
-			//sum /= cnt;
-			//if (display)
-			//{
-			//	for (int k = 0; k < signals.size(); k++)
-			//	{
-			//		cout << start_test << " -> " << end_test << " = " << sum[k] << endl;
-			//	}
-			//}
+
 			for (int k = 0; k < sum.size(); k++)
 			{
-				//sum[k] /= cnt[k];
 				if (sum[k] > bestVal[k])
 				{
 					bestVal[k] = sum[k];
 					best_start[k] = start_test;
 					best_end[k] = end_test;
 					test_start[k] = start_test - shift;
-					//avgAmplitude[k] = sumAmp[k] / cntAmp[k];
 				}
 			}
 		}
-		/*int maxID = 0;
-		for (int i = 1; i < bestVal.size(); i++)
-		{
-			if (bestVal[i] > bestVal[maxID])
-			{
-				maxID = i;
-			}
-		}*/
-		//cout << avgAmplitude[maxID] << "\t";
-
-		//cout << endl;
 		return bestVal;
 	}
 	// Finds the intersection of two lines, or returns false.

@@ -656,55 +656,8 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 int main(int argc, char** argv)
 {
 	string release = "C:\\VLC\\Release\\";
-	//string fileName = release + string(argv[1]) + ".rand";
-	//string dstfileName = release + string(argv[1]) + "org.rand";
-	//ifstream ifs(fileName);
-	//// assume the text inside
-	//string text;
-	//ifs >> text;
-	//ifs.close();
-	//// convert the message to vector of short
-	//vector<short> msg = Utilities::getBinaryMessage(text);
-
-	//AllSymbolsData asd1,asd2;
-	//asd1.readData(release + "8freq8.symbol");
-	//asd2.readData(release + "8freq8org.symbol");
-
-	//vector<SymbolData> msg1 = asd1.getMsgSymbols(msg);
-	//ofstream dst(dstfileName);
-	//for (int i = 0; i < msg1.size(); i++)
-	//{
-	//	double freq = msg1[i].frequency;
-	//	for (int j = 0; j < asd2.allData.size(); j++)
-	//	{
-	//		if (abs(freq - asd2.allData[j].frequency) < 0.1)
-	//		{
-	//			dst << asd2.allData[j].symbol;
-	//		}
-	//	}
-	//}
-	//dst.close();
-
-	//Mat img = imread(release + "img2.jpg");
-	//Utilities::calcHistogram(img);
-	// 33 -> 38
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161625_775741095__RGB2_2x3rand_8Freq8symbol_sideA3_sideB2_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 26 -> 35
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161711_775767883__RGB2_5x6rand_8Freq8symbol_sideA6_sideB5_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 26 -> 17
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161755_775793936__RGB2_10x12rand_8Freq8symbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 31 -> 31
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161838_775820157__RGB2_12x15rand_8Freq8symbol_sideA15_sideB12_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 27 -> 33
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_161921_775846540__RGB2_15x16rand_8Freq8symbol_sideA16_sideB15_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 26 -> 35
-	// Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162002_775872838__RGB2_18x20rand_8Freq8symbol_sideA20_sideB18_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	// 36 -> 36
-	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150318_162046_775908773__RGB2_20x30rand_8Freq8symbol_sideA30_sideB20_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
-	//Utilities::exploreVideo(release + "RGB2_GREEN_SYNCH\\20150324_132421_1287090311__RGB2_10x12orgrand_8Freq8orgsymbol_sideA12_sideB10_full1_300ms_levels_XVID_Tree24_whole_videoavi_output.mp4");
 	int num = omp_get_num_procs();
 	omp_set_num_threads(num / 2); // half of the processors
-	//return mainX(argc, argv);
 	std::chrono::system_clock::time_point transmissionStartTime = std::chrono::system_clock::now();
 	Properties::getInst()->testSendReceive(argc, argv);
 	long long milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - transmissionStartTime).count();
