@@ -252,7 +252,7 @@ namespace RenameRecordedFiles
             }
             sw.Close();
         }
-        static void WriteCommandsforCombinedVideo(string[] aviFiles, string videoFile, DirectoryInfo dinf, double start)
+        static void WriteCommandsforCombinedVideo(string[] aviFiles, string videoFile, DirectoryInfo dinf, double start,double increment)
         {
             StreamWriter sw = new StreamWriter("r_" + dinf.Name + "_" + videoFile.Replace("\\", "") + ".bat");
             FileInfo mp4f = new FileInfo(videoFile);
@@ -264,7 +264,7 @@ namespace RenameRecordedFiles
                 sw.WriteLine(@"{2} -start {4} > {0}\\{3}_{1}.mp4.txt",
                     dinf.Name, avif.Name.Substring(0, avif.Name.Length - 4),
                     getCommand(avif.Name, dinf.Name) + videoFile, mp4f.Name, start);
-                start += getDuration(aviFiles[i]);
+                start += (getDuration(aviFiles[i]) + increment);
             }
             sw.Close();
         }
@@ -278,9 +278,14 @@ namespace RenameRecordedFiles
             Array.Sort(mp4Files);
             Array.Sort(movFiles);
             DirectoryInfo dinf = new DirectoryInfo(currentDirectory);
-            if (args.Length == 2)
+            if (args.Length >= 2)
             {
-                WriteCommandsforCombinedVideo(aviFiles, args[0], dinf, double.Parse(args[1]));
+                double incremenet = 0;
+                if(args.Length == 3)
+                {
+                    incremenet = double.Parse(args[2]);
+                }
+                WriteCommandsforCombinedVideo(aviFiles, args[0], dinf, double.Parse(args[1]), incremenet);
             }
             else
             {
