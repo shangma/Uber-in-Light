@@ -979,13 +979,16 @@ public:
 		//Mat mask, prev_mask; = getBinaryMask(prev);
 		//frame = prev.clone();
 		vector<float> synchFrames;
+		cv::Size endPatternSize = Parameters::patternsize;
+		endPatternSize.width--;
+		endPatternSize.height--;
 		while (ReadNextFrame(cap, frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
 			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
 			{
 				//Mat temp;
-				if (canDetectMyBoard(frame))
+				if (canDetectMyBoard(frame, endPatternSize))
 				{
 					break;
 				}
@@ -1012,123 +1015,6 @@ public:
 		}
 		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
 		cout << "last index = " << Parameters::endingIndex << endl;
-		return frames;
-	}
-
-	/// get video frames luminance
-	// VideoCapture as input
-	// ROI as input
-	// returns vector<float> with the luminances
-	static vector<vector<float> > getVideoFrameLuminancesNext(VideoCapture &cap, vector<cv::Rect> &ROIs, 
-		double fps, cv::Rect globalROI, bool oldMethod = false, bool useAlpha = true)
-	{
-		Parameters::endingIndex = Parameters::startingIndex + 1;
-		int ROIsSize = ROIs.size();
-		vector<vector<float> > frames(ROIsSize, vector<float>());
-		cout << "Processing Frames..." << endl;
-		Mat frame, prev, next;
-		cap.read(prev);
-		double test_frame_rate = fps; // 30
-		cap.read(frame);
-		//prev = prev(ROI);
-		double nextIndex = 0;
-		int count = 1;
-		//Mat mask, prev_mask; = getBinaryMask(prev);
-		//frame = prev.clone();
-		vector<float> synchFrames;
-		while (cap.read(next))
-		{
-			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
-			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
-			{
-				//Mat temp;
-				if (canDetectMyBoard(frame))
-				{
-					break;
-				}
-			}
-			else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
-			{
-				vector<float> tmpV;
-				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
-				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
-			}
-
-			//Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
-			//Mat tmp_frame_BGR;
-			//frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
-			//Mat tmp_prev_BGR;
-			//prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
-			//printf("%d\n", count);
-			for (int i = 0; i < ROIsSize; i++)
-			{
-				Utilities::getDiffInBGRnext(prev, frame, next, ROIs[i], frames[i]);
-			}
-			prev = frame.clone();
-			frame = next.clone();
-		}
-		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
-		cout << "last index = " << Parameters::endingIndex << endl;
-		return frames;
-	}
-
-	/// get video frames luminance with tracking color
-	// VideoCapture as input
-	// ROI as input
-	// returns vector<float> with the luminances 
-	static vector<vector<float> > getVideoFrameLuminancesWithColorTracking(
-		VideoCapture cap, vector<cv::Rect> ROIs, double fps, bool useChessBoard, cv::Rect globalROI,cv::Scalar color)
-	{
-		vector<vector<float> > frames(ROIs.size());
-		cout << "Processing Frames..." << endl;
-		Mat frame, prev;
-		cap.read(prev);
-		//cap.read(prev);
-		//prev = prev(ROI);
-		double nextIndex = 0;
-		int count = 1;
-		//Mat mask, prev_mask; = getBinaryMask(prev);
-		frame = prev.clone();
-		while (true)
-		{
-			//imshow("prev", prev);
-			//cv::waitKey(30);
-			nextIndex += fps / 30;
-			bool flag = true;
-
-			while ((int)nextIndex > count + 1)
-			{
-				++count;
-				flag = cap.read(frame);
-			}
-			if (!flag)
-			{
-				break;
-			}
-			//cout << count << endl;
-			//mask = getBinaryMask(frame);
-			if (useChessBoard && (count % 5) == 0)
-			{
-				Mat temp;
-				cv::resize(frame, temp, cv::Size(640, 480));
-				if (canDetectMyBoard(frame))
-				{
-					break;
-				}
-			}
-
-			Mat add_mask = MaskFactory::getColorMask(frame(globalROI),color);// prev_mask & mask;
-			Mat tmp_frame;
-			frame(globalROI).copyTo(tmp_frame, add_mask);
-			Mat tmp_prev;
-			prev(globalROI).copyTo(tmp_prev, add_mask);
-			for (int i = 0; i < ROIs.size(); i++)
-			{
-				Mat tmpMask = add_mask(ROIs[i]);
-				Utilities::getDiffInVchannelHSV(tmp_prev, tmp_frame, ROIs[i], frames[i], tmpMask);
-			}
-			prev = frame.clone();
-		}
 		return frames;
 	}
 
@@ -1921,7 +1807,7 @@ public:
 			for (; cap.read(frame); starting_index++)
 			{
 				// this loop to detect the first chess board
-				if (canDetectMyBoard(frame))
+				if (canDetectMyBoard(frame, Parameters::patternsize))
 				{
 					starting_index++;
 					break;
@@ -2356,18 +2242,18 @@ public:
 	// boarderPercentage that will be white
 	// patternsize is the number of interior points
 	// return BGR image
-	static Mat createChessBoard()
+	static Mat createChessBoard(cv::Size patternSize)
 	{
 		double boarderPercentage = 0.95;
 		Mat board = 255 * Mat::ones(Utilities::getFrameSize(), CV_8UC1);
 		cv::cvtColor(board, board, CV_GRAY2BGR);
-		int xStep = (board.cols * boarderPercentage) / (Parameters::patternsize.width + 1);
-		int yStep = (board.rows * boarderPercentage) / (Parameters::patternsize.height + 1);
+		int xStep = (board.cols * boarderPercentage) / (patternSize.width + 1);
+		int yStep = (board.rows * boarderPercentage) / (patternSize.height + 1);
 		int xStart = (board.cols * (1 - boarderPercentage)) / 2;
 		int yStart = (board.rows * (1 - boarderPercentage)) / 2;
-		for (int x = 0; x <= Parameters::patternsize.width; x += 2)
+		for (int x = 0; x <= patternSize.width; x += 2)
 		{
-			for (int y = 0; y <= Parameters::patternsize.height; y += 2)
+			for (int y = 0; y <= patternSize.height; y += 2)
 			{
 				cv::rectangle(board,
 					cv::Point(xStart + x*xStep, yStart + y*yStep),
@@ -2377,9 +2263,9 @@ public:
 
 			}
 		}
-		for (int x = 1; x <= Parameters::patternsize.width; x += 2)
+		for (int x = 1; x <= patternSize.width; x += 2)
 		{
-			for (int y = 1; y <= Parameters::patternsize.height; y += 2)
+			for (int y = 1; y <= patternSize.height; y += 2)
 			{
 				cv::rectangle(board,
 					cv::Point(xStart + x*xStep, yStart + y*yStep),
@@ -2572,7 +2458,7 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat &img)
+	static bool canDetectMyBoard(Mat &img, cv::Size patternSize)
 	{
 		// create the gray image
 		Mat gray;//source image
@@ -2594,7 +2480,7 @@ public:
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
 		//that do not contain any chessboard corners
-		return findChessboardCorners(gray, Parameters::patternsize, corners,
+		return findChessboardCorners(gray, patternSize, corners,
 			CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
 			+ CALIB_CB_FAST_CHECK);
 	}

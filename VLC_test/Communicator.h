@@ -73,7 +73,7 @@ public:
 		{
 		case SYNCH_CHESS:
 		{
-			Mat chess = Utilities::createChessBoard();
+			Mat chess = Utilities::createChessBoard(Parameters::patternsize);
 			Parameters::globalROI = Utilities::detectMyBoard(chess);
 			break;
 		}
@@ -163,12 +163,15 @@ public:
 			if (end)
 			{
 				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
+				cv::Size endPatternSize = Parameters::patternsize;
+				endPatternSize.width--; endPatternSize.height--;
+
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(endPatternSize));
 				//vidWriter.release();
 			}
 			else
 			{
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard());
+				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(Parameters::patternsize));
 				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
 				addNonModulatedFrames(Parameters::fps);
 			}
