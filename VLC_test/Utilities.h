@@ -1884,12 +1884,7 @@ public:
 			endSecond << (Parameters::endingIndex * 1.0) / framerate;
 			endSecond.close();
 		}
-		//framerate = 30; // because we sample at 30 fps
-		if (((Parameters::endingIndex - Parameters::startingIndex) / framerate) < 3)
-		{
-			Parameters::start_second = cap.get(CV_CAP_PROP_POS_MSEC) * 1.0 / 1000.0;
-			return getVideoFrameLuminancesSplitted(videoName, percent, framerate, sideA,sideB, useGlobalROI, spatialRedundancy, color);
-		}
+		
 		return frames;
 	}
 
