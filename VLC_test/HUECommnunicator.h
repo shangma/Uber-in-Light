@@ -59,7 +59,7 @@ public:
 		{
 			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
 		}
-		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, false);
+		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, 1,1);
 	}
 	vector<Mat> calcMasksData(Mat &img,int OneVal = 1)
 	{
@@ -154,16 +154,17 @@ public:
 	{
 		Parameters::CommunicatorSpecificSplit = 1;
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, 1, true, false);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1, 1, true, 1,1);
 		vector<float> frames_BGR[4];
 		for (int i = 0; i < frames[0].size(); i++)
 		{
 			frames_BGR[i % 4].push_back(frames[0][i]);
 		}
 		vector<short> tmp_res[4];
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
 		for (int i = 0; i < 4; i++)
 		{
-			tmp_res[i] = receive2(frames_BGR[i], fps);
+			tmp_res[i] = receive2(frames_BGR[i], fps, frames_per_symbol);
 		}
 		vector<short> res;
 		for (int i = 0; i < tmp_res[0].size(); i++)

@@ -59,7 +59,7 @@ public:
 			amplitudes[1].push_back(0);
 			amplitudes[2].push_back(-amplitudes[0][i]);
 		}
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
 
@@ -70,7 +70,7 @@ public:
 	{
 		Parameters::BKGMaskThr = 300;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps, 
-			Parameters::sideA, Parameters::sideB, true, false);
+			Parameters::sideA, Parameters::sideB, true, 1,1);
 		vector<vector<float> > BRDiff;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -81,7 +81,53 @@ public:
 			}
 			BRDiff.push_back(temp);
 		}
-		return receiveN(BRDiff, Parameters::fps);
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
+		return receiveN(BRDiff, Parameters::fps, frames_per_symbol);
+	}
+	vector<short> receive_new(string fileName, double ROI_Ratio)
+	{
+		int div = 3;
+		Parameters::BKGMaskThr = 300;
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
+			Parameters::sideA, Parameters::sideB, true, div, 1);
+		vector<vector<float> > BRDiff;// (frames.size() / 3, vector<float>());
+
+		for (int i = 0; i < frames.size(); i++)
+		{
+			vector<float> temp;
+			for (int j = 0; j < frames[i].size(); j += 3)
+			{
+				temp.push_back(frames[i][j] - frames[i][j + 2]);
+			}
+			BRDiff.push_back(temp);
+		}
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
+		vector<short> tmp_res[10];
+
+		for (int i = 0; i < div; i++)
+		{
+			vector<vector<float> > tmp_BRDiff;
+			for (int j = i; j < BRDiff.size(); j += div)
+			{
+				tmp_BRDiff.push_back(BRDiff[j]);
+			}
+			tmp_res[i] = receiveN(tmp_BRDiff, Parameters::fps, frames_per_symbol);
+		}
+		vector<short> res(tmp_res[0].size(), 0 );
+
+		for (int i = 0; i < tmp_res[0].size(); i++)
+		{
+			int votes[] = { 0, 0 };
+			for (int j = 0; j < div; j++)
+			{
+				votes[tmp_res[j][i]]++;
+			}
+			if (votes[1] > votes[0])
+			{
+				res[i] = 1;
+			}
+		}
+		return res;
 	}
 };
 

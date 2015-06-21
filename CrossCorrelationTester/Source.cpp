@@ -290,12 +290,14 @@ public:
 
 int main(int argc, char** argv)
 {
-	if (argc != 2)
+	int fps = 30;
+	if (argc != 3)
 	{
-		puts("Usage: TestCrossCorrelation <file_name>");
+		puts("Usage: TestCrossCorrelation <file_name> <fps>");
 		puts("Exiting");
 		return 0;
 	}
+	fps = stoi(argv[2]);
 	Parameters::symbolsData.readData("8Freq8org.symbol");
 	ifstream inpf(argv[1]);
 	vector<vector<float> > data;
@@ -314,7 +316,7 @@ int main(int argc, char** argv)
 	}
 	// then reshape
 	int frame_per_symbol = data[0].size();
-	int fps = 30;
+	
 	Communicator comm;
 	vector<float> frames;
 	for (int i = 0; i < data.size(); i++)

@@ -59,7 +59,7 @@ public:
 		{
 			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
 		}
-		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, true);
+		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, 2,1);
 	}
 	virtual void sendImageMainLoop()
 	{
@@ -112,16 +112,17 @@ public:
 		Parameters::BKGMaskThr = 10;
 		Parameters::CommunicatorSpecificSplit = 1;
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, 2,1);
 		vector<float> frames_BGR[3];
 		for (int i = 0; i < frames[0].size(); i++)
 		{
 			frames_BGR[i % 3].push_back(frames[0][i] - frames[1][i]);
 		}
 		vector<short> tmp_res[3];
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
 		for (int i = 0; i < 3; i++)
 		{
-			tmp_res[i] = receive2(frames_BGR[i], fps);
+			tmp_res[i] = receive2(frames_BGR[i], fps, frames_per_symbol);
 		}
 		vector<short> res;
 		for (int i = 0; i < tmp_res[0].size(); i++)

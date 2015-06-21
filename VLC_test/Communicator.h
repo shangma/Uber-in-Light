@@ -263,14 +263,13 @@ public:
 	}
 
 	
-	vector<short> receive2(vector<float> frames, int fps)
+	vector<short> receive2(vector<float> frames, int fps,int frames_per_symbol)
 	{
 		/*for (int i = 0; i < frames.size(); i++)
 		{
 			printf("%f\n", frames[i]);
 		}
 		*/
-		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
 			vector<double> symbolDataVec;
@@ -463,25 +462,21 @@ public:
 	virtual vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,1,true,false)[0];
-		return receive2(frames, fps);
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps,1,1,true,1,1)[0];
+		return receive2(frames, fps, frames_per_symbol);
 	}
 
-	// receive with a certain ROI ratio
-	virtual vector<short> receiveColor(string fileName, double ROI_Ratio, cv::Scalar color)
-	{
-		puts("color");
-		int fps = 0;
-		vector<float> frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 1,1, true, false,color)[0];
-		return receive2(frames, fps);
-	}
+
 
 	// receive with a certain ROI ratio
 	void receiveWithSelectionByHand(string fileName)
 	{
 		int fps = 0;
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+
 		vector<float> frames = Utilities::getVideoFrameLuminances(fileName, fps);
-		receive2(frames, fps);
+		receive2(frames, fps, frames_per_symbol);
 	}
 
 };

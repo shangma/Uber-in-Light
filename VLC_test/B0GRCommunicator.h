@@ -69,7 +69,7 @@ public:
 		}
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,7 +78,7 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
-			Parameters::sideA, Parameters::sideB, true, false);
+			Parameters::sideA, Parameters::sideB, true, 1,1);
 		vector<vector<float> > frames_GR;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -94,6 +94,7 @@ public:
 			frames_GR.push_back(G);
 			frames_GR.push_back(R);
 		}
-		return receiveN(frames_GR, Parameters::fps);
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
+		return receiveN(frames_GR, Parameters::fps, frames_per_symbol);
 	}
 };

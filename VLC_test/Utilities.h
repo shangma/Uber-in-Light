@@ -449,6 +449,7 @@ public:
 				retData[color] = (int*)ret[color]->data;
 			}
 		}
+		multiset<int> medians[3];
 		for (int r = roi.y; r < rows; r++)
 		{
 			for (int c = roi.x; c < cols; c++, j++, i++)
@@ -464,6 +465,7 @@ public:
 							retData[color][j] = tempColor;
 						}
 						sumBGR[color] += tempColor;
+						//medians[color].insert(tempColor);
 						countBGR[color]++;
 					}
 				}
@@ -475,6 +477,15 @@ public:
 			float val = sumBGR[color];
 			amplitudes.push_back(val / countBGR[color]);
 		}
+		// try to return median
+		/*
+		for (int color = 0; color < 3; color++)
+		{
+			multiset<int>::iterator itr = medians[color].begin();
+			for (int j = 0; j < countBGR[color] / 2; j++, itr++);
+
+			amplitudes.push_back(*itr);
+		}*/
 	}
 	// get differnce between neighbour frames
 	// and get difference between B and R channels
@@ -1024,7 +1035,8 @@ public:
 	// frame_height: frame Height
 	// percent: percentage to crop from the image
 	// cropInclusive: means crop this percentage from each section after dividing while false means crop this percentage from the whole frame then divide 
-	static vector<cv::Rect> getDivisions(int sideWidth,int sideHeight,double percent,bool cropInclusive,cv::Rect globalROI,bool translateToOriginal,bool spatialRedundancy)
+	static vector<cv::Rect> getDivisions(int sideWidth,int sideHeight,double percent,bool cropInclusive,cv::Rect globalROI,
+		bool translateToOriginal,int cellWidthDivisions,int cellHeightDivisions)
 	{
 		int frame_width, frame_height;
 		frame_width = globalROI.width;
@@ -1079,13 +1091,20 @@ public:
 				ROIs[i].y += globalROI.y;
 			}
 		}
-		if (spatialRedundancy)
+		if (cellWidthDivisions * cellHeightDivisions > 1)
 		{
 			vector<Rect> tempROIs;
 			for (int i = 0; i < ROIs.size(); i++)
 			{
-				tempROIs.push_back(cv::Rect(ROIs[i].x, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
-				tempROIs.push_back(cv::Rect(ROIs[i].x + ROIs[i].width / 2, ROIs[i].y, ROIs[i].width / 2, ROIs[i].height));
+				int newWidth = ROIs[i].width / cellWidthDivisions;
+				int newHeight = ROIs[i].height / cellHeightDivisions;
+				for (int y = 0, yy = 0; yy < cellHeightDivisions; yy++, y+=newHeight)
+				{
+					for (int x = 0, xx = 0; xx < cellWidthDivisions;xx++, x+=newWidth)
+					{
+						tempROIs.push_back(cv::Rect(ROIs[i].x + x, ROIs[i].y + y, newWidth, newHeight));
+					}
+				}
 			}
 			return tempROIs;
 		}
@@ -1845,14 +1864,16 @@ public:
 		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 		return globalROI;
 	}
+
 	/// get video frames luminance (this is the split version which splits the image into two)
 	// video name as input
 	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
 	// int &framerate: is output parameter
 	// divisions: supports 2 and 4 only for now
 	// ROI: is the area of interest only for the whole image
-	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, int sideA,int sideB,bool useGlobalROI,
-		bool spatialRedundancy,cv::Scalar color = cv::Scalar(-1,-1,-1))
+	static vector<vector<float> > getVideoFrameLuminancesSplitted(string videoName, double percent, int &framerate, 
+		int sideA,int sideB,bool useGlobalROI,
+		int cellWidthDiv,int cellHeightDiv)
 	{
 		vector<vector<float> > frames;
 		VideoCapture cap(videoName); // open the default camera
@@ -1874,16 +1895,9 @@ public:
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
 		// the ROI		
-		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, true, spatialRedundancy);
+		vector<cv::Rect> ROIs = getDivisions(sideA,sideB, percent, false, Parameters::globalROI, true, cellWidthDiv, cellHeightDiv);
 		
 		frames = getVideoFrameLuminances(cap, ROIs, framerate, Parameters::globalROI);
-		
-		if (Parameters::endSecondFile.length() > 0)
-		{
-			ofstream endSecond(Parameters::endSecondFile);
-			endSecond << (Parameters::endingIndex * 1.0) / framerate;
-			endSecond.close();
-		}
 		
 		return frames;
 	}

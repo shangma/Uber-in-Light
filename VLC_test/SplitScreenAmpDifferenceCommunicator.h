@@ -58,7 +58,7 @@ public:
 		
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		 
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, true);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2,1);
 		sections = Parameters::sideA* Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()
@@ -107,7 +107,8 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, Parameters::sideA, Parameters::sideB, true, true);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 
+			Parameters::sideA, Parameters::sideB, true, 2,1);
 		vector<vector<float> > amplitude_difference;
 		for (int j = 0; j < frames.size(); j += 2)
 		{
@@ -118,7 +119,9 @@ public:
 			}
 			amplitude_difference.push_back(tmp);
 		}
-		return receiveN(amplitude_difference, fps);
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+
+		return receiveN(amplitude_difference, fps, frames_per_symbol);
 	}
 };
 

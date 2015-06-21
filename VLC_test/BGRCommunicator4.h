@@ -62,7 +62,7 @@ public:
 			amplitudes[0].push_back(-amplitudes[1][i]);
 			amplitudes[2].push_back(-amplitudes[1][i]);
 		}
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
-			Parameters::sideA, Parameters::sideB, true, false);
+			Parameters::sideA, Parameters::sideB, true, 1,1);
 		vector<vector<float> > G_BRDiff;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -82,7 +82,8 @@ public:
 			}
 			G_BRDiff.push_back(temp);
 		}
-		return receiveN(G_BRDiff, Parameters::fps);
+		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
+		return receiveN(G_BRDiff, Parameters::fps, frames_per_symbol);
 	}
 };
 

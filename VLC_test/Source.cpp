@@ -587,15 +587,8 @@ int Properties::testSendReceive(int argc, char** argv)
 		{
 
 			// then we have ROI
-			vector<short> received;
-			if (!color)
-			{
-				received = communicator->receive(inputFileName, ROI);
-			}
-			else
-			{
-				received = communicator->receiveColor(inputFileName, ROI, cv::Scalar(0, 0, 230));
-			}
+			vector<short> received = communicator->receive(inputFileName, ROI);
+			
 			for (int i = 0; i < msg.size(); i++)
 			{
 				cout << msg[i];

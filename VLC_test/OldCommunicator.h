@@ -46,8 +46,9 @@ public:
 	{
 		int fps = 0;
 		vector<float> frames = Utilities::getVideoFrameLuminancesOLd(fileName, fps, true, true);
-		
-		return receive2(frames, 30);
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+
+		return receive2(frames, 30, frames_per_symbol);
 	}
 };
 

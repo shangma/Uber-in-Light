@@ -50,6 +50,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <random>
 #include <map>
+#include <set>
 
 using namespace cv;
 using namespace std;

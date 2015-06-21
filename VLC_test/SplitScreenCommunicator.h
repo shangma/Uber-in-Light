@@ -54,7 +54,7 @@ public:
 		
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, false);
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()
@@ -108,9 +108,9 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	vector<short> receiveN(vector<vector<float> > frames, int fps)
+	vector<short> receiveN(vector<vector<float> > frames, int fps,int frames_per_symbol)
 	{
-		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+		
 		sections = frames.size();// Parameters::sideA * Parameters::sideB;
 		vector<short> result;
 		if (frames.size() == 0)
@@ -118,7 +118,7 @@ public:
 		vector<vector<short>> vt;
 		for (int k = 0; k < sections; k++)
 		{
-			vt.push_back(receive2(frames[k], fps));
+			vt.push_back(receive2(frames[k], fps, frames_per_symbol));
 		}
 		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
 		for (int i = 0; i < vt[0].size(); i += symbolSize)
@@ -139,8 +139,11 @@ public:
 	{
 		//Parameters::BKGMaskThr = 300;
 		int fps = 0;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, Parameters::sideA, Parameters::sideB, true, false);
-		return receiveN(frames, fps);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, fps, 
+			Parameters::sideA, Parameters::sideB, true, 1,1);
+		int frames_per_symbol = fps * Parameters::symbolTime / 1000;
+
+		return receiveN(frames, fps, frames_per_symbol);
 	}
 };
 
