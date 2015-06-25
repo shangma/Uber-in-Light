@@ -30,60 +30,89 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "BGRCommunicator.h"
-
-/*
-Do you mean brightness? Perceived brightness? Luminance?
-
-Luminance (standard for certain colour spaces): (0.2126*R + 0.7152*G + 0.0722*B) [1]
-Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B) [2]
-Luminance (perceived option 2, slower to calculate): sqrt( 0.299*R^2 + 0.587*G^2 + 0.114*B^2 )
-*/
-class BGRCommunicator4 :
-	public BGRCommunicator
+#include "BGRCommunicator2.h"
+class BGRSpatialCommunicator :
+	public BGRCommunicator2
 {
 public:
-	////////////////////////////// Green only ///////////////////////////
+	////////////////////////////// Split Amplitude ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_RGB4_" + outputVideoFile;
+		return "_RGBSpatial_" + outputVideoFile;
 	}
 	virtual void initCommunication()
 	{
-		// b
-		amplitudes.push_back(vector<float>());
-		// g
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		// r
-		amplitudes.push_back(vector<float>());
-		for (int i = 0; i < amplitudes[1].size(); i++)
+		
+		// we need the following
+		// modulation rate 
+		int modulationRate = 60;
+		// sample width
+		framesForSymbol = (modulationRate * Parameters::symbolTime) / 1000;
+		
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, framesForSymbol, 1);
+		sections = ROIs.size();
+		vector<float> tmpWave = WaveGenerator::createWaveGivenFPS(msg, modulationRate, Parameters::symbolTime);
+		int num = tmpWave.size() / ROIs.size();
+		num *= ROIs.size();
+		tmpWave.resize(num, 0);
+
+		vector<float> finalWave(num * 2, 0);
+		for (int i = 0; i < tmpWave.size(); i++)
 		{
-			amplitudes[0].push_back(-amplitudes[1][i]);
-			amplitudes[2].push_back(-amplitudes[1][i]);
+			finalWave[i * 2] = tmpWave[i];
+			finalWave[i * 2 + 1] = -tmpWave[i];
 		}
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
-		sections = Parameters::sideA * Parameters::sideB;
+
+		amplitudes.push_back(finalWave);
+
+		framesForSymbol = 2;// (Parameters::fps * Parameters::symbolTime) / 1000;
+		amplitudes.push_back(vector<float>());
+		amplitudes.push_back(vector<float>());
+		for (int i = 0; i < amplitudes[0].size(); i++)
+		{
+			amplitudes[1].push_back(0);
+			amplitudes[2].push_back(-amplitudes[0][i]);
+		}
+		
+		
 	}
+
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
+		int modulationFreq = 60;// (500 / Parameters::sideA);
+		Parameters::BKGMaskThr = 300;
+		int frames_per_symbol = modulationFreq * Parameters::symbolTime / 1000;
+
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
-			Parameters::sideA, Parameters::sideB, true, 1,1);
-		vector<vector<float> > G_BRDiff;
+			Parameters::sideA, Parameters::sideB, true, frames_per_symbol, 1);
+
+		vector<vector<float> > BRDiff;
 		for (int i = 0; i < frames.size(); i++)
 		{
 			vector<float> temp;
 			for (int j = 0; j < frames[i].size(); j += 3)
 			{
-				temp.push_back(frames[i][j + 1] - frames[i][j] - frames[i][j + 2]);
+				temp.push_back(frames[i][j] - frames[i][j + 2]);
 			}
-			G_BRDiff.push_back(temp);
+			BRDiff.push_back(temp);
 		}
-		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
-		return receiveN(G_BRDiff, Parameters::fps, frames_per_symbol);
+		//return receiveN(BRDiff, Parameters::fps, frames_per_symbol);
+		vector<short> res;
+		for (int i = 1; i < BRDiff[0].size(); i += 2)
+		{
+			vector<float> tmpWave;
+			for (int j = 0; j < BRDiff.size(); j++)
+			{
+				tmpWave.push_back(BRDiff[j][i]);
+			}
+			// then receive
+			vector<short> tmpRes = receive2(tmpWave, modulationFreq, frames_per_symbol);
+			res.insert(res.end(), tmpRes.begin(), tmpRes.end());
+		}
+		return res;
 	}
 };
 

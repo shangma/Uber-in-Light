@@ -58,9 +58,9 @@ public:
 		// blue
 		amplitudes.push_back(vector<float>());
 		// green
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0]));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0], Parameters::fps, Parameters::symbolTime));
 		//red
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1]));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime));
 
 		// then add the green channel as the inverse of the other two channels
 		for (int i = 0; i < amplitudes[1].size(); i++)

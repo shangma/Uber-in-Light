@@ -50,7 +50,7 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		amplitudes.push_back(vector<float>());
 		amplitudes.push_back(vector<float>());
@@ -86,7 +86,7 @@ public:
 	}
 	vector<short> receive_new(string fileName, double ROI_Ratio)
 	{
-		int div = 3;
+		int div = 2;
 		Parameters::BKGMaskThr = 300;
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
 			Parameters::sideA, Parameters::sideB, true, div, 1);
@@ -104,7 +104,8 @@ public:
 		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
 		vector<short> tmp_res[10];
 
-		for (int i = 0; i < div; i++)
+		//for (int i = 0; i < div; i++)
+		int i = 0;
 		{
 			vector<vector<float> > tmp_BRDiff;
 			for (int j = i; j < BRDiff.size(); j += div)
@@ -113,6 +114,8 @@ public:
 			}
 			tmp_res[i] = receiveN(tmp_BRDiff, Parameters::fps, frames_per_symbol);
 		}
+		return tmp_res[0];
+		/*
 		vector<short> res(tmp_res[0].size(), 0 );
 
 		for (int i = 0; i < tmp_res[0].size(); i++)
@@ -128,6 +131,7 @@ public:
 			}
 		}
 		return res;
+		*/
 	}
 };
 

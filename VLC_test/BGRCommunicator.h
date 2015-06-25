@@ -62,7 +62,7 @@ public:
 		}
 		for (int i = 0; i < 3; i++)
 		{
-			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i]));
+			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i], Parameters::fps, Parameters::symbolTime));
 		}
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 

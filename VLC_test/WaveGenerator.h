@@ -37,13 +37,13 @@ class WaveGenerator
 {
 public:
 	// symbol_time: how many milliseconds will the symbol last
-	static vector<float> createWaveGivenFPS(vector<SymbolData> &msg,bool sampling = true)
+	static vector<float> createWaveGivenFPS(vector<SymbolData> &msg,int fps,int symbolTime, bool sampling = true)
 	{
 		if (sampling)
 		{
-			return createWaveBySampling(Parameters::fps, msg, Parameters::symbolTime);
+			return createWaveBySampling(fps, msg, symbolTime);
 		}
-		return createWaveAssumingIntegers(Parameters::fps, msg, Parameters::symbolTime);
+		return createWaveAssumingIntegers(fps, msg, symbolTime);
 	}
 	static vector<float> createWaveAssumingIntegers(double frequency, vector<SymbolData> &msg, int symbol_time)
 	{

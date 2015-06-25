@@ -1020,6 +1020,10 @@ public:
 			for (int i = 0; i < ROIsSize; i++)
 			{
 				//extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
+				//Mat tmp = frame - prev;
+				//tmp *= 255;
+				//imshow("tmp", tmp);
+				//cv::waitKey();
 				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
 			}
 			prev = frame.clone();
@@ -1387,6 +1391,11 @@ public:
 		vector<int> &best_start, vector<int> &best_end, vector<int> &test_start, int absolute = 0, int display = 0)
 	{
 		vector<double> bestVal(signals.size(), 0);
+		if (end >= test.size())
+		{
+			end = test.size();
+			end--;
+		}
 		int tsz = end - start + 1;
 		int ssz = signals[0].size();
 		for (int shift = -ssz + 1; shift < tsz - 1; shift++)
