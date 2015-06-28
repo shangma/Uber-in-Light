@@ -53,7 +53,7 @@ protected:
 		Utilities::writeFrame(vidWriter,frame);
 	}
 public:
-	void setCommonParameters(vector<short> &msg, string outputVideoFile)
+	virtual void setCommonParameters(vector<short> &msg, string outputVideoFile)
 	{
 		this->shortMsg = msg;
 		this->msg = Parameters::symbolsData.getMsgSymbols(msg);
@@ -69,18 +69,8 @@ public:
 			frequencies.close();
 		}
 		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
-		switch (Parameters::synchMethod)
-		{
-		case SYNCH_CHESS:
-		{
-			Mat chess = Utilities::createChessBoard(Parameters::patternsize);
-			Parameters::globalROI = Utilities::detectMyBoard(chess);
-			break;
-		}
-		case SYNCH_GREEN_CHANNEL:
-			Parameters::globalROI = cv::Rect(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
-			break;
-		}
+		
+		Parameters::globalROI = Utilities::createChessBoardDataRect();
 	}
 	bool initImage(string inputImage, vector<short> &msg, string outputVideoFile)
 	{
@@ -119,61 +109,77 @@ public:
 		}
 		return false;
 	}
+	void addChessSynchFrame(bool end)
+	{
+		if (end)
+		{
+			//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+			cv::Size endPatternSize = Parameters::patternsize;
+			endPatternSize.width--; endPatternSize.height--;
+
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(endPatternSize));
+			//vidWriter.release();
+		}
+		else
+		{
+			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(Parameters::patternsize));
+			//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
+			addNonModulatedFrames(Parameters::fps);
+		}
+	}
+	void addGreenChannelSynchFrames(bool end)
+	{
+		double frameIndex = 0;
+
+		vector<float> wave = Utilities::createPreambleWave();
+		cv::Rect rect(0, 0, Parameters::DefaultFrameSize.width, Parameters::DefaultFrameSize.height);
+		int i = 0;
+		for (int j = 0; j < wave.size(); j++, i++)
+		{
+			if (Parameters::realVideo)
+			{
+				if (i >= frameIndex)
+				{
+					frameIndex += inputFrameUsageFrames;
+					videoReader.read(img);
+					cv::resize(img, img, Utilities::getFrameSize());
+				}
+			}
+			vector<Mat> BGR;
+			cv::split(img, BGR);
+
+			
+			Utilities::updateFrameWithVchannel(BGR[0], rect , wave[j]);
+			Utilities::updateFrameWithVchannel(BGR[0], Parameters::globalROI, -2 * wave[j]);
+
+			Utilities::updateFrameWithVchannel(BGR[1], rect, -wave[j]);
+			Utilities::updateFrameWithVchannel(BGR[1], Parameters::globalROI, 2 * wave[j]);
+			
+			Utilities::updateFrameWithVchannel(BGR[2], rect, wave[j]);
+			Utilities::updateFrameWithVchannel(BGR[2], Parameters::globalROI, -2 * wave[j]);
+
+			Mat frame;
+			cv::merge(BGR, frame);
+			writeFrame(frame);
+		}
+	}
 	void addSynchFrames(bool end)
 	{
 		switch (Parameters::synchMethod)
 		{
 		case SYNCH_GREEN_CHANNEL:
-		{
-			double frameIndex = 0;
-			
-			vector<float> wave(Parameters::fps / 2, 0);
-			vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 12, 0.008, -0.008);
-			wave.insert(wave.end(), tmp.begin(), tmp.end());
-			wave.resize(Parameters::fps * 3 / 2, 0);
-			tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 2, 9, 0.008, -0.008);
-			wave.insert(wave.end(), tmp.begin(), tmp.end());
-			wave.push_back(0);
-			int i = 0;
-			for (int j = 0; j < wave.size(); j++, i++)
-			{
-				if (Parameters::realVideo)
-				{
-					if (i >= frameIndex)
-					{
-						frameIndex += inputFrameUsageFrames;
-						videoReader.read(img);
-						cv::resize(img, img, Utilities::getFrameSize());
-					}
-				}
-				vector<Mat> BGR;
-				cv::split(img, BGR);
-
-				Utilities::updateFrameWithVchannel(BGR[0], Parameters::globalROI, -wave[j]);
-				Utilities::updateFrameWithVchannel(BGR[1], Parameters::globalROI, wave[j]);
-				Utilities::updateFrameWithVchannel(BGR[2], Parameters::globalROI, -wave[j]);
-
-				Mat frame;
-				cv::merge(BGR, frame);
-				writeFrame(frame);
-			}
-		}
+		
+			addGreenChannelSynchFrames(end);
+		
 		break;
 		case SYNCH_CHESS:
-			if (end)
+			addChessSynchFrame(end);
+		break;
+		case SYNCH_COMBINED:
+			addChessSynchFrame(end);
+			if (!end)
 			{
-				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
-				cv::Size endPatternSize = Parameters::patternsize;
-				endPatternSize.width--; endPatternSize.height--;
-
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(endPatternSize));
-				//vidWriter.release();
-			}
-			else
-			{
-				Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(Parameters::patternsize));
-				//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
-				addNonModulatedFrames(Parameters::fps);
+				addGreenChannelSynchFrames(end);
 			}
 			break;
 		}

@@ -906,6 +906,19 @@ public:
 		}
 	}
 
+	static vector<float> createPreambleWave()
+	{
+		vector<float> wave(Parameters::fps / 4, 0);
+		vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 12, 0.008, -0.008);
+		wave.insert(wave.end(), tmp.begin(), tmp.end());
+		wave.resize(Parameters::fps * 3 / 4, 0);
+		tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 9, 0.008, -0.008);
+		wave.insert(wave.end(), tmp.begin(), tmp.end());
+		wave.push_back(0);
+
+		return wave;
+	}
+
 	// this method is combining the system parameters into a string to be used in the output video name
 	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
@@ -1267,10 +1280,6 @@ public:
 	}
 	static void DetectGreenScreen(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, double &framerate, int &starting_index)
 	{
-		//int sz = frame_height * frame_width;
-		//int* accData = (int*)accumelation.data;
-
-		//cv::Size size = getFrameSize();
 		int width = frame_width;// getFrameSize().width;
 		int height = frame_height;// getFrameSize().height;
 		cv::Size size(width, height);
@@ -1290,9 +1299,6 @@ public:
 			while (cap.read(frame))
 			{
 				index++;
-				//cv::resize(frame, frame, size);
-				//cout << "Frame Index = " << << endl;
-				//frame.convertTo(frame, CV_32FC1);
 				vector<float> val;
 
 				getDiffBetweenFramesBR_G(prev, frame, tempROI, val, tmp_mask, temp);
@@ -1300,11 +1306,7 @@ public:
 				{
 					temp = -temp;
 				}
-				//cv::erode(temp, temp, Mat());
-				//cv::dilate(temp, temp, Mat());
-				//cv::erode(temp, temp, Mat());
-				//cv::dilate(temp, temp, Mat());
-
+			
 				accumelation = accumelation + temp - 0.5;
 				// for testing only
 				{
@@ -1314,12 +1316,7 @@ public:
 					imshow("bkg", bkg);
 					cv::waitKey(10);
 				}
-				//Mat temp1;
-				//cv::threshold(accumelation, temp1, 0, 1, THRESH_BINARY);
-				//Mat ret = temp1 * 255;
-				//double minn;
-				//cv::minMaxIdx(accumelation, &minn, 0);
-				//accumelation = accumelation - minn - 1;
+			
 				float maxSumVal;
 				maxSumBox.push_back(getMaxSum(accumelation, maxSumVal));
 				cout << "Index = " << index << endl;
@@ -1362,18 +1359,6 @@ public:
 						}
 					}
 				}
-				//diffMaxSumBox.push_back(cv::sum(temp(*maxSumBox.rbegin())).val[0]);
-				//int count = 0;
-				//double avg = 0;
-				//for (int i = max(0, ((int)diffMaxSumBox.size()) - 6); i < (int)diffMaxSumBox.size(); i++)
-				//{
-				//	avg += diffMaxSumBox[i];
-				//	count++;
-				//}
-				//cout << (int)(avg / count) << endl;
-				//getMaxSumDP(temp1, maxSumVal);
-				//ret.convertTo(test, CV_8UC1);
-				//Mat test = frame.clone();
 
 				cv::rectangle(prev, *maxSumBox.rbegin(), cv::Scalar(255, 0, 0), 4);
 				//cv::resize(prev, prev, Parameters::DefaultFrameSize);
@@ -1445,6 +1430,14 @@ public:
 
 		double t1 = (x.x * d2.y - x.y * d2.x) / cross;
 		r = o1 + d1 * t1;
+		return true;
+	}
+	static bool isPointOutside(Point2f&p, int cols,int rows)
+	{
+		if (p.x >= 0 && p.y < cols && p.y >= 0 && p.y < rows)
+		{
+			return false;
+		}
 		return true;
 	}
 	// input image needs to be transformed to gray
@@ -1543,9 +1536,13 @@ public:
 					{
 						vector<Point2f> p(4);
 						intersection(dir_lines[0][l], dir_lines[2][u], p[0]);
+						if (isPointOutside(p[0], src.cols, src.rows)) continue;
 						intersection(dir_lines[1][r], dir_lines[2][u], p[1]);
+						if (isPointOutside(p[1], src.cols, src.rows)) continue;
 						intersection(dir_lines[1][r], dir_lines[3][d], p[2]);
+						if (isPointOutside(p[2], src.cols, src.rows)) continue;
 						intersection(dir_lines[0][l], dir_lines[3][d], p[3]);
+						if (isPointOutside(p[3], src.cols, src.rows)) continue;
 						int c1 = 10000000, c2 = 0, r1 = 100000000, r2 = 0;
 						for (int i = 0; i < 4; i++)
 						{
@@ -1582,9 +1579,9 @@ public:
 				bestPts[(i + 1)%4], Scalar(255, 0, 0), 3, 8);
 		}
 		//imshow("source", tmp);
-		//imshow("detected lines", img);
+		imshow("detected lines", img);
 
-		//waitKey(0);
+		waitKey(0);
 		int c1 = 10000000, c2 = 0, r1 = 100000000, r2 = 0;
 		for (int i = 0; i < 4; i++)
 		{
@@ -1647,12 +1644,7 @@ public:
 				val.push_back(tmpVal[i + 1] - tmpVal[i] - tmpVal[i + 2]);
 			}
 			vector<vector<float> > signals;
-			vector<float> wave(framerate/2, 0);
-			vector<float> tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 12, MM_PI);
-			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
-			wave.resize(framerate * 3 / 2, 0);
-			tmpWave = WaveGenerator::createSampledSineWave(framerate, framerate / 2, 9, MM_PI);
-			wave.insert(wave.end(), tmpWave.begin(), tmpWave.end());
+			vector<float> wave = Utilities::createPreambleWave();
 			signals.push_back(wave);
 
 			vector<int> best_start(signals.size(), 0);

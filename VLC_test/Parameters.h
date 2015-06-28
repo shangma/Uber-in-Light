@@ -58,6 +58,7 @@ enum
 {
 	SYNCH_CHESS,
 	SYNCH_GREEN_CHANNEL,
+	SYNCH_COMBINED,
 };
 
 // try to read this from file
@@ -281,7 +282,7 @@ int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
-int Parameters::synchMethod = SYNCH_CHESS;
+int Parameters::synchMethod = SYNCH_COMBINED;
 cv::Mat Parameters::homography;
 int Parameters::liveTranmitter = 0;
 int Parameters::liveTranmitterCV = 0;

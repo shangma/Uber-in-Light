@@ -69,6 +69,15 @@ public:
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
+
+	// adding additional synchronization data
+	// the data should be in a form that can be recognized in each frame
+	// intially it is PSK with the screen width in the top and bottom lines
+	// with two phases only representing odd/even data frames
+	virtual void addSynchData(Mat &frame, int frameIndex,int dataIndex)
+	{
+		// 
+	}
 	
 	virtual void sendImageMainLoop()
 	{
