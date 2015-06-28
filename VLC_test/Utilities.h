@@ -919,6 +919,14 @@ public:
 		return wave;
 	}
 
+	static vector<float> createInterSynchWave()
+	{
+		vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 5, 14, 0.008, -0.008);
+		wave.push_back(0);
+
+		return wave;
+	}
+
 	// this method is combining the system parameters into a string to be used in the output video name
 	static string createOuputVideoName(string inputMessage,string inputVideoFile,string outputVideoFile)
 	{
@@ -983,6 +991,153 @@ public:
 		return false;
 	}
 
+	static double extractG_BR(Mat &frame, Rect &roi)
+	{
+		// new method
+		unsigned char * f = ((unsigned char*)frame.data);
+		int sz = frame.cols * frame.rows;
+		int rows = roi.y + roi.height;
+		int cols = roi.x + roi.width;
+		int j = 0;
+		int i = roi.y * frame.cols + roi.x;
+		int inc = frame.cols - roi.width;
+		int channels = frame.channels();
+		int* retData[3];
+		
+		int sum = 0;
+		for (int r = roi.y; r < rows; r++)
+		{
+			for (int c = roi.x; c < cols; c++, j++, i++)
+			{
+			
+				int bgr[4] = { 0, 0, 0, 0 };
+				for (int color = 0; color < channels; color++)
+				{
+					bgr[color] += (int)f[i * channels + color];
+				}
+				sum += (bgr[1] - (2 * bgr[1] + bgr[0] + bgr[2]) / 4);
+			}
+			i += inc;
+		}
+		return ((sum * 1.0) / sz);
+	}
+
+	static vector<double> extractAdditionalSynchData(Mat &frame, vector<Rect> &rois)
+	{
+		vector<double> ret;
+		for (int i = 0; i < rois.size(); i++)
+		{
+			ret.push_back(extractG_BR(frame, rois[i]));
+		}
+		return ret;
+	}
+
+	static Mat getGradient(Mat&src_gray)
+	{
+		Mat grad;
+
+		int scale = 1;
+		int delta = 0;
+		int ddepth = CV_16S;
+
+		GaussianBlur(src_gray, src_gray, Size(3, 3), 0, 0, BORDER_DEFAULT);
+
+		/// Generate grad_x and grad_y
+		Mat grad_x, grad_y;
+		Mat abs_grad_x, abs_grad_y;
+
+		/// Gradient X
+		//Scharr( src_gray, grad_x, ddepth, 1, 0, scale, delta, BORDER_DEFAULT );
+		Sobel(src_gray, grad_x, ddepth, 1, 0, 3, scale, delta, BORDER_DEFAULT);
+		convertScaleAbs(grad_x, abs_grad_x);
+
+		/// Gradient Y
+		//Scharr( src_gray, grad_y, ddepth, 0, 1, scale, delta, BORDER_DEFAULT );
+		Sobel(src_gray, grad_y, ddepth, 0, 1, 3, scale, delta, BORDER_DEFAULT);
+		convertScaleAbs(grad_y, abs_grad_y);
+
+		/// Total Gradient (approximate)
+		addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, grad);
+		imshow("X", abs_grad_x);
+		imshow("Y", abs_grad_y);
+		cv::waitKey();
+		return grad;
+	}
+	static int getIndexFromAdditionalSynchData(Mat &frame, vector<Rect> &rois1, vector<Rect> &rois2)
+	{
+		// check if first or second
+		// now the width is 5 cells
+		vector<double> data1 = extractAdditionalSynchData(frame, rois1);
+		vector<double> data2 = extractAdditionalSynchData(frame, rois2);
+		double res1 = 0;
+		for (int i = 0; i < data1.size(); i++)
+		{
+			res1 += (1 - 2 * (i&1)) * data1[i];
+		}
+		double res2 = 0;
+		for (int i = 0; i < data2.size(); i++)
+		{
+			res2 += (1 - 2 * (i & 1)) * data2[i];
+		}
+		res1 = abs(res1);
+		res2 = abs(res2);
+
+		if (res1 > res2)
+		{
+			return 1;
+		}
+		return 0;
+	}
+
+	static int getIndexFromAdditionalSynchData(Mat &frame, vector<Rect> &rois)
+	{
+		// check if first or second
+		// now the width is 5 cells
+		vector<double> data = extractAdditionalSynchData(frame, rois);
+		int testVectors[4] = { 1, -1, 1, -1 };
+		double res = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			res += testVectors[i] * data[i];
+		}
+		//res[0] = abs(res[0]);
+		//res[1] = abs(res[1]);
+
+		if (res > 0)
+		{
+			return 1;
+		}
+		return 0;
+	}
+
+	static int getIndexFromAdditionalSynchData1(Mat &frame, vector<Rect> &rois)
+	{
+		// edit ROIs
+		vector<Rect> newRois;
+		for (int i = 0; i < rois.size(); i += 2)
+		{
+			// the end of i
+			Rect tmp1(rois[i].x + rois[i].width - 3,rois[i].y,3,rois[i].height);
+			newRois.push_back(tmp1);
+			// the beginning of i + 1
+			Rect tmp2(rois[i + 1].x, rois[i].y, 3, rois[i].height);
+			newRois.push_back(tmp2);
+		}
+		// check if first or second
+		// now the width is 5 cells
+		vector<double> data = extractAdditionalSynchData(frame, newRois);
+		int sum = 0;
+		for (int i = 0; i < data.size(); i+=2)
+		{
+			sum += (data[i] - data[i + 1]);
+		}
+		if (sum > 0)
+		{
+			return 1;
+		}
+		return 0;
+	}
+
 	/// get video frames luminance
 	// VideoCapture as input
 	// ROI as input
@@ -1006,10 +1161,15 @@ public:
 		cv::Size endPatternSize = Parameters::patternsize;
 		endPatternSize.width--;
 		endPatternSize.height--;
+
+		vector<int> wavesLength;
+		int lastDataIndex = -1;
+		vector<vector<Rect> > TopBottom1 = Utilities::createTopBottomLayers(4,prev.size());
+		vector<vector<Rect> > TopBottom2 = Utilities::createTopBottomLayers(8,prev.size());
 		while (ReadNextFrame(cap, frame))
 		{
 			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
-			if (!(count++ & 3) && Parameters::synchMethod == SYNCH_CHESS)
+			if (!(count++ & 3) && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame, endPatternSize))
@@ -1039,6 +1199,16 @@ public:
 				//cv::waitKey();
 				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
 			}
+			int dataInd = getIndexFromAdditionalSynchData(frame, TopBottom1[0], TopBottom2[0]);
+			if (!wavesLength.size() || (wavesLength.size() && dataInd != lastDataIndex))
+			{
+				wavesLength.push_back(1);
+			}
+			else
+			{
+				wavesLength[wavesLength.size() - 1]++;
+			}
+			lastDataIndex = dataInd;
 			prev = frame.clone();
 		}
 		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
@@ -1604,7 +1774,7 @@ public:
 		}
 		return cv::Rect(c1, r1, c2 - c1 + 1, r2 - r1 + 1);
 	}
-	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, cv::Rect &globalROI, int &framerate, int &starting_index)
+	static void DetectGreenScreenCrossCorrelation(int frame_width, int frame_height, VideoCapture &cap, const int &framerate, int &starting_index)
 	{
 		//int sz = frame_height * frame_width;
 		//int* accData = (int*)accumelation.data;
@@ -1617,8 +1787,8 @@ public:
 		Mat prev, frame, accumelation = Mat::zeros(height, width, CV_32SC1);
 		cv::Rect tempROI = cv::Rect(0, 0, width, height);
 		vector<float> tmpVal(3, 0); // 3 channels
-		vector<Mat> frames(1, Mat::zeros(height, width, CV_32SC1));
-		vector<Mat> test_frames;
+		//vector<Mat> frames(1, Mat::zeros(height, width, CV_32SC1));
+		//vector<Mat> test_frames;
 		if (cap.read(prev))
 		{
 			cv::resize(prev, prev, size);
@@ -1626,7 +1796,7 @@ public:
 			int index = 0;
 			while (cap.read(frame) && index < framerate * 4)
 			{
-				test_frames.push_back(prev);
+				//test_frames.push_back(prev);
 				index++;
 				cv::resize(frame, frame, size);
 				Mat tmpRet[3] = { Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1) };
@@ -1635,7 +1805,7 @@ public:
 				ret[1] = &tmpRet[1];
 				ret[2] = &tmpRet[2];
 				getDiffInBGR(prev, frame, tempROI, tmpVal, 10, ret);
-				frames.push_back(tmpRet[1] - tmpRet[0] - tmpRet[2]);
+				//frames.push_back(tmpRet[1] - tmpRet[0] - tmpRet[2]);
 				prev = frame.clone();
 			}
 			vector<float> val;
@@ -1662,34 +1832,34 @@ public:
 			}
 			cout << best_start[bestInd] << "\t" << best_end[bestInd] << "\t" << test_start[bestInd] << "\t" << res[bestInd] << endl;
 			
-			for (int i = best_start[bestInd], j = 0; i < best_end[bestInd], j < signals[bestInd].size(); i++, j++)
-			{
-				if (val[i] > 0)
-				{
-					accumelation = accumelation + frames[i] - 1;
-				}
-				else
-				{
-					accumelation = accumelation - frames[i] - 1;
-				}
-				//cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
-			}
-			starting_index = best_end[bestInd];
-			float maxSumVal = 0;
-			globalROI = detectanddrawhough(accumelation.clone(), test_frames[starting_index]);
+			//for (int i = best_start[bestInd], j = 0; i < best_end[bestInd], j < signals[bestInd].size(); i++, j++)
+			//{
+			//	if (val[i] > 0)
+			//	{
+			//		accumelation = accumelation + frames[i] - 1;
+			//	}
+			//	else
+			//	{
+			//		accumelation = accumelation - frames[i] - 1;
+			//	}
+			//	//cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
+			//}
+			starting_index += best_end[bestInd];
+			//float maxSumVal = 0;
+			//globalROI = detectanddrawhough(accumelation.clone(), test_frames[starting_index]);
 			//globalROI = getMaxSum(accumelation, maxSumVal);
 			// and move it back to its original location
-			float colScale = ((float)frame_width) / width;
-			float rowScale = ((float)frame_height) / height;
+			//float colScale = ((float)frame_width) / width;
+			//float rowScale = ((float)frame_height) / height;
 
-			globalROI.x = globalROI.x * colScale;
-			globalROI.y = globalROI.y * rowScale;
-			globalROI.width = globalROI.width * colScale;
-			globalROI.height = globalROI.height * rowScale;
+			//globalROI.x = globalROI.x * colScale;
+			//globalROI.y = globalROI.y * rowScale;
+			//globalROI.width = globalROI.width * colScale;
+			//globalROI.height = globalROI.height * rowScale;
 
-			cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
-			imshow("rect", test_frames[starting_index]);
-			cv::waitKey(100);
+			//cv::rectangle(test_frames[starting_index], globalROI, cv::Scalar(0, 0, 255), 2);
+			//imshow("rect", test_frames[starting_index]);
+			//cv::waitKey(100);
 		}
 	}
 
@@ -1800,6 +1970,46 @@ public:
 		}
 	}
 
+	static cv::Rect detectGlobalROIChessBoard(VideoCapture &cap, int &starting_index, int framerate)
+	{
+		cv::Rect globalROI(0, 0, 1, 1);
+		Mat frame;
+		for (; cap.read(frame); starting_index++)
+		{
+			// this loop to detect the first chess board
+			if (canDetectMyBoard(frame, Parameters::patternsize))
+			{
+				starting_index++;
+				break;
+			}
+		}
+		//cout << "first index = " << starting_index << endl;
+		int countChess = 0;
+		int countErrors = 0;
+		for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
+		{
+			//cout << "found chess at index = " << starting_index << endl;
+			// this loop to detect the last chess board
+			cv::Rect tmp = detectMyBoard(frame);
+			if (tmp.width == 0)
+			{
+				countErrors++;
+			}
+			else
+			{
+				countErrors = 0;
+				globalROI = tmp;
+			}
+		}
+		if (framerate < 45)
+		{
+			starting_index--;
+		}
+		cap.set(CV_CAP_PROP_POS_FRAMES, starting_index);
+		cout << starting_index << endl;
+
+		return globalROI;
+	}
 
 	// this function is trying to find athe chess board and detect the last frame with the chess board and to detect the global ROI as well
 	static cv::Rect getGlobalROI(VideoCapture &cap, int &starting_index)
@@ -1818,49 +2028,18 @@ public:
 		int frame_height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 		cap.set(CV_CAP_PROP_POS_FRAMES, starting_index); //Set index to last frame
 		// try to detect the chess board
-		Mat frame;
+		
 		globalROI.width = frame_width;
 		globalROI.height = frame_height;
 		cout << "index before start = " << starting_index << endl;;
-		if (Parameters::synchMethod == SYNCH_CHESS)
+		if (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED)
 		{
-			for (; cap.read(frame); starting_index++)
-			{
-				// this loop to detect the first chess board
-				if (canDetectMyBoard(frame, Parameters::patternsize))
-				{
-					starting_index++;
-					break;
-				}
-			}
-			//cout << "first index = " << starting_index << endl;
-			int countChess = 0;
-			int countErrors = 0;
-			for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
-			{
-				//cout << "found chess at index = " << starting_index << endl;
-				// this loop to detect the last chess board
-				cv::Rect tmp = detectMyBoard(frame);
-				if (tmp.width == 0)
-				{
-					countErrors++;
-				}
-				else
-				{
-					countErrors = 0;
-					globalROI = tmp;
-				}
-			}
-			if (framerate < 45)
-			{
-				starting_index--;
-			}
-			cout << starting_index << endl;
+			globalROI = detectGlobalROIChessBoard(cap, starting_index, framerate);
 		}
-		else if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL)
+		
+		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 		{
-			DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, globalROI, framerate, starting_index);
-			//DetectGreenScreenFFT(frame_width, frame_height, cap, globalROI, framerate, starting_index);
+			DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, framerate, starting_index);
 		}
 		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
 		return globalROI;
@@ -2289,16 +2468,29 @@ public:
 		return board;
 	}
 
-	static Rect createChessBoardDataRect()
+	static Rect createChessBoardDataRect(cv::Size frameSize = Parameters::DefaultFrameSize)
 	{
 		double boarderPercentage = 0.95;
-		int xStart = (Parameters::DefaultFrameSize.width * (1 - boarderPercentage)) / 2;
-		int yStart = (Parameters::DefaultFrameSize.height * (1 - boarderPercentage)) / 2;
-		int w = Parameters::DefaultFrameSize.width * boarderPercentage;
-		int h = Parameters::DefaultFrameSize.height * boarderPercentage;
+		int xStart = (frameSize.width * (1 - boarderPercentage)) / 2;
+		int yStart = (frameSize.height * (1 - boarderPercentage)) / 2;
+		int w = frameSize.width * boarderPercentage;
+		int h = frameSize.height * boarderPercentage;
 
 		cv::Rect res(xStart, yStart, w, h);
 		return res;
+	}
+
+	static vector<vector<Rect> > createTopBottomLayers(int num, cv::Size frameSize = Parameters::DefaultFrameSize)
+	{
+		Rect roi = createChessBoardDataRect(frameSize);
+		vector<vector<Rect> > ret;
+		Rect top(0, 0, frameSize.width, roi.y);
+		ret.push_back(getDivisions(num, 1, 1, false, top, true, 1, 1));
+		
+		Rect bottom(0, roi.y + roi.height, frameSize.width, frameSize.height - roi.y - roi.height);
+		ret.push_back(getDivisions(num, 1, 1, false, bottom, true, 1, 1));
+
+		return ret;
 	}
 
 	static vector<Point2f> getChessBoardInternalCorners()

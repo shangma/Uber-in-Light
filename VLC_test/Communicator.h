@@ -45,6 +45,7 @@ protected:
 	Mat img;
 	vector<vector<float> > amplitudes;
 	vector<cv::Rect> ROIs;
+	vector<vector<cv::Rect> > additionalSynchRect[2];
 	vector<short> shortMsg;
 	vector<SymbolData> msg;
 	VideoCapture videoReader;
@@ -71,6 +72,9 @@ public:
 		vidWriter = Utilities::getVideoWriter(getVideoName(outputVideoFile), Utilities::getFrameSize());
 		
 		Parameters::globalROI = Utilities::createChessBoardDataRect();
+		// create the additional data rectangles
+		additionalSynchRect[0] = Utilities::createTopBottomLayers(4);
+		additionalSynchRect[1] = Utilities::createTopBottomLayers(8);
 	}
 	bool initImage(string inputImage, vector<short> &msg, string outputVideoFile)
 	{

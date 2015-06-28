@@ -74,15 +74,52 @@ public:
 	// the data should be in a form that can be recognized in each frame
 	// intially it is PSK with the screen width in the top and bottom lines
 	// with two phases only representing odd/even data frames
-	virtual void addSynchData(Mat &frame, int frameIndex,int dataIndex)
+	virtual void addSynchData(Mat &frame, int dataIndex)
 	{
-		// 
+		// check if data index is odd or even
+		// the green sign is poitive if the dataIndex is even and negative if odd
+		int greenSign = 1 - 2 * (dataIndex & 1);
+		double amplitude = 0.008;
+		for (int i = 0; i < additionalSynchRect[(dataIndex & 1)].size(); i++)
+		{
+			double tmpAmplitudes[] = { -greenSign * amplitude, greenSign * amplitude, -greenSign * amplitude };
+			for (int j = 0; j < 2; j++)
+			{
+				Utilities::updateFrameWithVchannel(frame, additionalSynchRect[(dataIndex & 1)][j][i], tmpAmplitudes);
+			}
+			// inverse for the following block
+			greenSign *= -1;
+		}
 	}
-	
+	virtual void addSynchWave(const vector<float>& wave, int &frameIndexComparison,double &frameIndex,int i)
+	{
+		for (int k = 0; k < wave.size(); k++, frameIndexComparison++)
+		{
+			if (frameIndexComparison >= frameIndex)
+			{
+				frameIndex += inputFrameUsageFrames;
+				videoReader.read(img);
+				cv::resize(img, img, Utilities::getFrameSize());
+			}
+			
+			Mat frame(img.clone());
+			double tmpAmplitudes[4];
+			
+			tmpAmplitudes[0] = -wave[k];
+			tmpAmplitudes[1] = wave[k];
+			tmpAmplitudes[2] = -wave[k];
+			
+			Utilities::updateFrameWithVchannel(frame, Parameters::globalROI, tmpAmplitudes);
+			writeFrame(frame);
+		}
+	}
+
 	virtual void sendImageMainLoop()
 	{
 		int amplitudes0_size = amplitudes[0].size();
 		int i_increment = (sections * framesForSymbol);
+		int dataIndex = 0;
+		vector<float> interSynchWave = Utilities::createInterSynchWave();
 		for (int i = 0; i < amplitudes0_size; i += i_increment)
 		{
 			for (int k = 0; k < framesForSymbol; k++)
@@ -104,7 +141,13 @@ public:
 				}
 				//Mat frame;
 				//cv::merge(BGR, frame);
+				//addSynchData(frame, dataIndex);
 				writeFrame(frame);
+			}
+			dataIndex++;
+			if (!(dataIndex % 10))
+			{
+				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}
 		}
 	}
@@ -113,6 +156,8 @@ public:
 		//double frameIndexIncrement = inputFrameUsageFrames*sections;
 		int ampitudesSize = amplitudes[0].size();
 		int i_increment = (sections * framesForSymbol);
+		int dataIndex = 0;
+		vector<float> interSynchWave = Utilities::createInterSynchWave();
 		for (int i = 0; i < ampitudesSize; i += i_increment)
 		{
 			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison++)
@@ -140,7 +185,13 @@ public:
 				}
 				//Mat frame;
 				//cv::merge(BGR, frame);
+				//addSynchData(frame, dataIndex);
 				writeFrame(frame);
+			}
+			dataIndex++;
+			if (!(dataIndex % 10))
+			{
+				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}
 		}
 	}
