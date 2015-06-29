@@ -1212,7 +1212,7 @@ public:
 				vector<int> test_start(signals.size(), 0);
 				testingStart += (Parameters::numSynchDataSymbols - 1) * frames_per_symbol;
 				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + 2 * frames_per_symbol, best_start, best_end, test_start);
-				testingStart = best_end[0] + 1;
+				testingStart += best_end[0];
 				Parameters::luminancesDivisionStarts.push_back(testingStart);
 			}
 		}
