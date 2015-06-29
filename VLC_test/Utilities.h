@@ -1162,13 +1162,10 @@ public:
 		endPatternSize.width--;
 		endPatternSize.height--;
 
-		vector<int> wavesLength;
-		int lastDataIndex = -1;
-		vector<vector<Rect> > TopBottom1 = Utilities::createTopBottomLayers(4,prev.size());
-		vector<vector<Rect> > TopBottom2 = Utilities::createTopBottomLayers(8,prev.size());
+		vector<float> interGreenSynch;
+		Parameters::luminancesDivisionStarts.push_back(0);
 		while (ReadNextFrame(cap, frame))
 		{
-			//if (Parameters::synchMethod == SYNCH_CHESS)// && (count % 3) == 0)
 			if (!(count++ & 3) && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
@@ -1183,33 +1180,41 @@ public:
 				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
-
-			//Mat add_mask = MaskFactory::getBackgroundMask(prev(globalROI), frame(globalROI));// prev_mask & mask;
-			//Mat tmp_frame_BGR;
-			//frame(globalROI).copyTo(tmp_frame_BGR, add_mask);
-			//Mat tmp_prev_BGR;
-			//prev(globalROI).copyTo(tmp_prev_BGR, add_mask);
-			//printf("%d\n", count);
+			float tmpBGR[3] = { 0, 0, 0 };
 			for (int i = 0; i < ROIsSize; i++)
 			{
-				//extractOneFrameLuminance(0, ROIs, frames, tmp_frame_BGR, tmp_prev_BGR, i);
-				//Mat tmp = frame - prev;
-				//tmp *= 255;
-				//imshow("tmp", tmp);
-				//cv::waitKey();
 				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
+				if (Parameters::synchMethod == SYNCH_COMBINED)
+				{
+					tmpBGR[0] += frames[i][frames[i].size() - 3];
+					tmpBGR[1] += frames[i][frames[i].size() - 2];
+					tmpBGR[2] += frames[i][frames[i].size() - 1];
+				}
 			}
-			int dataInd = getIndexFromAdditionalSynchData(frame, TopBottom1[0], TopBottom2[0]);
-			if (!wavesLength.size() || (wavesLength.size() && dataInd != lastDataIndex))
+			if (Parameters::synchMethod == SYNCH_COMBINED)
 			{
-				wavesLength.push_back(1);
+				interGreenSynch.push_back(tmpBGR[1] - tmpBGR[0] - tmpBGR[2]);
 			}
-			else
-			{
-				wavesLength[wavesLength.size() - 1]++;
-			}
-			lastDataIndex = dataInd;
 			prev = frame.clone();
+		}
+		// then update based on the inter synchronization
+		if (Parameters::synchMethod == SYNCH_COMBINED)
+		{
+			int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
+			int testingStart = 0; 
+			vector<vector<float> > signals;
+			vector<float> wave = Utilities::createInterSynchWave();
+			signals.push_back(wave);
+			while (testingStart + frames_per_symbol < interGreenSynch.size())
+			{
+				vector<int> best_start(signals.size(), 0);
+				vector<int> best_end(signals.size(), 0);
+				vector<int> test_start(signals.size(), 0);
+				testingStart += (Parameters::numSynchDataSymbols - 1) * frames_per_symbol;
+				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + 2 * frames_per_symbol, best_start, best_end, test_start);
+				testingStart = best_end[0] + 1;
+				Parameters::luminancesDivisionStarts.push_back(testingStart);
+			}
 		}
 		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
 		cout << "last index = " << Parameters::endingIndex << endl;

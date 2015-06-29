@@ -216,6 +216,8 @@ struct Parameters
 	static string displayName;
 	static int totalTime;
 	static int seed;
+	static int numSynchDataSymbols;
+	static vector<int> luminancesDivisionStarts;
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -293,3 +295,5 @@ bool Parameters::done = false;
 string Parameters::displayName = "Video";
 int Parameters::totalTime = 0;
 int Parameters::seed = 1;
+int Parameters::numSynchDataSymbols = 10;
+vector<int> Parameters::luminancesDivisionStarts;

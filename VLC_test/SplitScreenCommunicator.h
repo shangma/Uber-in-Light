@@ -108,13 +108,37 @@ public:
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	vector<short> receiveN(vector<vector<float> > frames, int fps,int frames_per_symbol)
+	vector<short> receiveNCombined(vector<vector<float> >& frames, int fps, int frames_per_symbol)
 	{
-		
+		vector<short> results;
+		if (Parameters::synchMethod == SYNCH_COMBINED)
+		{
+			// divide the frames
+			int divisionSize = frames_per_symbol * Parameters::numSynchDataSymbols;
+			for (int i = 0; i < Parameters::luminancesDivisionStarts.size(); i++)
+			{
+				vector<vector<float> > tmpFrames(frames.size(), vector<float>());
+				for (int j = 0; j < divisionSize && (j + Parameters::luminancesDivisionStarts[i]) < frames[0].size(); j++)
+				{
+					for (int k = 0; k < frames.size(); k++)
+					{
+						tmpFrames[k].push_back(frames[k][j + Parameters::luminancesDivisionStarts[i]]);
+					}
+				}
+				vector<short> tmpRes = receiveN(tmpFrames, fps, frames_per_symbol);
+				results.insert(results.end(), tmpRes.begin(), tmpRes.end());
+			}
+		}
+		return results;
+	}
+
+	vector<short> receiveN(vector<vector<float> >& frames, int fps,int frames_per_symbol)
+	{
 		sections = frames.size();// Parameters::sideA * Parameters::sideB;
 		vector<short> result;
 		if (frames.size() == 0)
 			return result;
+
 		vector<vector<short>> vt;
 		for (int k = 0; k < sections; k++)
 		{

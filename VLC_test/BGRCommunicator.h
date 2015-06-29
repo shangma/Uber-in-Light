@@ -145,7 +145,7 @@ public:
 				writeFrame(frame);
 			}
 			dataIndex++;
-			if (!(dataIndex % 10))
+			if (!(dataIndex % Parameters::numSynchDataSymbols) && Parameters::synchMethod == SYNCH_COMBINED)
 			{
 				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}
@@ -189,7 +189,7 @@ public:
 				writeFrame(frame);
 			}
 			dataIndex++;
-			if (!(dataIndex % 10))
+			if (!(dataIndex % Parameters::numSynchDataSymbols) && Parameters::synchMethod == SYNCH_COMBINED)
 			{
 				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}
