@@ -988,6 +988,7 @@ public:
 			//cv::waitKey(0);
 			return true;
 		}
+		cout << "False" << endl;
 		return false;
 	}
 
@@ -1180,19 +1181,24 @@ public:
 				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
-			float tmpBGR[3] = { 0, 0, 0 };
+			//float tmpBGR[3] = { 0, 0, 0 };
 			for (int i = 0; i < ROIsSize; i++)
 			{
 				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
-				if (Parameters::synchMethod == SYNCH_COMBINED)
+				/*if (Parameters::synchMethod == SYNCH_COMBINED)
 				{
 					tmpBGR[0] += frames[i][frames[i].size() - 3];
 					tmpBGR[1] += frames[i][frames[i].size() - 2];
 					tmpBGR[2] += frames[i][frames[i].size() - 1];
-				}
+				}*/
 			}
 			if (Parameters::synchMethod == SYNCH_COMBINED)
 			{
+				/*tmpBGR[0] /= ROIsSize;
+				tmpBGR[1] /= ROIsSize;
+				tmpBGR[2] /= ROIsSize;*/
+				vector<float> tmpBGR;
+				getDiffInBGR(prev, frame, Parameters::globalROI, tmpBGR, 10);
 				interGreenSynch.push_back(tmpBGR[1] - tmpBGR[0] - tmpBGR[2]);
 			}
 			prev = frame.clone();
@@ -1210,8 +1216,8 @@ public:
 				vector<int> best_start(signals.size(), 0);
 				vector<int> best_end(signals.size(), 0);
 				vector<int> test_start(signals.size(), 0);
-				testingStart += (Parameters::numSynchDataSymbols - 1) * frames_per_symbol;
-				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + 2 * frames_per_symbol, best_start, best_end, test_start);
+				testingStart += (Parameters::numSynchDataSymbols / 2) * frames_per_symbol;
+				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + Parameters::numSynchDataSymbols * frames_per_symbol, best_start, best_end, test_start);
 				testingStart += best_end[0];
 				Parameters::luminancesDivisionStarts.push_back(testingStart);
 			}
@@ -1804,12 +1810,12 @@ public:
 				//test_frames.push_back(prev);
 				index++;
 				cv::resize(frame, frame, size);
-				Mat tmpRet[3] = { Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1) };
-				vector<Mat*> ret(3, 0);
-				ret[0] = &tmpRet[0];
-				ret[1] = &tmpRet[1];
-				ret[2] = &tmpRet[2];
-				getDiffInBGR(prev, frame, tempROI, tmpVal, 10, ret);
+				//Mat tmpRet[3] = { Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1), Mat::zeros(frame.size(), CV_32SC1) };
+				//vector<Mat*> ret(3, 0);
+				//ret[0] = &tmpRet[0];
+				//ret[1] = &tmpRet[1];
+				//ret[2] = &tmpRet[2];
+				getDiffInBGR(prev, frame, tempROI, tmpVal, 10);
 				//frames.push_back(tmpRet[1] - tmpRet[0] - tmpRet[2]);
 				prev = frame.clone();
 			}
@@ -2004,6 +2010,10 @@ public:
 			{
 				countErrors = 0;
 				globalROI = tmp;
+				if (Parameters::synchMethod == SYNCH_COMBINED)
+				{
+					break;
+				}
 			}
 		}
 		if (framerate < 45)

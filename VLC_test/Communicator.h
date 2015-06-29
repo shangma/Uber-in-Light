@@ -128,7 +128,10 @@ public:
 		{
 			Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps, Utilities::createChessBoard(Parameters::patternsize));
 			//Utilities::addDummyFramesToVideo(vidWriter, Parameters::fps);
-			addNonModulatedFrames(Parameters::fps);
+			if (Parameters::synchMethod == SYNCH_CHESS)
+			{
+				addNonModulatedFrames(Parameters::fps);
+			}
 		}
 	}
 	void addGreenChannelSynchFrames(bool end)

@@ -98,8 +98,11 @@ public:
 			if (frameIndexComparison >= frameIndex)
 			{
 				frameIndex += inputFrameUsageFrames;
-				videoReader.read(img);
-				cv::resize(img, img, Utilities::getFrameSize());
+				Mat tmp;
+				if (videoReader.read(tmp))
+				{
+					cv::resize(tmp, img, Utilities::getFrameSize());
+				}
 			}
 			
 			Mat frame(img.clone());
@@ -165,8 +168,11 @@ public:
 				if (frameIndexComparison >= frameIndex)
 				{
 					frameIndex += inputFrameUsageFrames;
-					videoReader.read(img);
-					cv::resize(img, img, Utilities::getFrameSize());
+					Mat tmp;
+					if (videoReader.read(tmp))
+					{
+						cv::resize(tmp, img, Utilities::getFrameSize());
+					}
 				}
 				//vector<Mat> BGR;
 				//cv::split(img, BGR);

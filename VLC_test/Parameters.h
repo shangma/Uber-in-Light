@@ -295,5 +295,5 @@ bool Parameters::done = false;
 string Parameters::displayName = "Video";
 int Parameters::totalTime = 0;
 int Parameters::seed = 1;
-int Parameters::numSynchDataSymbols = 10;
+int Parameters::numSynchDataSymbols = 20;
 vector<int> Parameters::luminancesDivisionStarts;
