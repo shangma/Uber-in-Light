@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RGBSpatialRedundancy.h"
 #include "HUECommnunicator.h"
 #include "BGRCommunicator2.h"
-#include "BGRCommunicator3.h"
+#include "BG0RCommunicator.h"
 #include "BGRCommunicator4.h"
 #include "B0GRCommunicator.h"
 #include "BGR0Communicator.h"
@@ -450,6 +450,18 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-synch"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::synchMethod = stoi(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
 	}
 	if (mode == SEND || mode == RECV)
 	{
@@ -523,7 +535,7 @@ int Properties::testSendReceive(int argc, char** argv)
 		communicator = new BGRCommunicator2;
 		break;
 	case 10:
-		communicator = new BGRCommunicator3;
+		communicator = new BG0RCommunicator;
 		break;
 	case 11:
 		communicator = new BGRCommunicator4;
@@ -652,7 +664,17 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
-	string release = "C:\\VLC\\Release\\";
+	//string release = "C:\\VLC\\Release\\";
+	//Mat img = imread(release + "hilightnew.jpg");
+
+	//cv::Scalar scalar = mean(img);
+	//double meanBrightness = 0;
+	//for (int i = 0; i < 4; i++)
+	//{
+	//	meanBrightness += scalar[i];
+	//}
+	//cout << meanBrightness << endl;
+
 	int num = omp_get_num_procs();
 	omp_set_num_threads(num / 2); // half of the processors
 	std::chrono::system_clock::time_point transmissionStartTime = std::chrono::system_clock::now();

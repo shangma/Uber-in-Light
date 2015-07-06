@@ -284,7 +284,7 @@ int Parameters::BKGMaskThr = 5;
 int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
-int Parameters::synchMethod = SYNCH_COMBINED;
+int Parameters::synchMethod = SYNCH_CHESS;
 cv::Mat Parameters::homography;
 int Parameters::liveTranmitter = 0;
 int Parameters::liveTranmitterCV = 0;

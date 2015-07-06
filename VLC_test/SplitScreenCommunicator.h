@@ -139,10 +139,12 @@ public:
 		if (frames.size() == 0)
 			return result;
 
-		vector<vector<short>> vt;
+		vector<vector<short> > vt(sections, vector<short>());
+
+#pragma omp parallel for
 		for (int k = 0; k < sections; k++)
 		{
-			vt.push_back(receive2(frames[k], fps, frames_per_symbol));
+			vt[k] = receive2(frames[k], fps, frames_per_symbol);
 		}
 		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
 		for (int i = 0; i < vt[0].size(); i += symbolSize)

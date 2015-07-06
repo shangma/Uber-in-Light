@@ -31,14 +31,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include "BGRCommunicator.h"
-class BGRCommunicator3 :
+class BG0RCommunicator :
 	public BGRCommunicator
 {
 public:
 	////////////////////////////// Red and Blue as separate channels ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_RGB3_" + outputVideoFile;
+		return "_RG0B_" + outputVideoFile;
 	}
 	virtual void initCommunication()
 	{

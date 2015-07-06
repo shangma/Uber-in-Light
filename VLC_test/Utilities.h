@@ -93,8 +93,8 @@ public:
 	static void updateFrameWithVchannel(Mat &frame, Rect &ROI, double percentage)
 	{
 		long long a = (percentage * 10000);
-		long long b = frame.cols;
-		long long c = frame.rows;
+		long long b = ROI.width;
+		long long c = ROI.height;
 		long long key = (a << 30) | (b << 15) | (c);
 		map<long long, Mat>::iterator vLayerIterator = Parameters::vLayers.find(key);
 		if (vLayerIterator == Parameters::vLayers.end())
@@ -908,8 +908,9 @@ public:
 
 	static vector<float> createPreambleWave()
 	{
+		double amplitude = Parameters::symbolsData.allData[0].amplitude;
 		vector<float> wave(Parameters::fps / 4, 0);
-		vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 12, 0.008, -0.008);
+		vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 12, amplitude, -amplitude);
 		wave.insert(wave.end(), tmp.begin(), tmp.end());
 		wave.resize(Parameters::fps * 3 / 4, 0);
 		tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 9, 0.008, -0.008);
@@ -921,7 +922,8 @@ public:
 
 	static vector<float> createInterSynchWave()
 	{
-		vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 5, 14, 0.008, -0.008);
+		double amplitude = Parameters::symbolsData.allData[0].amplitude;
+		vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 5, 14, amplitude, -amplitude);
 		wave.push_back(0);
 
 		return wave;
@@ -1182,6 +1184,7 @@ public:
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
 			//float tmpBGR[3] = { 0, 0, 0 };
+#pragma omp parallel for
 			for (int i = 0; i < ROIsSize; i++)
 			{
 				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
@@ -1216,9 +1219,10 @@ public:
 				vector<int> best_start(signals.size(), 0);
 				vector<int> best_end(signals.size(), 0);
 				vector<int> test_start(signals.size(), 0);
-				testingStart += (Parameters::numSynchDataSymbols / 2) * frames_per_symbol;
-				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + Parameters::numSynchDataSymbols * frames_per_symbol, best_start, best_end, test_start);
+				testingStart += (Parameters::numSynchDataSymbols - 1) * frames_per_symbol;
+				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + 2 * frames_per_symbol, best_start, best_end, test_start);
 				testingStart += best_end[0];
+				//testingStart += (Parameters::numSynchDataSymbols) * frames_per_symbol + wave.size();
 				Parameters::luminancesDivisionStarts.push_back(testingStart);
 			}
 		}
@@ -1855,7 +1859,7 @@ public:
 			//	}
 			//	//cout << i << "\t" << signals[bestInd][j] << "\t" << val[i] << endl;
 			//}
-			starting_index += best_end[bestInd];
+			starting_index += best_end[bestInd] - 2;
 			//float maxSumVal = 0;
 			//globalROI = detectanddrawhough(accumelation.clone(), test_frames[starting_index]);
 			//globalROI = getMaxSum(accumelation, maxSumVal);
