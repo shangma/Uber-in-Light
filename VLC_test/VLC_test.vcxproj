@@ -23,6 +23,7 @@
     <ClInclude Include="BGR0Communicator.h" />
     <ClInclude Include="BGRCommunicator2.h" />
     <ClInclude Include="BG0RCommunicator.h" />
+    <ClInclude Include="BGRCommunicator2Spatial.h" />
     <ClInclude Include="BGRCommunicator4.h" />
     <ClInclude Include="BGRSpatialCommunicator.h" />
     <ClInclude Include="concurrent_queue.h" />

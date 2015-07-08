@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "BGRCommunicator.h"
+#include "BGRCommunicator2.h"
 
 /*
 Do you mean brightness? Perceived brightness? Luminance?
@@ -39,28 +39,38 @@ Luminance (standard for certain colour spaces): (0.2126*R + 0.7152*G + 0.0722*B)
 Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B) [2]
 Luminance (perceived option 2, slower to calculate): sqrt( 0.299*R^2 + 0.587*G^2 + 0.114*B^2 )
 */
-class BGRCommunicator2 :
-	public BGRCommunicator
+class BGRCommunicator2Spatial :
+	public BGRCommunicator2
 {
 public:
 	////////////////////////////// Split Amplitude ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_RGB2_" + outputVideoFile;
+		return "_RGB2Spatial_" + outputVideoFile;
 	}
 	virtual void initCommunication()
 	{
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		amplitudes.push_back(vector<float>());
-		amplitudes.push_back(vector<float>());
-		for (int i = 0; i < amplitudes[0].size(); i++)
+		BGRCommunicator2::initCommunication();
+		// then double every thing with negative value
+		vector<vector<float> > tmpAmplitudes(3, vector<float>());
+		for (int i = 0; i < amplitudes[0].size(); i += framesForSymbol)
 		{
-			amplitudes[1].push_back(0);
-			amplitudes[2].push_back(-amplitudes[0][i]);
+			for (int j = 0; j < amplitudes.size(); j++)
+			{
+				for (int k = 0; k < framesForSymbol; k++)
+				{
+					tmpAmplitudes[j].push_back(amplitudes[j][i + k]);
+				}
+				for (int k = 0; k < framesForSymbol; k++)
+				{
+					tmpAmplitudes[j].push_back(-amplitudes[j][i + k]);
+				}
+			}
 		}
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
-		sections = Parameters::sideA * Parameters::sideB;
+		amplitudes = tmpAmplitudes;
+
+		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2, 1);
+		sections = Parameters::sideA * Parameters::sideB * 2;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,8 +79,8 @@ public:
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
 		Parameters::BKGMaskThr = 300;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps, 
-			Parameters::sideA, Parameters::sideB, true, 1,1);
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
+			Parameters::sideA, Parameters::sideB, true, 2, 1);
 		vector<vector<float> > BRDiff;
 		for (int i = 0; i < frames.size(); i++)
 		{
@@ -81,12 +91,24 @@ public:
 			}
 			BRDiff.push_back(temp);
 		}
+		// spatial difference
+		vector<vector<float> > SpatialDiff;
+		for (int i = 0; i < BRDiff.size(); i += 2)
+		{
+			vector<float> temp;
+			for (int j = 0; j < BRDiff[i].size(); j++)
+			{
+				temp.push_back(BRDiff[i][j] - BRDiff[i + 1][j]);
+			}
+			SpatialDiff.push_back(temp);
+		}
+
 		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
 		if (Parameters::synchMethod == SYNCH_COMBINED)
 		{
-			return receiveNCombined(BRDiff, Parameters::fps, frames_per_symbol);
+			return receiveNCombined(SpatialDiff, Parameters::fps, frames_per_symbol);
 		}
-		return receiveN(BRDiff, Parameters::fps, frames_per_symbol);
+		return receiveN(SpatialDiff, Parameters::fps, frames_per_symbol);
 	}
 };
 

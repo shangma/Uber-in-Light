@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "B0GRCommunicator.h"
 #include "BGR0Communicator.h"
 #include "BGRSpatialCommunicator.h"
+#include "BGRCommunicator2Spatial.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 #include "mygl.h"
@@ -548,6 +549,9 @@ int Properties::testSendReceive(int argc, char** argv)
 		break;
 	case 14:
 		communicator = new BGRSpatialCommunicator;
+		break;
+	case 15:
+		communicator = new BGRCommunicator2Spatial;
 		break;
 	case -1:
 		communicator = new OldCommunicator;
