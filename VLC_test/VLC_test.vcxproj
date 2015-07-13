@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="background_subtractor.h" />
     <ClInclude Include="BGR0Communicator.h" />
+    <ClInclude Include="BGR2CommunicatorPatterns.h" />
     <ClInclude Include="BGRCommunicator2.h" />
     <ClInclude Include="BG0RCommunicator.h" />
     <ClInclude Include="BGRCommunicator2Spatial.h" />
