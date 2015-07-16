@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class BGRCommunicator :
 	public SplitScreenCommunicator
 {
+	bool remainingFrames = true;
 public:
 	BGRCommunicator()
 	{
@@ -95,13 +96,17 @@ public:
 	{
 		for (int k = 0; k < wave.size(); k++, frameIndexComparison++)
 		{
-			if (frameIndexComparison >= frameIndex)
+			if (Parameters::realVideo && frameIndexComparison >= frameIndex)
 			{
 				frameIndex += inputFrameUsageFrames;
 				Mat tmp;
-				if (videoReader.read(tmp))
+				if (remainingFrames)
 				{
-					cv::resize(tmp, img, Utilities::getFrameSize());
+					remainingFrames = videoReader.read(tmp);
+					if (remainingFrames)
+					{
+						cv::resize(tmp, img, Utilities::getFrameSize());
+					}
 				}
 			}
 			
@@ -161,6 +166,7 @@ public:
 		int i_increment = (sections * framesForSymbol);
 		int dataIndex = 0;
 		vector<float> interSynchWave = Utilities::createInterSynchWave();
+		
 		for (int i = 0; i < ampitudesSize; i += i_increment)
 		{
 			for (int k = 0; k < framesForSymbol; k++, frameIndexComparison++)
@@ -169,9 +175,13 @@ public:
 				{
 					frameIndex += inputFrameUsageFrames;
 					Mat tmp;
-					if (videoReader.read(tmp))
+					if (remainingFrames)
 					{
-						cv::resize(tmp, img, Utilities::getFrameSize());
+						remainingFrames = videoReader.read(tmp);
+						if (remainingFrames)
+						{
+							cv::resize(tmp, img, Utilities::getFrameSize());
+						}
 					}
 				}
 				//vector<Mat> BGR;

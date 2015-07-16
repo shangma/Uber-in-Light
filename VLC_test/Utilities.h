@@ -945,6 +945,10 @@ public:
 		str.erase(end_pos, str.end());
 		end_pos = std::remove(str.begin(), str.end(), '\\');
 		str.erase(end_pos, str.end());
+		end_pos = std::remove(str.begin(), str.end(), ':');
+		str.erase(end_pos, str.end());
+		end_pos = std::remove(str.begin(), str.end(), ' ');
+		str.erase(end_pos, str.end());
 		return str + outputVideoFile;
 	}
 
