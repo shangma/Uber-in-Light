@@ -938,6 +938,7 @@ public:
 		outputVideoStream << Parameters::getFull() << "_";
 		outputVideoStream << Parameters::symbolTime << "ms_" << "levels_";
 		outputVideoStream << Parameters::getCodec() << "_" << inputVideoFile << "_";
+		outputVideoStream << Parameters::getSynch() << "_";
 		string str = outputVideoStream.str();
 		std::string::iterator end_pos = std::remove(str.begin(), str.end(), ' ');
 		str.erase(end_pos, str.end());
@@ -1171,9 +1172,10 @@ public:
 
 		vector<float> interGreenSynch;
 		Parameters::luminancesDivisionStarts.push_back(0);
+		int totalLength = Parameters::totalTime * test_frame_rate;
 		while (ReadNextFrame(cap, frame))
 		{
-			if (!(count++ & 3) && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
+			if (!(count++ & 5) && count > totalLength && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
 				if (canDetectMyBoard(frame, endPatternSize))
@@ -1813,7 +1815,7 @@ public:
 			cv::resize(prev, prev, size);
 			Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
 			int index = 0;
-			while (cap.read(frame) && index < framerate * 4)
+			while (cap.read(frame) && index < framerate * 6)
 			{
 				//test_frames.push_back(prev);
 				index++;
@@ -1993,19 +1995,21 @@ public:
 	{
 		cv::Rect globalROI(0, 0, 1, 1);
 		Mat frame;
+		bool detected = false;
 		for (; cap.read(frame); starting_index++)
 		{
 			// this loop to detect the first chess board
-			if (canDetectMyBoard(frame, Parameters::patternsize))
+			detected = canDetectMyBoard(frame, Parameters::patternsize);
+			if (detected)
 			{
-				starting_index++;
+				//starting_index++;
 				break;
 			}
 		}
 		//cout << "first index = " << starting_index << endl;
 		int countChess = 0;
 		int countErrors = 0;
-		for (; cap.read(frame) && countErrors < framerate; starting_index++, countChess++)
+		for (; detected && countErrors < framerate; starting_index++, countChess++)
 		{
 			//cout << "found chess at index = " << starting_index << endl;
 			// this loop to detect the last chess board
@@ -2016,15 +2020,21 @@ public:
 			}
 			else
 			{
-				countErrors = 0;
 				globalROI = tmp;
-				if (Parameters::synchMethod == SYNCH_COMBINED)
+				if (Parameters::synchMethod == SYNCH_COMBINED && countChess == 1)
 				{
 					break;
 				}
+				countErrors = 0;
 			}
+			if (!cap.read(frame))
+				break;
 		}
-		if (framerate < 45)
+		if (Parameters::synchMethod == SYNCH_COMBINED)
+		{
+			starting_index -= countErrors;
+		}
+		else if (framerate < 45)
 		{
 			starting_index--;
 		}
@@ -2567,6 +2577,71 @@ public:
 		}
 	}
 
+	static double getLength(float x1, float y1, float x2, float y2)
+	{
+		double dx = x1 - x2;
+		double dy = y1 - y2;
+		return dx*dx + dy * dy;
+	}
+
+	static vector<Point2f> sortConvexHullClockWiseStartNorthWest(vector<Point2f> inp)
+	{
+		vector<Point2f> oup;
+		convexHull(inp, oup, true, true);
+		// get first point
+		multimap<float, int> yMap;
+		double xc = 0, yc = 0;
+		for (int i = 0; i < oup.size(); i++)
+		{
+			xc += oup[i].x;
+			yc += oup[i].y;
+		}
+		xc /= oup.size();
+		yc /= oup.size();
+		vector<Point2f> res(4,Point2f());
+		vector<double> length(4, 0);
+		for (int i = 0; i < oup.size(); i++)
+		{
+			if (oup[i].x < xc && oup[i].y < yc)
+			{
+				 double l = getLength(oup[i].x,oup[i].y, xc, yc);
+				 if (l > length[0])
+				 {
+					 length[0] = l;
+					 res[0] = oup[i];
+				 }
+			}
+			if (oup[i].x > xc && oup[i].y < yc)
+			{
+				double l = getLength(oup[i].x, oup[i].y, xc, yc);
+				if (l > length[1])
+				{
+					length[1] = l;
+					res[1] = oup[i];
+				}
+			}
+			if (oup[i].x > xc && oup[i].y > yc)
+			{
+				double l = getLength(oup[i].x, oup[i].y, xc, yc);
+				if (l > length[2])
+				{
+					length[2] = l;
+					res[2] = oup[i];
+				}
+			}
+			if (oup[i].x < xc && oup[i].y > yc)
+			{
+				double l = getLength(oup[i].x, oup[i].y, xc, yc);
+				if (l > length[3])
+				{
+					length[3] = l;
+					res[3] = oup[i];
+				}
+			}
+		}
+
+		return res;
+	}
 	// img: input image in BGR
 	// patternSize: interior number of corners
 	// return rectangle around the calibration points
@@ -2584,7 +2659,7 @@ public:
 			gray = img.clone();
 		}
 
-		cv::resize(gray, gray, cv::Size(640, 480));
+		//cv::resize(gray, gray, cv::Size(640, 480));
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -2603,40 +2678,64 @@ public:
 		{
 			return result;
 		}
+		
 		/*
 		Mat temp = img.clone();
-		drawChessboardCorners(temp, patternsize, Mat(corners), patternfound);
+		drawChessboardCorners(temp, Parameters::patternsize, Mat(corners), patternfound);
 		imshow("img", temp);
 		cv::waitKey(0);
 		*/
-
-		// sort on y
-		for (int i = corners.size(); i > 0; i--)
+		/*float dx = corners[Parameters::patternsize.width - 1].x - corners[0].x;
+		float dy = corners[Parameters::patternsize.width - 1].y - corners[0].y;
+		if (dy > dx)
 		{
-			for (int j = 0; j < i - 1; j++)
+			vector<Point2f> corners2;
+			for (int y = 0; y < Parameters::patternsize.height; y++)
 			{
-				if (corners[j].x > corners[j + 1].x)
+				for (int x = 0; x < Parameters::patternsize.width; x++)
 				{
-					std::swap(corners[j], corners[j + 1]);
+					corners2.push_back(corners[x * Parameters::patternsize.height + y]);
 				}
 			}
-		}
-		// sort points on x
-		for (int i = corners.size(); i > 0; i--)
+			corners = corners2;
+		}*/
+		//// sort on y
+		//for (int i = corners.size(); i > 0; i--)
+		//{
+		//	for (int j = 0; j < i - 1; j++)
+		//	{
+		//		if (corners[j].x > corners[j + 1].x)
+		//		{
+		//			std::swap(corners[j], corners[j + 1]);
+		//		}
+		//	}
+		//}
+		//// sort points on x
+		//for (int i = corners.size(); i > 0; i--)
+		//{
+		//	for (int j = 0; j < i - 1; j++)
+		//	{
+		//		if ((corners[j].y - corners[j + 1].y) > 2)
+		//		{
+		//			std::swap(corners[j], corners[j + 1]);
+		//		}
+		//	}
+		//}
+		corners = sortConvexHullClockWiseStartNorthWest(corners);
+		/*Mat img1;
+		cv::resize(img, img1 , cv::Size(800, 600));
+		vector<Point> vp;
+		for (int i = 0; i < corners.size(); i++)
 		{
-			for (int j = 0; j < i - 1; j++)
-			{
-				if ((corners[j].y - corners[j + 1].y) > 2)
-				{
-					std::swap(corners[j], corners[j + 1]);
-				}
-			}
+			vp.push_back(Point(corners[i].x, corners[i].y));
 		}
-
+		polylines(img1, vp, true, Scalar(255, 0, 0));
+		imshow("img1", img1);
+		waitKey(0);*/
 		//puts("corners");
 		Parameters::DefaultFrameSize.width = img.cols;
 		Parameters::DefaultFrameSize.height = img.rows;
-		vector<Point2f> orig = Utilities::getChessBoardInternalCorners();
+		vector<Point2f> orig = sortConvexHullClockWiseStartNorthWest(Utilities::getChessBoardInternalCorners());
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
 		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
@@ -2668,7 +2767,7 @@ public:
 			result.width += cellWidth * 2;
 			result.height += cellHeight * 2;
 		}
-
+		
 		/*Mat frame;
 		cv::warpPerspective(img, frame, Parameters::homography, img.size());
 		cv::rectangle(frame, result, cv::Scalar(255, 0, 0), 2);
@@ -2699,7 +2798,7 @@ public:
 		{
 			gray = img.clone();
 		}
-		cv::resize(gray, gray, cv::Size(640, 480));
+		//cv::resize(gray, gray, cv::Size(640, 480));
 
 		vector<Point2f> corners; //this will be filled by the detected corners
 

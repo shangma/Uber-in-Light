@@ -231,6 +231,12 @@ struct Parameters
 		}
 		return ostr.str();
 	}
+	static string getSynch()
+	{
+		ostringstream ostr;
+		ostr << "synch" << synchMethod;
+		return ostr.str();
+	}
 	static string getFull()
 	{
 		ostringstream ostr;
@@ -271,7 +277,7 @@ int Parameters::DecodingMethod = FFT_RANDOM_GUESS;
 //enum{ ZERO = 0, ONE };
 string Parameters::codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size Parameters::DefaultFrameSize = cv::Size(640, 480);
-cv::Size Parameters::patternsize = cv::Size(11, 11);
+cv::Size Parameters::patternsize = cv::Size(6, 6);
 AllSymbolsData Parameters::symbolsData;
 map<long long, cv::Mat> Parameters::vLayers;
 int Parameters::sideA = 1;

@@ -672,7 +672,20 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
-	//string release = "C:\\VLC\\Release\\";
+	/*string release = "C:\\VLC\\Release\\final_rotation_test\\all.txt";
+	ifstream ifs(release);
+	VideoWriter vidWriter("C:\\VLC\\Release\\final_rotation_test\\all.avi", CV_FOURCC('X', 'V', 'I', 'D'),60,cv::Size(1280,720));
+	string vid;
+	while (getline(ifs, vid))
+	{
+		VideoCapture cap("C:\\VLC\\Release\\final_rotation_test\\" + vid);
+		Mat tmp;
+		while (cap.read(tmp))
+		{
+			vidWriter << tmp;
+		}
+	}
+	vidWriter.release();*/
 	//Mat img = imread(release + "hilightnew.jpg");
 
 	//cv::Scalar scalar = mean(img);
