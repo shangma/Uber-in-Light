@@ -984,13 +984,24 @@ public:
 		}
 	}
 
-	static bool ReadNextFrame(VideoCapture &cap, Mat &frame)
+	// crop means cropping from the borders and keep the given percentage (1, 100)
+	static bool ReadNextFrame(VideoCapture &cap, Mat &frame,int crop, bool transform = true)
 	{
 		Mat img;
 		if (cap.read(img))
 		{
-			cv::warpPerspective(img, frame, Parameters::homography, Parameters::DefaultFrameSize);
-			//frame = img;
+			if (crop)
+			{
+
+			}
+			if (transform && Parameters::homography.cols > 0)
+			{
+				cv::warpPerspective(img, frame, Parameters::homography, Parameters::DefaultFrameSize);
+			}
+			else
+			{
+				frame = img;
+			}
 			//imshow("frame", frame);
 			//cv::waitKey(0);
 			return true;
@@ -1157,7 +1168,7 @@ public:
 		vector<vector<float> > frames(ROIsSize, vector<float>());
 		cout << "Processing Frames..." << endl;
 		Mat frame, prev;
-		ReadNextFrame(cap, prev);
+		ReadNextFrame(cap, prev,0);
 		double test_frame_rate = fps; // 30
 		//cap.read(prev);
 		//prev = prev(ROI);
@@ -1173,12 +1184,12 @@ public:
 		vector<float> interGreenSynch;
 		Parameters::luminancesDivisionStarts.push_back(0);
 		int totalLength = Parameters::totalTime * test_frame_rate;
-		while (ReadNextFrame(cap, frame))
+		while (ReadNextFrame(cap, frame,0))
 		{
 			if (!(count++ & 5) && count > totalLength && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
-				if (canDetectMyBoard(frame, endPatternSize))
+				if (canDetectMyBoard(frame, endPatternSize, cv::Size(640,480)))
 				{
 					break;
 				}
@@ -1810,12 +1821,12 @@ public:
 		vector<float> tmpVal(3, 0); // 3 channels
 		//vector<Mat> frames(1, Mat::zeros(height, width, CV_32SC1));
 		//vector<Mat> test_frames;
-		if (cap.read(prev))
+		if (ReadNextFrame(cap, prev,0))
 		{
 			cv::resize(prev, prev, size);
 			Mat tmp_mask = Mat::zeros(prev.size(), CV_8UC1) + 255;
 			int index = 0;
-			while (cap.read(frame) && index < framerate * 6)
+			while (ReadNextFrame(cap, frame,0) && index < framerate * 6)
 			{
 				//test_frames.push_back(prev);
 				index++;
@@ -1996,40 +2007,93 @@ public:
 		cv::Rect globalROI(0, 0, 1, 1);
 		Mat frame;
 		bool detected = false;
-		for (; cap.read(frame); starting_index++)
+		int countChess = 0;
+		int countErrors = 0;
+		cv::Size testSize(1920, 1080);
+		bool shrink = false;
+		for (; ReadNextFrame(cap,frame,0,false) && countErrors < framerate; starting_index++, countChess++)
 		{
+			//frame(cv::Rect(100, 100, frame.cols - 200, frame.rows - 200));
 			// this loop to detect the first chess board
-			detected = canDetectMyBoard(frame, Parameters::patternsize);
+			if (!detected)
+			{
+				detected = canDetectMyBoard(frame, Parameters::patternsize, testSize);
+				bool flag = detected;
+				while (flag)
+				{
+					testSize.width /= 2;
+					testSize.height /= 2;
+					flag = canDetectMyBoard(frame, Parameters::patternsize, testSize);
+					if (!flag)
+					{
+						testSize.width *= 2;
+						testSize.height *= 2;
+					}
+				}
+				if (!flag)
+				{
+					if (testSize.width > 1900)
+					{
+						shrink = true;
+					}
+					else if (testSize.width < 300)
+					{
+						shrink = false;
+					}
+					if (shrink)
+					{
+						testSize.width /= 2;
+						testSize.height /= 2;
+					}
+					else
+					{
+						testSize.width *= 2;
+						testSize.height *= 2;
+					}
+				}
+			}
 			if (detected)
 			{
 				//starting_index++;
-				break;
+				cv::Rect tmp = detectMyBoard(frame, testSize);
+				if (tmp.width == 0)
+				{
+					countErrors++;
+				}
+				else
+				{
+					globalROI = tmp;
+					if (Parameters::synchMethod == SYNCH_COMBINED && countChess == 1)
+					{
+						break;
+					}
+					countErrors = 0;
+				}
 			}
 		}
 		//cout << "first index = " << starting_index << endl;
-		int countChess = 0;
-		int countErrors = 0;
-		for (; detected && countErrors < framerate; starting_index++, countChess++)
-		{
-			//cout << "found chess at index = " << starting_index << endl;
-			// this loop to detect the last chess board
-			cv::Rect tmp = detectMyBoard(frame);
-			if (tmp.width == 0)
-			{
-				countErrors++;
-			}
-			else
-			{
-				globalROI = tmp;
-				if (Parameters::synchMethod == SYNCH_COMBINED && countChess == 1)
-				{
-					break;
-				}
-				countErrors = 0;
-			}
-			if (!cap.read(frame))
-				break;
-		}
+		
+		//for (; detected && countErrors < framerate; starting_index++, countChess++)
+		//{
+		//	//cout << "found chess at index = " << starting_index << endl;
+		//	// this loop to detect the last chess board
+		//	cv::Rect tmp = detectMyBoard(frame);
+		//	if (tmp.width == 0)
+		//	{
+		//		countErrors++;
+		//	}
+		//	else
+		//	{
+		//		globalROI = tmp;
+		//		if (Parameters::synchMethod == SYNCH_COMBINED && countChess == 1)
+		//		{
+		//			break;
+		//		}
+		//		countErrors = 0;
+		//	}
+		//	if (!cap.read(frame))
+		//		break;
+		//}
 		if (Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			starting_index -= countErrors;
@@ -2064,6 +2128,8 @@ public:
 		
 		globalROI.width = frame_width;
 		globalROI.height = frame_height;
+		Parameters::DefaultFrameSize.width = frame_width;
+		Parameters::DefaultFrameSize.height = frame_height;
 		cout << "index before start = " << starting_index << endl;;
 		if (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED)
 		{
@@ -2237,7 +2303,11 @@ public:
 		int ind = 0;
 		Mat frame;
 		bool success = cap.read(frame);
-		vector<Point> points = SelectByMouse::getROI(frame);
+		vector<Point> points;
+		if (success)
+		{
+			points = SelectByMouse::getROI(frame);
+		}
 		int lx = 10000000, ly = 10000000, hx = 0, hy = 0;
 		for (int i = 0; i < points.size(); i++)
 		{
@@ -2645,7 +2715,7 @@ public:
 	// img: input image in BGR
 	// patternSize: interior number of corners
 	// return rectangle around the calibration points
-	static cv::Rect detectMyBoard(Mat &img)
+	static cv::Rect detectMyBoard(Mat &img, cv::Size testSize = cv::Size(0,0))
 	{
 		// create the gray image
 		Mat gray; //source image
@@ -2660,6 +2730,10 @@ public:
 		}
 
 		//cv::resize(gray, gray, cv::Size(640, 480));
+		if (testSize.width > 1)
+		{
+			cv::resize(gray, gray, testSize);
+		}
 		vector<Point2f> corners; //this will be filled by the detected corners
 
 		//CALIB_CB_FAST_CHECK saves a lot of time on images
@@ -2733,8 +2807,6 @@ public:
 		imshow("img1", img1);
 		waitKey(0);*/
 		//puts("corners");
-		Parameters::DefaultFrameSize.width = img.cols;
-		Parameters::DefaultFrameSize.height = img.rows;
 		vector<Point2f> orig = sortConvexHullClockWiseStartNorthWest(Utilities::getChessBoardInternalCorners());
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
@@ -2782,7 +2854,7 @@ public:
 
 	// img: input image in BGR
 	// return true if board detected
-	static bool canDetectMyBoard(Mat &img, cv::Size patternSize)
+	static bool canDetectMyBoard(Mat &img, cv::Size patternSize, cv::Size testSize = cv::Size(0, 0))
 	{
 		// create the gray image
 		Mat gray;//source image
@@ -2798,7 +2870,10 @@ public:
 		{
 			gray = img.clone();
 		}
-		//cv::resize(gray, gray, cv::Size(640, 480));
+		if (testSize.width > 1)
+		{
+			cv::resize(gray, gray, testSize);
+		}
 
 		vector<Point2f> corners; //this will be filled by the detected corners
 

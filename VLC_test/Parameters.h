@@ -291,7 +291,7 @@ int Parameters::fullScreen = false;
 int Parameters::amplitudeExtraction = V_CHANNEL_DIFF;
 bool Parameters::realVideo = false;
 int Parameters::synchMethod = SYNCH_CHESS;
-cv::Mat Parameters::homography;
+cv::Mat Parameters::homography = cv::Mat::zeros(cv::Size(0,0), CV_8UC1);
 int Parameters::liveTranmitter = 0;
 int Parameters::liveTranmitterCV = 0;
 std::chrono::system_clock::time_point Parameters::transmissionStartTime;

@@ -34,7 +34,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class BGRCommunicator :
 	public SplitScreenCommunicator
 {
-	bool remainingFrames = true;
 public:
 	BGRCommunicator()
 	{
