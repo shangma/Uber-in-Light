@@ -429,6 +429,13 @@ public:
 	// and get difference between B and R channels
 	static void getDiffInBGR(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, int thresh = 300, vector<Mat*> ret = vector<Mat*>(3, 0))
 	{
+		// using opencv functions
+		/*cv::Scalar BGRMeans = cv::mean(frame(roi) - prev(roi));
+		for (int color = 0; color < 3; color++)
+		{
+			amplitudes.push_back(BGRMeans.val[color]);
+		}
+		return;*/
 		// new method
 		unsigned char * p = ((unsigned char*)prev.data);
 		unsigned char * f = ((unsigned char*)frame.data);
@@ -1183,13 +1190,13 @@ public:
 
 		vector<float> interGreenSynch;
 		Parameters::luminancesDivisionStarts.push_back(0);
-		int totalLength = Parameters::totalTime * test_frame_rate;
+		int totalLength = Parameters::totalTime * test_frame_rate + 1;
 		while (ReadNextFrame(cap, frame,0))
 		{
 			if (!(count++ & 5) && count > totalLength && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
-				if (canDetectMyBoard(frame, endPatternSize, cv::Size(640,480)))
+				//if (canDetectMyBoard(frame, endPatternSize, cv::Size(640,480)))
 				{
 					break;
 				}
@@ -1201,16 +1208,16 @@ public:
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
 			//float tmpBGR[3] = { 0, 0, 0 };
+			//Mat diffMat = frame - prev;
 #pragma omp parallel for
 			for (int i = 0; i < ROIsSize; i++)
 			{
-				extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
-				/*if (Parameters::synchMethod == SYNCH_COMBINED)
-				{
-					tmpBGR[0] += frames[i][frames[i].size() - 3];
-					tmpBGR[1] += frames[i][frames[i].size() - 2];
-					tmpBGR[2] += frames[i][frames[i].size() - 1];
-				}*/
+				cv::Scalar means = cv::mean(frame(ROIs[i])) - mean(prev(ROIs[i]));
+				frames[i].push_back(means[0]);
+				frames[i].push_back(means[1]);
+				frames[i].push_back(means[2]);
+				//extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
+				
 			}
 			if (Parameters::synchMethod == SYNCH_COMBINED)
 			{
@@ -2017,8 +2024,25 @@ public:
 			// this loop to detect the first chess board
 			if (!detected)
 			{
-				detected = canDetectMyBoard(frame, Parameters::patternsize, testSize);
-				bool flag = detected;
+				testSize = cv::Size(160, 120);
+				while (!detected && testSize.width < 2600)
+				{
+					detected = canDetectMyBoard(frame, Parameters::patternsize, testSize);
+					if (!detected)
+					{
+						testSize.width *= 2;
+						testSize.height *= 2;
+					}
+				}
+				if (!detected)
+				{
+					for (int i = 0; i < framerate/2&& ReadNextFrame(cap, frame, 0, false); starting_index++, i++)
+					{
+						// Do nothing
+					}
+				}
+
+				/*bool flag = detected;
 				while (flag)
 				{
 					testSize.width /= 2;
@@ -2050,7 +2074,7 @@ public:
 						testSize.width *= 2;
 						testSize.height *= 2;
 					}
-				}
+				}*/
 			}
 			if (detected)
 			{

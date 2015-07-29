@@ -672,6 +672,17 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
+	/*Mat ones = Mat::ones(cv::Size(2, 2), CV_8UC1);
+	Mat tmp;
+	Mat arr[] = { ones, ones, ones };
+	cv::merge(arr, 3, tmp);
+	cv::Scalar sc = mean(tmp);
+	cout << tmp.channels() << endl;
+	cout << sc.val[0] << endl;
+	cout << sc.val[1] << endl;
+	cout << sc.val[2] << endl;
+
+	return 0;*/
 	/*string release = "C:\\VLC\\Release\\final_rotation_test\\all.txt";
 	ifstream ifs(release);
 	VideoWriter vidWriter("C:\\VLC\\Release\\final_rotation_test\\all.avi", CV_FOURCC('X', 'V', 'I', 'D'),60,cv::Size(1280,720));
