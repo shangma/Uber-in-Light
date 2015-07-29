@@ -2197,7 +2197,11 @@ public:
 		Parameters::globalROI = cv::Rect(0, 0, cap.get(CV_CAP_PROP_FRAME_WIDTH), cap.get(CV_CAP_PROP_FRAME_HEIGHT));
 		if (useGlobalROI)
 		{
+			std::chrono::system_clock::time_point transmissionStartTime = std::chrono::system_clock::now();
 			Parameters::globalROI = getGlobalROI(cap, Parameters::startingIndex);
+			long long milli;
+			milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - transmissionStartTime).count();
+			cout << "Calibration Time = " << milli << " ms" << endl;
 		}
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
