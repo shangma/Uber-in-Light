@@ -288,7 +288,7 @@ public:
 	}
 
 	
-	vector<short> receive2(vector<float> frames, int fps,int frames_per_symbol)
+	vector<short> receive2(vector<float> frames, int fps,int frames_per_symbol,int start = 0, int end = 0)
 	{
 		/*for (int i = 0; i < frames.size(); i++)
 		{
@@ -298,13 +298,13 @@ public:
 		if (Parameters::DecodingMethod == CROSS_CORRELATION)
 		{
 			vector<double> symbolDataVec;
-			return receiveCrossCorrelation(frames, fps, frames_per_symbol, symbolDataVec);
+			return receiveCrossCorrelation(frames, fps, frames_per_symbol, symbolDataVec,start,end);
 		}
 		return receiveFFT(frames, fps, frames_per_symbol);
 	}
 	
 	// receive using cross-correlation as classifier
-	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol, vector<double> & retSymbols)
+	vector<short> receiveCrossCorrelation(vector<float> frames, int fps, int frames_per_symbol, vector<double> & retSymbols,int start, int end)
 	{
 		// return array
 		vector<short> result;
@@ -328,8 +328,11 @@ public:
 			signals.push_back(signal);
 		}
 		int window_size = frames_per_symbol;
-		int end = frames.size();// -((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
-		int start = 0;// (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
+		if (!end)
+		{
+			end = frames.size();// -((Parameters::synchMethod == SYNCH_CHESS) ? fps : 0);
+		}
+		//int start = 0;// (Parameters::synchMethod == SYNCH_CHESS) ? fps : 0;
 		vector<int> best_start(signals.size(), 0);
 		vector<int> best_end(signals.size(), 0);
 		vector<int> test_start(signals.size(), 0);

@@ -1191,6 +1191,10 @@ public:
 		vector<float> interGreenSynch;
 		Parameters::luminancesDivisionStarts.push_back(0);
 		int totalLength = Parameters::totalTime * test_frame_rate + 1;
+		if (Parameters::synchMethod == SYNCH_COMBINED)
+		{
+			totalLength += test_frame_rate * 3;
+		}
 		while (ReadNextFrame(cap, frame,0))
 		{
 			if (!(count++ & 5) && count > totalLength && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
@@ -2036,7 +2040,7 @@ public:
 				}
 				if (!detected)
 				{
-					for (int i = 0; i < framerate/2&& ReadNextFrame(cap, frame, 0, false); starting_index++, i++)
+					for (int i = 0; i < framerate - 1&& ReadNextFrame(cap, frame, 0, false); starting_index++, i++)
 					{
 						// Do nothing
 					}

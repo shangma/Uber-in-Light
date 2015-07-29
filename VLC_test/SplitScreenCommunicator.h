@@ -117,7 +117,7 @@ public:
 			int divisionSize = frames_per_symbol * Parameters::numSynchDataSymbols;
 			for (int i = 0; i < Parameters::luminancesDivisionStarts.size(); i++)
 			{
-				vector<vector<float> > tmpFrames(frames.size(), vector<float>());
+				/*vector<vector<float> > tmpFrames(frames.size(), vector<float>());
 				for (int j = 0; j < divisionSize && (j + Parameters::luminancesDivisionStarts[i]) < frames[0].size(); j++)
 				{
 					for (int k = 0; k < frames.size(); k++)
@@ -126,13 +126,17 @@ public:
 					}
 				}
 				vector<short> tmpRes = receiveN(tmpFrames, fps, frames_per_symbol);
+				*/
+				vector<short> tmpRes = receiveN(frames, fps, frames_per_symbol, Parameters::luminancesDivisionStarts[i], 
+					std::min((int)(Parameters::luminancesDivisionStarts[i] + frames_per_symbol * Parameters::numSynchDataSymbols), 
+					(int)frames[0].size()));
 				results.insert(results.end(), tmpRes.begin(), tmpRes.end());
 			}
 		}
 		return results;
 	}
 
-	vector<short> receiveN(vector<vector<float> >& frames, int fps,int frames_per_symbol)
+	vector<short> receiveN(vector<vector<float> >& frames, int fps,int frames_per_symbol, int start = 0, int end = 0)
 	{
 		sections = frames.size();// Parameters::sideA * Parameters::sideB;
 		vector<short> result;
@@ -144,7 +148,7 @@ public:
 #pragma omp parallel for
 		for (int k = 0; k < sections; k++)
 		{
-			vt[k] = receive2(frames[k], fps, frames_per_symbol);
+			vt[k] = receive2(frames[k], fps, frames_per_symbol, start, end);
 		}
 		int symbolSize = Parameters::symbolsData.allData[0].symbol.size();
 		for (int i = 0; i < vt[0].size(); i += symbolSize)
