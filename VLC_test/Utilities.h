@@ -992,7 +992,7 @@ public:
 	}
 
 	// crop means cropping from the borders and keep the given percentage (1, 100)
-	static bool ReadNextFrame(VideoCapture &cap, Mat &frame,int crop, bool transform = true)
+	static bool ReadNextFrame(VideoCapture &cap, Mat &frame,int crop = 0, bool transform = true)
 	{
 		Mat img;
 		if (cap.read(img))
