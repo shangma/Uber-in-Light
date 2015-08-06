@@ -84,6 +84,32 @@ struct AllSymbolsData
 	string fileName;
 	double FREQ[2];
 	vector<SymbolData> allData;
+	void createGrayCodeSymbols(int maxFrequency, int differenceBetweenFreq, int numberOfFreq, double amplitude)
+	{
+		allData.clear();
+		SymbolData s0, s1;
+		s0.symbol = "0"; s0.amplitude = amplitude; s0.frequency = maxFrequency;
+		s1.symbol = "1"; s0.amplitude = amplitude; s0.frequency = maxFrequency - differenceBetweenFreq;
+		allData.push_back(s0);
+		allData.push_back(s1);
+		for (int n = 4; n <= numberOfFreq; n *= 2)
+		{
+			// add the new symbol
+			for (int i = allData.size() - 1; i >= 0; i--)
+			{
+				SymbolData newSymbol = allData[i];
+				allData[i].symbol = "0" + allData[i].symbol;
+				newSymbol.symbol = "1" + newSymbol.symbol;
+				allData.push_back(newSymbol);
+			}
+			// adjust frequencies
+			allData[allData.size() - 1].frequency = maxFrequency;
+			for (int i = allData.size() - 2; i >= 0; i--)
+			{
+				allData[i].frequency = allData[i + 1].frequency - differenceBetweenFreq;
+			}
+		}
+	}
 	// assume the fiel is sorted
 	void readData(string fileName)
 	{
@@ -188,7 +214,8 @@ struct Parameters
 	static int fps;
 	static double ifps;
 	static int DecodingMethod;
-	//static double LUMINANCE;
+	static double LUMINANCE; // percentage
+	static int mfsk; // number of frequencies used in the mfsk
 	//enum{ ZERO = 0, ONE };
 	
 	static cv::Size DefaultFrameSize;
@@ -271,17 +298,18 @@ cv::Rect Parameters::globalROI = cv::Rect(0,0,1,1);
 vector<float> Parameters::amplitudes = vector<float>();
 int Parameters::fps = 0;
 double Parameters::ifps = 0;
-float Parameters::symbolTime = 1000;
-int Parameters::DecodingMethod = FFT_RANDOM_GUESS;
-//double Parameters::LUMINANCE = 0.005;
+float Parameters::symbolTime = 600;
+int Parameters::DecodingMethod = CROSS_CORRELATION;
+double Parameters::LUMINANCE = 0.8; // the amplitude
+int Parameters::mfsk = 8; // number of mfsk
 //enum{ ZERO = 0, ONE };
 string Parameters::codec = "I420"; //I420, DIB ,DIVX, XVID
 cv::Size Parameters::DefaultFrameSize = cv::Size(640, 480);
 cv::Size Parameters::patternsize = cv::Size(6, 6);
 AllSymbolsData Parameters::symbolsData;
 map<long long, cv::Mat> Parameters::vLayers;
-int Parameters::sideA = 1;
-int Parameters::sideB = 1;
+int Parameters::sideA = 15;
+int Parameters::sideB = 12;
 double Parameters::start_second = 0;
 double Parameters::end_second = 0;
 string Parameters::endSecondFile = "";

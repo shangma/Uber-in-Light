@@ -356,7 +356,19 @@ int Properties::testSendReceive(int argc, char** argv)
 			// the amplitude
 			if (i < argc - 1)
 			{
-				//Parameters::LUMINANCE = stod(string(argv[++i]));
+				Parameters::LUMINANCE = stod(string(argv[++i]));
+			}
+			else
+			{
+				return returnError();
+			}
+		}
+		else if (!strcmp(argv[i], "-mfsk"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::mfsk = stoi(string(argv[++i]));
 			}
 			else
 			{
@@ -672,6 +684,13 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
+	/*AllSymbolsData as;
+	as.createGrayCodeSymbols(14, 1, 8, 0.008);
+	for (int i = 0; i < as.allData.size(); i++)
+	{
+		cout << as.allData[i].symbol << " " << as.allData[i].frequency << endl;
+	}
+	return 0;*/
 	/*Mat ones = Mat::ones(cv::Size(2, 2), CV_8UC1);
 	Mat tmp;
 	Mat arr[] = { ones, ones, ones };

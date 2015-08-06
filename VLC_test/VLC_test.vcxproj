@@ -75,6 +75,9 @@
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7C2F709F-9656-42D7-A10E-D5E69669CC71}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>

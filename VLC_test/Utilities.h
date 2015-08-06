@@ -2785,92 +2785,19 @@ public:
 			return result;
 		}
 		
-		/*
-		Mat temp = img.clone();
-		drawChessboardCorners(temp, Parameters::patternsize, Mat(corners), patternfound);
-		imshow("img", temp);
-		cv::waitKey(0);
-		*/
-		/*float dx = corners[Parameters::patternsize.width - 1].x - corners[0].x;
-		float dy = corners[Parameters::patternsize.width - 1].y - corners[0].y;
-		if (dy > dx)
-		{
-			vector<Point2f> corners2;
-			for (int y = 0; y < Parameters::patternsize.height; y++)
-			{
-				for (int x = 0; x < Parameters::patternsize.width; x++)
-				{
-					corners2.push_back(corners[x * Parameters::patternsize.height + y]);
-				}
-			}
-			corners = corners2;
-		}*/
-		//// sort on y
-		//for (int i = corners.size(); i > 0; i--)
-		//{
-		//	for (int j = 0; j < i - 1; j++)
-		//	{
-		//		if (corners[j].x > corners[j + 1].x)
-		//		{
-		//			std::swap(corners[j], corners[j + 1]);
-		//		}
-		//	}
-		//}
-		//// sort points on x
-		//for (int i = corners.size(); i > 0; i--)
-		//{
-		//	for (int j = 0; j < i - 1; j++)
-		//	{
-		//		if ((corners[j].y - corners[j + 1].y) > 2)
-		//		{
-		//			std::swap(corners[j], corners[j + 1]);
-		//		}
-		//	}
-		//}
+		
 		corners = sortConvexHullClockWiseStartNorthWest(corners);
-		/*Mat img1;
-		cv::resize(img, img1 , cv::Size(800, 600));
-		vector<Point> vp;
-		for (int i = 0; i < corners.size(); i++)
-		{
-			vp.push_back(Point(corners[i].x, corners[i].y));
-		}
-		polylines(img1, vp, true, Scalar(255, 0, 0));
-		imshow("img1", img1);
-		waitKey(0);*/
-		//puts("corners");
+		
 		vector<Point2f> orig = sortConvexHullClockWiseStartNorthWest(Utilities::getChessBoardInternalCorners());
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
 		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
 		vector<float> dist(corners.size(), 0);
 		int firstIndex = 0;
-		for (int i = 0; i < corners.size(); i++)
-		{
-			corners[i].x *= colScale;
-			corners[i].y *= rowScale;
-
-			//cout << corners[i].x << "\t" << corners[i].y << endl;
-			xl = std::min(xl, orig[i].x);
-			yl = std::min(yl, orig[i].y);
-			xh = std::max(xh, orig[i].x);
-			yh = std::max(yh, orig[i].y);
-		}
-		result = cv::Rect(xl, yl, (xh - xl + 1), (yh - yl + 1));
-
-
+		
 		Parameters::homography = findHomography(corners, orig);
 
-		// then scale to full screen if required to do so
-		if (Parameters::fullScreen)
-		{
-			double cellWidth = (result.width * 1.0) / (Parameters::patternsize.width - 1);
-			double cellHeight = (result.height * 1.0) / (Parameters::patternsize.height - 1);
-			result.x -= cellWidth;
-			result.y -= cellHeight;
-			result.width += cellWidth * 2;
-			result.height += cellHeight * 2;
-		}
+		result = Utilities::createChessBoardDataRect(img.size());
 		
 		/*Mat frame;
 		cv::warpPerspective(img, frame, Parameters::homography, img.size());
