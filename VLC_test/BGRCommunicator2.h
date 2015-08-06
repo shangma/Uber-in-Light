@@ -50,7 +50,7 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime,1));
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		amplitudes.push_back(vector<float>());
 		amplitudes.push_back(vector<float>());

@@ -62,7 +62,7 @@ public:
 		}
 		for (int i = 0; i < 3; i++)
 		{
-			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i], Parameters::fps, Parameters::symbolTime));
+			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i], Parameters::fps, Parameters::symbolTime, 1));
 		}
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 
@@ -121,6 +121,26 @@ public:
 		}
 	}
 
+	virtual void prepareRGBValues(int innerLoopIndex, double tmpAmplitudes[3])
+	{
+		double *BGR = Parameters::symbolsData.allData[0].amplitudeRGB;
+		for (int k = 0; k < 3; k++)
+		{
+			if (amplitudes[k][innerLoopIndex] > 0.5)
+			{
+				tmpAmplitudes[k] = BGR[k];
+			}
+			else if (amplitudes[k][innerLoopIndex] < -0.5)
+			{
+				tmpAmplitudes[k] = -BGR[k];
+			}
+			else
+			{
+				tmpAmplitudes[k] = 0;
+			}
+		}
+	}
+
 	virtual void sendImageMainLoop()
 	{
 		int amplitudes0_size = amplitudes[0].size();
@@ -139,11 +159,12 @@ public:
 				{
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
 					double tmpAmplitudes[3];
-					for (int k = 0; k < 3; k++)
-					{
-						//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
-						tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
-					}
+					//for (int k = 0; k < 3; k++)
+					//{
+					//	//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					//	tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
+					//}
+					prepareRGBValues(innerLoopIndex, tmpAmplitudes);
 					Utilities::updateFrameWithVchannel(frame, ROIs[j], tmpAmplitudes);
 				}
 				//Mat frame;
@@ -189,13 +210,14 @@ public:
 				int innerLoopIndex = i + k;
 				for (int j = 0; j < sections && innerLoopIndex < ampitudesSize; j++, innerLoopIndex += framesForSymbol)
 				{
-					double tmpAmplitudes[4];
+					double tmpAmplitudes[3];
 					// i is the base, j is the symbol index starting from the base, k is the index of the frameinside the symbol
-					for (int k = 0; k < 3; k++)
-					{
-						//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
-						tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
-					}
+					//for (int k = 0; k < 3; k++)
+					//{
+					//	//Utilities::updateFrameWithVchannel(BGR[k], ROIs[j], amplitudes[k][innerLoopIndex]);
+					//	tmpAmplitudes[k] = amplitudes[k][innerLoopIndex];
+					//}
+					prepareRGBValues(innerLoopIndex, tmpAmplitudes);
 					Utilities::updateFrameWithVchannel(frame, ROIs[j], tmpAmplitudes);
 				}
 				//Mat frame;

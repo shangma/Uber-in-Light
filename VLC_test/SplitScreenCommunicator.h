@@ -49,13 +49,13 @@ public:
 
 	virtual void initCommunication()
 	{
-		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
-		
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
-		sections = Parameters::sideA * Parameters::sideB;
+		////double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		//amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
+		//
+		//framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+		//
+		//ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
+		//sections = Parameters::sideA * Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()
 	{

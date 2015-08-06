@@ -57,7 +57,7 @@ public:
 		}
 		for (int i = 0; i < 3; i++)
 		{
-			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i], Parameters::fps, Parameters::symbolTime));
+			amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[i], Parameters::fps, Parameters::symbolTime,1));
 		}
 		ROIs = Utilities::getDivisions(1, 1, 1, false, Parameters::globalROI, true, 2,1);
 	}

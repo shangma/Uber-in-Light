@@ -47,19 +47,19 @@ public:
 	
 	virtual void initCommunication()
 	{
-		//double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
-		//double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
-		for (int i = 0; i < msg.size(); i++)
-		{
-			msg[i].amplitude = -msg[i].amplitude;
-		}
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
-		
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		 
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2,1);
-		sections = Parameters::sideA* Parameters::sideB;
+		////double lumin1[] = { LUMINANCE[0], LUMINANCE[1] };
+		//amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
+		////double lumin2[] = { LUMINANCE[1], LUMINANCE[0] };
+		//for (int i = 0; i < msg.size(); i++)
+		//{
+		//	msg[i].amplitude = -msg[i].amplitude;
+		//}
+		//amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
+		//
+		//framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+		// 
+		//ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2,1);
+		//sections = Parameters::sideA* Parameters::sideB;
 	}
 	virtual void sendImageMainLoop()
 	{

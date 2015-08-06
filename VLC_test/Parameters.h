@@ -65,7 +65,7 @@ enum
 struct SymbolData
 {
 	string symbol;
-	double amplitude;
+	double amplitudeRGB[3];
 	double frequency;
 	double phase; // currently zeros only
 	vector<short> getSymbol()
@@ -84,32 +84,32 @@ struct AllSymbolsData
 	string fileName;
 	double FREQ[2];
 	vector<SymbolData> allData;
-	void createGrayCodeSymbols(int maxFrequency, int differenceBetweenFreq, int numberOfFreq, double amplitude)
-	{
-		allData.clear();
-		SymbolData s0, s1;
-		s0.symbol = "0"; s0.amplitude = amplitude; s0.frequency = maxFrequency;
-		s1.symbol = "1"; s0.amplitude = amplitude; s0.frequency = maxFrequency - differenceBetweenFreq;
-		allData.push_back(s0);
-		allData.push_back(s1);
-		for (int n = 4; n <= numberOfFreq; n *= 2)
-		{
-			// add the new symbol
-			for (int i = allData.size() - 1; i >= 0; i--)
-			{
-				SymbolData newSymbol = allData[i];
-				allData[i].symbol = "0" + allData[i].symbol;
-				newSymbol.symbol = "1" + newSymbol.symbol;
-				allData.push_back(newSymbol);
-			}
-			// adjust frequencies
-			allData[allData.size() - 1].frequency = maxFrequency;
-			for (int i = allData.size() - 2; i >= 0; i--)
-			{
-				allData[i].frequency = allData[i + 1].frequency - differenceBetweenFreq;
-			}
-		}
-	}
+	//void createGrayCodeSymbols(int maxFrequency, int differenceBetweenFreq, int numberOfFreq, double amplitude)
+	//{
+	//	allData.clear();
+	//	SymbolData s0, s1;
+	//	s0.symbol = "0"; s0.amplitude = amplitude; s0.frequency = maxFrequency;
+	//	s1.symbol = "1"; s0.amplitude = amplitude; s0.frequency = maxFrequency - differenceBetweenFreq;
+	//	allData.push_back(s0);
+	//	allData.push_back(s1);
+	//	for (int n = 4; n <= numberOfFreq; n *= 2)
+	//	{
+	//		// add the new symbol
+	//		for (int i = allData.size() - 1; i >= 0; i--)
+	//		{
+	//			SymbolData newSymbol = allData[i];
+	//			allData[i].symbol = "0" + allData[i].symbol;
+	//			newSymbol.symbol = "1" + newSymbol.symbol;
+	//			allData.push_back(newSymbol);
+	//		}
+	//		// adjust frequencies
+	//		allData[allData.size() - 1].frequency = maxFrequency;
+	//		for (int i = allData.size() - 2; i >= 0; i--)
+	//		{
+	//			allData[i].frequency = allData[i + 1].frequency - differenceBetweenFreq;
+	//		}
+	//	}
+	//}
 	// assume the fiel is sorted
 	void readData(string fileName)
 	{
@@ -118,7 +118,7 @@ struct AllSymbolsData
 		if (ifstr.is_open())
 		{
 			SymbolData obj;
-			while (ifstr >> obj.symbol >> obj.frequency >> obj.amplitude >> obj.phase)
+			while (ifstr >> obj.symbol >> obj.frequency >> obj.amplitudeRGB[0] >> obj.amplitudeRGB[1] >> obj.amplitudeRGB[2])
 			{
 				tmp.push_back(obj);
 			}
@@ -139,7 +139,7 @@ struct AllSymbolsData
 		ostr << FREQ[0] << "Hz_" << FREQ[1] << "Hz";
 		return ostr.str();
 	}
-	void addSymbol(string symbol, double frequency, double amplitude = 0.004, double phase = 0)
+	/*void addSymbol(string symbol, double frequency, double amplitude = 0.004, double phase = 0)
 	{
 		for (int i = 0; i < allData.size(); i++)
 		{
@@ -156,7 +156,7 @@ struct AllSymbolsData
 		obj.phase = phase;
 		allData.push_back(obj);
 		cout << "symbol " << symbol << " added successfully!" << endl;
-	}
+	}*/
 	SymbolData* getSymbol(string symbol)
 	{
 		for (int i = 0; i < allData.size(); i++)

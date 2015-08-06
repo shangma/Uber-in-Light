@@ -40,42 +40,42 @@ public:
 	{
 		return "_RGBSpatial_" + outputVideoFile;
 	}
-	virtual void initCommunication()
-	{
-		
-		// we need the following
-		// modulation rate 
-		int modulationRate = 60;
-		// sample width
-		framesForSymbol = (modulationRate * Parameters::symbolTime) / 1000;
-		
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, framesForSymbol, 1);
-		sections = ROIs.size();
-		vector<float> tmpWave = WaveGenerator::createWaveGivenFPS(msg, modulationRate, Parameters::symbolTime);
-		int num = tmpWave.size() / ROIs.size();
-		num *= ROIs.size();
-		tmpWave.resize(num, 0);
+	//virtual void initCommunication()
+	//{
+	//	
+	//	// we need the following
+	//	// modulation rate 
+	//	int modulationRate = 60;
+	//	// sample width
+	//	framesForSymbol = (modulationRate * Parameters::symbolTime) / 1000;
+	//	
+	//	ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, framesForSymbol, 1);
+	//	sections = ROIs.size();
+	//	vector<float> tmpWave = WaveGenerator::createWaveGivenFPS(msg, modulationRate, Parameters::symbolTime,1);
+	//	int num = tmpWave.size() / ROIs.size();
+	//	num *= ROIs.size();
+	//	tmpWave.resize(num, 0);
 
-		vector<float> finalWave(num * 2, 0);
-		for (int i = 0; i < tmpWave.size(); i++)
-		{
-			finalWave[i * 2] = tmpWave[i];
-			finalWave[i * 2 + 1] = -tmpWave[i];
-		}
+	//	vector<float> finalWave(num * 2, 0);
+	//	for (int i = 0; i < tmpWave.size(); i++)
+	//	{
+	//		finalWave[i * 2] = tmpWave[i];
+	//		finalWave[i * 2 + 1] = -tmpWave[i];
+	//	}
 
-		amplitudes.push_back(finalWave);
+	//	amplitudes.push_back(finalWave);
 
-		framesForSymbol = 2;// (Parameters::fps * Parameters::symbolTime) / 1000;
-		amplitudes.push_back(vector<float>());
-		amplitudes.push_back(vector<float>());
-		for (int i = 0; i < amplitudes[0].size(); i++)
-		{
-			amplitudes[1].push_back(0);
-			amplitudes[2].push_back(-amplitudes[0][i]);
-		}
-		
-		
-	}
+	//	framesForSymbol = 2;// (Parameters::fps * Parameters::symbolTime) / 1000;
+	//	amplitudes.push_back(vector<float>());
+	//	amplitudes.push_back(vector<float>());
+	//	for (int i = 0; i < amplitudes[0].size(); i++)
+	//	{
+	//		amplitudes[1].push_back(0);
+	//		amplitudes[2].push_back(-amplitudes[0][i]);
+	//	}
+	//	
+	//	
+	//}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////

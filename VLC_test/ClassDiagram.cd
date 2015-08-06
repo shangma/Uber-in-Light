@@ -94,14 +94,14 @@
   <Struct Name="AllSymbolsData">
     <Position X="12.5" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAMAgAEAAAAAAAAAAAAADAAAAAAAAAAAAEAAAEAAAAA=</HashCode>
+      <HashCode>AAMAgAEAAAAAAAACAAAADAAAAAAAAAAAAEAAAEAAAAA=</HashCode>
       <FileName>Parameters.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Parameters">
     <Position X="10.25" Y="2.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>AgBCEoEQQJJESCkAAQgCAIQQAQWAACAAIJAEEAASAEA=</HashCode>
+      <HashCode>AgBCkoEQQJJESCkAAUgCAIQQAQWAACAAIJAEEAASAEA=</HashCode>
       <FileName>Parameters.h</FileName>
     </TypeIdentifier>
   </Struct>

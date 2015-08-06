@@ -48,55 +48,55 @@ public:
 	{
 		return "_RGB2Patterns_" + outputVideoFile;
 	}
-	virtual void initCommunication()
-	{
-		vector<float> tmpWave = WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime);
-		// assume 1 means [1,-1;-1, 1] and -1 means [1, 1;-1, -1]
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
-		amplitudes.resize(3, vector<float>());
-		float amplitude = Parameters::symbolsData.allData[0].amplitude;
-		for (int i = 0; i < tmpWave.size(); i += framesForSymbol)
-		{
-			for (int j = 0; j < framesForSymbol; j++)
-			{
-				amplitudes[0].push_back(amplitude);
-			}
-			for (int j = 0; j < framesForSymbol; j++)
-			{
-				if (tmpWave[i + j] > 0)
-				{
-					amplitudes[0].push_back(-amplitude);
-				}
-				else
-				{
-					amplitudes[0].push_back(amplitude);
-				}
-			}
-			for (int j = 0; j < framesForSymbol; j++)
-			{
-				amplitudes[0].push_back(-amplitude);
-			}
-			for (int j = 0; j < framesForSymbol; j++)
-			{
-				if (tmpWave[i + j] > 0)
-				{
-					amplitudes[0].push_back(amplitude);
-				}
-				else
-				{
-					amplitudes[0].push_back(-amplitude);
-				}
-			}
-		}
-		
-		for (int i = 0; i < amplitudes[0].size(); i++)
-		{
-			amplitudes[1].push_back(0);
-			amplitudes[2].push_back(-amplitudes[0][i]);
-		}
-		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2, 2);
-		sections = Parameters::sideA * Parameters::sideB * 4;
-	}
+	//virtual void initCommunication()
+	//{
+		//vector<float> tmpWave = WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime);
+		//// assume 1 means [1,-1;-1, 1] and -1 means [1, 1;-1, -1]
+		//framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+		//amplitudes.resize(3, vector<float>());
+		//float amplitude = Parameters::symbolsData.allData[0].amplitude;
+		//for (int i = 0; i < tmpWave.size(); i += framesForSymbol)
+		//{
+		//	for (int j = 0; j < framesForSymbol; j++)
+		//	{
+		//		amplitudes[0].push_back(amplitude);
+		//	}
+		//	for (int j = 0; j < framesForSymbol; j++)
+		//	{
+		//		if (tmpWave[i + j] > 0)
+		//		{
+		//			amplitudes[0].push_back(-amplitude);
+		//		}
+		//		else
+		//		{
+		//			amplitudes[0].push_back(amplitude);
+		//		}
+		//	}
+		//	for (int j = 0; j < framesForSymbol; j++)
+		//	{
+		//		amplitudes[0].push_back(-amplitude);
+		//	}
+		//	for (int j = 0; j < framesForSymbol; j++)
+		//	{
+		//		if (tmpWave[i + j] > 0)
+		//		{
+		//			amplitudes[0].push_back(amplitude);
+		//		}
+		//		else
+		//		{
+		//			amplitudes[0].push_back(-amplitude);
+		//		}
+		//	}
+		//}
+		//
+		//for (int i = 0; i < amplitudes[0].size(); i++)
+		//{
+		//	amplitudes[1].push_back(0);
+		//	amplitudes[2].push_back(-amplitudes[0][i]);
+		//}
+		//ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 2, 2);
+		//sections = Parameters::sideA * Parameters::sideB * 4;
+	//}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////

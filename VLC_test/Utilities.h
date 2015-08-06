@@ -915,7 +915,7 @@ public:
 
 	static vector<float> createPreambleWave()
 	{
-		double amplitude = Parameters::symbolsData.allData[0].amplitude;
+		double amplitude = Parameters::symbolsData.allData[0].amplitudeRGB[0];
 		vector<float> wave(Parameters::fps / 4, 0);
 		vector<float> tmp = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 4, 12, amplitude, -amplitude);
 		wave.insert(wave.end(), tmp.begin(), tmp.end());
@@ -929,7 +929,7 @@ public:
 
 	static vector<float> createInterSynchWave()
 	{
-		double amplitude = Parameters::symbolsData.allData[0].amplitude;
+		double amplitude = Parameters::symbolsData.allData[0].amplitudeRGB[0];
 		vector<float> wave = WaveGenerator::createSampledSquareWave(Parameters::fps, Parameters::fps / 5, 14, amplitude, -amplitude);
 		wave.push_back(0);
 

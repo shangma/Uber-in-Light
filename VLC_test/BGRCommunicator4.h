@@ -53,7 +53,7 @@ public:
 		// b
 		amplitudes.push_back(vector<float>());
 		// g
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime,1));
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 		// r
 		amplitudes.push_back(vector<float>());

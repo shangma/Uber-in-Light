@@ -199,30 +199,30 @@ int Properties::testSendReceive(int argc, char** argv)
 		{
 			Parameters::realVideo = true;
 		}
-		else if (!strcmp(argv[i], "-zero"))
-		{
-			// get the file name
-			if (i < argc - 1)
-			{
-				Parameters::symbolsData.addSymbol("0", stod(string(argv[++i])));
-			}
-			else
-			{
-				return returnError();
-			}
-		}
-		else if (!strcmp(argv[i], "-one"))
-		{
-			// get the file name
-			if (i < argc - 1)
-			{
-				Parameters::symbolsData.addSymbol("1", stod(string(argv[++i])));
-			}
-			else
-			{
-				return returnError();
-			}
-		}
+		//else if (!strcmp(argv[i], "-zero"))
+		//{
+		//	// get the file name
+		//	if (i < argc - 1)
+		//	{
+		//		Parameters::symbolsData.addSymbol("0", stod(string(argv[++i])));
+		//	}
+		//	else
+		//	{
+		//		return returnError();
+		//	}
+		//}
+		//else if (!strcmp(argv[i], "-one"))
+		//{
+		//	// get the file name
+		//	if (i < argc - 1)
+		//	{
+		//		Parameters::symbolsData.addSymbol("1", stod(string(argv[++i])));
+		//	}
+		//	else
+		//	{
+		//		return returnError();
+		//	}
+		//}
 		else if (!strcmp(argv[i], "-ec"))
 		{
 			// error correction enabled

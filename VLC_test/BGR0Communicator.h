@@ -56,9 +56,9 @@ public:
 			}
 		}
 		// blue
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0], Parameters::fps, Parameters::symbolTime));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0], Parameters::fps, Parameters::symbolTime,1));
 		// green
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime));
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime,1));
 		//red
 		amplitudes.push_back(vector<float>());
 
