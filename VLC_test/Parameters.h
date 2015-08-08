@@ -118,7 +118,7 @@ struct AllSymbolsData
 		if (ifstr.is_open())
 		{
 			SymbolData obj;
-			while (ifstr >> obj.symbol >> obj.frequency >> obj.amplitudeRGB[0] >> obj.amplitudeRGB[1] >> obj.amplitudeRGB[2])
+			while (ifstr >> obj.symbol >> obj.frequency >> obj.amplitudeRGB[2] >> obj.amplitudeRGB[1] >> obj.amplitudeRGB[0])
 			{
 				tmp.push_back(obj);
 			}
