@@ -429,13 +429,6 @@ public:
 	// and get difference between B and R channels
 	static void getDiffInBGR(Mat &prev, Mat &frame, cv::Rect &roi, vector<float> &amplitudes, int thresh = 300, vector<Mat*> ret = vector<Mat*>(3, 0))
 	{
-		// using opencv functions
-		/*cv::Scalar BGRMeans = cv::mean(frame(roi) - prev(roi));
-		for (int color = 0; color < 3; color++)
-		{
-			amplitudes.push_back(BGRMeans.val[color]);
-		}
-		return;*/
 		// new method
 		unsigned char * p = ((unsigned char*)prev.data);
 		unsigned char * f = ((unsigned char*)frame.data);
@@ -488,10 +481,10 @@ public:
 		/*
 		for (int color = 0; color < 3; color++)
 		{
-			multiset<int>::iterator itr = medians[color].begin();
-			for (int j = 0; j < countBGR[color] / 2; j++, itr++);
+		multiset<int>::iterator itr = medians[color].begin();
+		for (int j = 0; j < countBGR[color] / 2; j++, itr++);
 
-			amplitudes.push_back(*itr);
+		amplitudes.push_back(*itr);
 		}*/
 	}
 	// get differnce between neighbour frames
@@ -1009,8 +1002,8 @@ public:
 			{
 				frame = img;
 			}
-			//imshow("frame", frame);
-			//cv::waitKey(0);
+			/*imshow("frame", frame);
+			cv::waitKey(0);*/
 			return true;
 		}
 		cout << "False" << endl;
@@ -1200,7 +1193,7 @@ public:
 			if (!(count++ & 5) && count > totalLength && (Parameters::synchMethod == SYNCH_CHESS || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				//Mat temp;
-				//if (canDetectMyBoard(frame, endPatternSize, cv::Size(640,480)))
+				if (canDetectMyBoard(frame, endPatternSize, cv::Size(640,480)))
 				{
 					break;
 				}
@@ -1211,6 +1204,19 @@ public:
 				Utilities::getDiffInBGR(prev, frame, globalROI, tmpV);
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
+			//printROI(Parameters::globalROI);
+			if (Parameters::synchMethod == SYNCH_COMBINED)
+			{
+				/*tmpBGR[0] /= ROIsSize;
+				tmpBGR[1] /= ROIsSize;
+				tmpBGR[2] /= ROIsSize;*/
+				vector<float> tmpBGR;
+				//getDiffInBGR(prev, frame, Rect(0,0,frame.cols, frame.rows), tmpBGR, 10);
+				getDiffInBGR(prev, frame, Parameters::globalROI, tmpBGR, 10);
+				
+				interGreenSynch.push_back(tmpBGR[1] - tmpBGR[0] - tmpBGR[2]);
+			}
+
 			//float tmpBGR[3] = { 0, 0, 0 };
 			//Mat diffMat = frame - prev;
 #pragma omp parallel for
@@ -1223,22 +1229,14 @@ public:
 				//extractOneFrameLuminance(0, ROIs, frames, prev, frame, i);
 				
 			}
-			if (Parameters::synchMethod == SYNCH_COMBINED)
-			{
-				/*tmpBGR[0] /= ROIsSize;
-				tmpBGR[1] /= ROIsSize;
-				tmpBGR[2] /= ROIsSize;*/
-				vector<float> tmpBGR;
-				getDiffInBGR(prev, frame, Parameters::globalROI, tmpBGR, 10);
-				interGreenSynch.push_back(tmpBGR[1] - tmpBGR[0] - tmpBGR[2]);
-			}
+			
 			prev = frame.clone();
 		}
 		// then update based on the inter synchronization
 		if (Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
-			int testingStart = 0; 
+			int testingStart = 0;
 			vector<vector<float> > signals;
 			vector<float> wave = Utilities::createInterSynchWave();
 			signals.push_back(wave);
@@ -1249,10 +1247,15 @@ public:
 				vector<int> test_start(signals.size(), 0);
 				testingStart += (Parameters::numSynchDataSymbols - 1) * frames_per_symbol;
 				vector<double> res = calcCrossCorrelate(signals, interGreenSynch, testingStart, testingStart + 2 * frames_per_symbol, best_start, best_end, test_start);
+				cout << "best_end[0] = " << best_end[0] << endl;
 				testingStart += best_end[0];
 				//testingStart += (Parameters::numSynchDataSymbols) * frames_per_symbol + wave.size();
 				Parameters::luminancesDivisionStarts.push_back(testingStart);
 			}
+			/*for (int i = 0; i < Parameters::luminancesDivisionStarts.size(); i++)
+			{
+				cout << Parameters::luminancesDivisionStarts[i] << endl;
+			}*/
 		}
 		Parameters::endingIndex = cap.get(CV_CAP_PROP_POS_FRAMES);
 		cout << "last index = " << Parameters::endingIndex << endl;
@@ -2045,40 +2048,6 @@ public:
 						// Do nothing
 					}
 				}
-
-				/*bool flag = detected;
-				while (flag)
-				{
-					testSize.width /= 2;
-					testSize.height /= 2;
-					flag = canDetectMyBoard(frame, Parameters::patternsize, testSize);
-					if (!flag)
-					{
-						testSize.width *= 2;
-						testSize.height *= 2;
-					}
-				}
-				if (!flag)
-				{
-					if (testSize.width > 1900)
-					{
-						shrink = true;
-					}
-					else if (testSize.width < 300)
-					{
-						shrink = false;
-					}
-					if (shrink)
-					{
-						testSize.width /= 2;
-						testSize.height /= 2;
-					}
-					else
-					{
-						testSize.width *= 2;
-						testSize.height *= 2;
-					}
-				}*/
 			}
 			if (detected)
 			{
@@ -2168,10 +2137,13 @@ public:
 		{
 			DetectGreenScreenCrossCorrelation(frame_width, frame_height, cap, framerate, starting_index);
 		}
-		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
+		//printROI(globalROI);
 		return globalROI;
 	}
-
+	static void printROI(const Rect &globalROI)
+	{
+		printf("(%d\t%d)\t(%d\t%d)\n", globalROI.x, globalROI.y, globalROI.width, globalROI.height);
+	}
 	/// get video frames luminance (this is the split version which splits the image into two)
 	// video name as input
 	// percentage of the frame as input (used to get this percentage from the center of the image) and takes value from (0,1]
@@ -2202,6 +2174,7 @@ public:
 			long long milli;
 			milli = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - transmissionStartTime).count();
 			cout << "Calibration Time = " << milli << " ms" << endl;
+			printROI(Parameters::globalROI);
 		}
 		cap.set(CV_CAP_PROP_POS_FRAMES, Parameters::startingIndex);
 		cout << "Index = " << Parameters::startingIndex << endl;
@@ -2787,11 +2760,17 @@ public:
 		
 		
 		corners = sortConvexHullClockWiseStartNorthWest(corners);
-		
-		vector<Point2f> orig = sortConvexHullClockWiseStartNorthWest(Utilities::getChessBoardInternalCorners());
+		// translate the corners to the correct location
 		float colScale = ((float)img.cols) / gray.cols;
 		float rowScale = ((float)img.rows) / gray.rows;
-		float xl = 100000, yl = 1000000, xh = 0, yh = 0;
+		for (int i = 0; i < corners.size(); i++)
+		{
+			corners[i].x *= colScale;
+			corners[i].y *= rowScale;
+		}
+		vector<Point2f> orig = sortConvexHullClockWiseStartNorthWest(Utilities::getChessBoardInternalCorners());
+		
+		//float xl = 100000, yl = 1000000, xh = 0, yh = 0;
 		vector<float> dist(corners.size(), 0);
 		int firstIndex = 0;
 		
