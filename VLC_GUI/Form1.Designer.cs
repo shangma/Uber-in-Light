@@ -79,9 +79,9 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(13, 78);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(54, 13);
+            this.label2.Size = new System.Drawing.Size(75, 13);
             this.label2.TabIndex = 3;
-            this.label2.Text = "Input Msg";
+            this.label2.Text = "Random Seed";
             // 
             // label3
             // 
@@ -141,9 +141,9 @@
             // 
             this.MsgTextBox.Location = new System.Drawing.Point(120, 73);
             this.MsgTextBox.Name = "MsgTextBox";
-            this.MsgTextBox.Size = new System.Drawing.Size(324, 20);
+            this.MsgTextBox.Size = new System.Drawing.Size(150, 20);
             this.MsgTextBox.TabIndex = 10;
-            this.MsgTextBox.Text = "Hello, VLC!";
+            this.MsgTextBox.Text = "1";
             // 
             // VideoRadioButton
             // 

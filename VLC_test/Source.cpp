@@ -489,11 +489,11 @@ int Properties::testSendReceive(int argc, char** argv)
 			int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
 			//printf("length=%d\n", totalLength);
 			msg.clear();
-			std::mt19937 mt(19937);
-			std::uniform_int_distribution<int> dist(0, 1);
+			std::mt19937 mt(Parameters::seed);
+			//std::uniform_int_distribution<int> dist(0, 1);
 			for (int i = 0; i < totalLength; i++)
 			{
-				msg.push_back(dist(mt));
+				msg.push_back(mt() & 1);
 				//printf("%d", msg[i]);
 			}
 			ostringstream ostr;
