@@ -476,6 +476,11 @@ int Properties::testSendReceive(int argc, char** argv)
 				return returnError();
 			}
 		}
+		else if (!strcmp(argv[i], "-chess"))
+		{
+			Utilities::displayChessBoardFullScreen();
+			return 0;
+		}
 	}
 	if (mode == SEND || mode == RECV)
 	{

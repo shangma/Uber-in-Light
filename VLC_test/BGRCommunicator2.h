@@ -82,7 +82,7 @@ public:
 			BRDiff.push_back(temp);
 		}
 		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
-		if (Parameters::synchMethod == SYNCH_COMBINED)
+		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			return receiveNCombined(BRDiff, Parameters::fps, frames_per_symbol);
 		}

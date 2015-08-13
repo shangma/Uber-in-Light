@@ -111,7 +111,7 @@ public:
 	vector<short> receiveNCombined(vector<vector<float> >& frames, int fps, int frames_per_symbol)
 	{
 		vector<short> results;
-		if (Parameters::synchMethod == SYNCH_COMBINED)
+		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			// divide the frames
 			int divisionSize = frames_per_symbol * Parameters::numSynchDataSymbols;

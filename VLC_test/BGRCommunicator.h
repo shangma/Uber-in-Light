@@ -173,7 +173,7 @@ public:
 				writeFrame(frame);
 			}
 			dataIndex++;
-			if (!(dataIndex % Parameters::numSynchDataSymbols) && Parameters::synchMethod == SYNCH_COMBINED)
+			if (!(dataIndex % Parameters::numSynchDataSymbols) && (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}
@@ -226,7 +226,7 @@ public:
 				writeFrame(frame);
 			}
 			dataIndex++;
-			if (!(dataIndex % Parameters::numSynchDataSymbols) && Parameters::synchMethod == SYNCH_COMBINED)
+			if (!(dataIndex % Parameters::numSynchDataSymbols) && (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED))
 			{
 				addSynchWave(interSynchWave, frameIndexComparison, frameIndex, i);
 			}

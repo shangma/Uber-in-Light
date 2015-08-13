@@ -1184,7 +1184,7 @@ public:
 		vector<float> interGreenSynch;
 		Parameters::luminancesDivisionStarts.push_back(0);
 		int totalLength = Parameters::totalTime * test_frame_rate + 1;
-		if (Parameters::synchMethod == SYNCH_COMBINED)
+		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			totalLength += test_frame_rate * 3;
 		}
@@ -1205,7 +1205,7 @@ public:
 				synchFrames.push_back(tmpV[1] - tmpV[0] - tmpV[2]);
 			}
 			//printROI(Parameters::globalROI);
-			if (Parameters::synchMethod == SYNCH_COMBINED)
+			if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 			{
 				/*tmpBGR[0] /= ROIsSize;
 				tmpBGR[1] /= ROIsSize;
@@ -1233,7 +1233,7 @@ public:
 			prev = frame.clone();
 		}
 		// then update based on the inter synchronization
-		if (Parameters::synchMethod == SYNCH_COMBINED)
+		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
 		{
 			int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
 			int testingStart = 0;
@@ -2574,6 +2574,15 @@ public:
 		}
 
 		return board;
+	}
+
+	static void displayChessBoardFullScreen()
+	{
+		namedWindow(Parameters::displayName, WINDOW_NORMAL);
+		setWindowProperty(Parameters::displayName, CV_WND_PROP_FULLSCREEN, 1); //( on or off)
+		Mat chess = createChessBoard(Parameters::patternsize);
+		imshow(Parameters::displayName, chess);
+		cv::waitKey(0);
 	}
 
 	static Rect createChessBoardDataRect(cv::Size frameSize = Parameters::DefaultFrameSize)
