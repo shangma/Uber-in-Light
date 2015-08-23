@@ -87,7 +87,7 @@ namespace VLC_GUI
                 return;
             }
             // prepare the command line
-            string args = string.Format("-sideB {0} -sideA {1} -if \"{2}\" -symbols 8Freq8org.symbol " +
+            string args = string.Format("-s -sideB {0} -sideA {1} -if \"{2}\" -symbols 8Freq8org.symbol " +
                 "-m 9 -fps 60 -time {3} -res {4} {5}  -codec XVID -synch 1 -total 5 -seed {6} -live",
                 sideB[GridsComboBox.SelectedIndex], sideA[GridsComboBox.SelectedIndex],
                 FileTextBox.Text, 
