@@ -20,10 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="background_subtractor.h" />
-    <ClInclude Include="BGR0Communicator.h" />
+    <ClInclude Include="BGSeparate.h" />
     <ClInclude Include="BGR2CommunicatorPatterns.h" />
-    <ClInclude Include="BGRCommunicator2.h" />
-    <ClInclude Include="BG0RCommunicator.h" />
+    <ClInclude Include="BRComplementary.h" />
+    <ClInclude Include="BRSeparate.h" />
     <ClInclude Include="BGRCommunicator2Spatial.h" />
     <ClInclude Include="BGRCommunicator4.h" />
     <ClInclude Include="BGRSpatialCommunicator.h" />
@@ -39,7 +39,7 @@
     <ClInclude Include="ReedSolomon.h" />
     <ClInclude Include="BGRCommunicator.h" />
     <ClInclude Include="RGBSpatialRedundancy.h" />
-    <ClInclude Include="B0GRCommunicator.h" />
+    <ClInclude Include="GRSeparate.h" />
     <ClInclude Include="schifra_crc.hpp" />
     <ClInclude Include="schifra_ecc_traits.hpp" />
     <ClInclude Include="schifra_erasure_channel.hpp" />

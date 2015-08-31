@@ -1,42 +1,42 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ClassDiagram MajorVersion="1" MinorVersion="1">
-  <Class Name="BGR0Communicator" Collapsed="true">
+  <Class Name="BGSeparate" Collapsed="true">
     <Position X="5.5" Y="4.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAEAAAAAI=</HashCode>
-      <FileName>BGR0Communicator.h</FileName>
+      <FileName>BGSeparate.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BGRCommunicator2" Collapsed="true">
+  <Class Name="BRComplementary" Collapsed="true">
     <Position X="8" Y="4.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAEAAAAAI=</HashCode>
-      <FileName>BGRCommunicator2.h</FileName>
+      <FileName>BRComplementary.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="BG0RCommunicator" Collapsed="true">
+  <Class Name="BRSeparate" Collapsed="true">
     <Position X="0.5" Y="4.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAEAAAAAI=</HashCode>
-      <FileName>BG0RCommunicator.h</FileName>
+      <FileName>BRSeparate.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Queue&lt;T&gt;" Collapsed="true">
-    <Position X="14.25" Y="0.5" Width="1.5" />
+    <Position X="6.75" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAIBAAIAAYAAAAAAAAAAoAAAAIAA=</HashCode>
       <FileName>concurrent_queue.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="LiveCV" Collapsed="true">
-    <Position X="10.75" Y="0.5" Width="1.5" />
+    <Position X="3.25" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAIAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>livecv.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Properties" Collapsed="true">
-    <Position X="12.5" Y="0.5" Width="1.5" />
+    <Position X="5" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAACgAEACAqCAAABAKAAAAAABAAKIAAwAAACCAAA=</HashCode>
       <FileName>Properties.h</FileName>
@@ -45,15 +45,15 @@
   <Class Name="BGRCommunicator" Collapsed="true">
     <Position X="4.5" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAACAAAAEAAAgAAAAAAACAAAAIAAAAAAAEAEBAAI=</HashCode>
+      <HashCode>AAAAAACAAAAEAAAgAAAAAAECAAAAIAAAAAAAEAEBAAI=</HashCode>
       <FileName>BGRCommunicator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="B0GRCommunicator" Collapsed="true">
+  <Class Name="GRSeparate" Collapsed="true">
     <Position X="3" Y="4.5" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAEAAAAAI=</HashCode>
-      <FileName>B0GRCommunicator.h</FileName>
+      <FileName>GRSeparate.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Communicator" Collapsed="true">
@@ -71,35 +71,35 @@
     </TypeIdentifier>
   </Class>
   <Class Name="Utilities" Collapsed="true">
-    <Position X="10.75" Y="1.5" Width="1.5" />
+    <Position X="3.25" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AiJAoiFkZAIkBJQOCJjAQROIBQ6gSkJA4gA2UQgAADA=</HashCode>
+      <HashCode>AiJAoiFkZAIkBJQOCJjAQROIBQ6gSkJA4gA2UQgACDQ=</HashCode>
       <FileName>Utilities.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="WaveGenerator" Collapsed="true">
-    <Position X="12.5" Y="1.5" Width="1.5" />
+    <Position X="5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAgAAAAAAAAAAAAAcAAAAAAAAAAgAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAgAAAAAAA=</HashCode>
       <FileName>WaveGenerator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Struct Name="SymbolData">
-    <Position X="14.25" Y="2.75" Width="1.5" />
+  <Struct Name="SymbolData" Collapsed="true">
+    <Position X="6.75" Y="7.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIgAAAAAAAAAAAAAAAAAAEAAAAAACAAAAEAAAAAAA=</HashCode>
+      <HashCode>AAAIgAAAAAAAAAAAAAAAAIAAAAAAAACAAAAEAAAAAAA=</HashCode>
       <FileName>Parameters.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="AllSymbolsData">
-    <Position X="12.5" Y="2.75" Width="1.5" />
+  <Struct Name="AllSymbolsData" Collapsed="true">
+    <Position X="5" Y="7.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAMAgAEAAAAAAAACAAAADAAAAAAAAAAAAEAAAEAAAAA=</HashCode>
+      <HashCode>AAIAgAEAAAAAAAAAAAAADAAAAAAAAAAAAEAAAEAAAAA=</HashCode>
       <FileName>Parameters.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Parameters">
-    <Position X="10.25" Y="2.75" Width="2" />
+  <Struct Name="Parameters" Collapsed="true">
+    <Position X="2.75" Y="7.75" Width="2" />
     <TypeIdentifier>
       <HashCode>AgBCkoEQQJJESCkAAUgCAIQQAQWAACAAIJAEEAASAEA=</HashCode>
       <FileName>Parameters.h</FileName>

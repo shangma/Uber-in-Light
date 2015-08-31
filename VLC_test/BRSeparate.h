@@ -31,14 +31,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include "BGRCommunicator.h"
-class BGR0Communicator :
+class BRSeparate :
 	public BGRCommunicator
 {
 public:
 	////////////////////////////// Red and Blue as separate channels ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_BGR0_" + outputVideoFile;
+		return "_RG0B_" + outputVideoFile;
 	}
 	virtual void initCommunication()
 	{
@@ -58,20 +58,21 @@ public:
 		// blue
 		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0], Parameters::fps, Parameters::symbolTime,1));
 		// green
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime,1));
-		//red
 		amplitudes.push_back(vector<float>());
-
+		//red
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime,1));
+		
 		// then add the green channel as the inverse of the other two channels
 		for (int i = 0; i < amplitudes[0].size(); i++)
 		{
-			amplitudes[2].push_back(0);// -amplitudes[0][i] - amplitudes[2][i]);
+			amplitudes[1].push_back(0);// -amplitudes[0][i] - amplitudes[2][i]);
 		}
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,23 +80,22 @@ public:
 	{
 		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
 			Parameters::sideA, Parameters::sideB, true, 1,1);
-		vector<vector<float> > frames_BG;
+		vector<vector<float> > frames_BGR;
 		for (int i = 0; i < frames.size(); i++)
 		{
 			vector<float> B;
-			vector<float> G;
-			for (int j = 0; j < frames[i].size(); j += 3)
+			vector<float> R;
+			for (int j = 0; j < frames[i].size(); j+=3)
 			{
 				// blue
 				B.push_back(frames[i][j]);
 				// red
-				G.push_back(frames[i][j + 1]);
+				R.push_back(frames[i][j + 2]);
 			}
-			frames_BG.push_back(B);
-			frames_BG.push_back(G);
+			frames_BGR.push_back(B);
+			frames_BGR.push_back(R);
 		}
 		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
-
-		return receiveN(frames_BG, Parameters::fps, frames_per_symbol);
+		return receiveN(frames_BGR, Parameters::fps, frames_per_symbol);
 	}
 };

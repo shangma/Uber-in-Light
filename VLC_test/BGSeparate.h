@@ -31,62 +31,71 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 #include "BGRCommunicator.h"
-
-/*
-Do you mean brightness? Perceived brightness? Luminance?
-
-Luminance (standard for certain colour spaces): (0.2126*R + 0.7152*G + 0.0722*B) [1]
-Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B) [2]
-Luminance (perceived option 2, slower to calculate): sqrt( 0.299*R^2 + 0.587*G^2 + 0.114*B^2 )
-*/
-class BGRCommunicator2 :
+class BGSeparate :
 	public BGRCommunicator
 {
 public:
-	////////////////////////////// Split Amplitude ///////////////////////////
+	////////////////////////////// Red and Blue as separate channels ///////////////////////////
 	virtual string getVideoName(string outputVideoFile)
 	{
-		return "_RGB2_" + outputVideoFile;
+		return "_BGR0_" + outputVideoFile;
 	}
 	virtual void initCommunication()
 	{
-		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(msg, Parameters::fps, Parameters::symbolTime,1));
-		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+		// divide the message into 2 parts
+		vector<SymbolData> DivMsg[2];
+		for (int i = 0; i < msg.size(); i++)
+		{
+			DivMsg[i % 2].push_back(msg[i]);
+		}
+		for (int i = 1; i < 2; i++)
+		{
+			if (DivMsg[i].size() < DivMsg[0].size())
+			{
+				DivMsg[i].push_back(DivMsg[0][0]);
+			}
+		}
+		// blue
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[0], Parameters::fps, Parameters::symbolTime,1));
+		// green
+		amplitudes.push_back(WaveGenerator::createWaveGivenFPS(DivMsg[1], Parameters::fps, Parameters::symbolTime,1));
+		//red
 		amplitudes.push_back(vector<float>());
-		amplitudes.push_back(vector<float>());
+
+		// then add the green channel as the inverse of the other two channels
 		for (int i = 0; i < amplitudes[0].size(); i++)
 		{
-			amplitudes[1].push_back(0);
-			amplitudes[2].push_back(-amplitudes[0][i]);
+			amplitudes[2].push_back(0);// -amplitudes[0][i] - amplitudes[2][i]);
 		}
+		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
+
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
 		sections = Parameters::sideA * Parameters::sideB;
 	}
-
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	///              //////////////      Receive     ///////////////                         ////
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	vector<short> receive(string fileName, double ROI_Ratio)
 	{
-		Parameters::BKGMaskThr = 300;
-		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps, 
+		vector<vector<float> > frames = Utilities::getVideoFrameLuminancesSplitted(fileName, ROI_Ratio, Parameters::fps,
 			Parameters::sideA, Parameters::sideB, true, 1,1);
-		vector<vector<float> > BRDiff;
+		vector<vector<float> > frames_BG;
 		for (int i = 0; i < frames.size(); i++)
 		{
-			vector<float> temp;
+			vector<float> B;
+			vector<float> G;
 			for (int j = 0; j < frames[i].size(); j += 3)
 			{
-				temp.push_back(frames[i][j] - frames[i][j + 2]);
+				// blue
+				B.push_back(frames[i][j]);
+				// red
+				G.push_back(frames[i][j + 1]);
 			}
-			BRDiff.push_back(temp);
+			frames_BG.push_back(B);
+			frames_BG.push_back(G);
 		}
 		int frames_per_symbol = Parameters::fps * Parameters::symbolTime / 1000;
-		if (Parameters::synchMethod == SYNCH_GREEN_CHANNEL || Parameters::synchMethod == SYNCH_COMBINED)
-		{
-			return receiveNCombined(BRDiff, Parameters::fps, frames_per_symbol);
-		}
-		return receiveN(BRDiff, Parameters::fps, frames_per_symbol);
+
+		return receiveN(frames_BG, Parameters::fps, frames_per_symbol);
 	}
 };
-
