@@ -118,7 +118,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(MSBuildProjectDirectory);D:\opencv\build\include;D:\opencv\build\include\opencv;$(IncludePath)</IncludePath>
     <TargetName>VLC_tester</TargetName>
-    <OutDir>C:\VLC\$(Configuration)\</OutDir>
+    <OutDir>C:\VLC\Release\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

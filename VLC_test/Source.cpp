@@ -34,14 +34,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "SplitScreenCommunicator.h"
 #include "SplitScreenAmpDifferenceCommunicator.h"
 #include "OldCommunicator.h"
-#include "BGR0Communicator.h"
+#include "BGSeparate.h"
 #include "RGBSpatialRedundancy.h"
 #include "HUECommnunicator.h"
-#include "BGRCommunicator2.h"
-#include "BG0RCommunicator.h"
+#include "BRComplementary.h"
+#include "BRSeparate.h"
 #include "BGRCommunicator4.h"
-#include "B0GRCommunicator.h"
-#include "BGR0Communicator.h"
+#include "GRSeparate.h"
+#include "BGSeparate.h"
 #include "BGRSpatialCommunicator.h"
 #include "BGRCommunicator2Spatial.h"
 #include "BGR2CommunicatorPatterns.h"
@@ -551,19 +551,19 @@ int Properties::testSendReceive(int argc, char** argv)
 		communicator = new HUECommunicator;
 		break;
 	case 9:
-		communicator = new BGRCommunicator2;
+		communicator = new BRComplementary;
 		break;
 	case 10:
-		communicator = new BG0RCommunicator;
+		communicator = new BRSeparate;
 		break;
 	case 11:
 		communicator = new BGRCommunicator4;
 		break; 
 	case 12:
-		communicator = new B0GRCommunicator;
+		communicator = new GRSeparate;
 		break;
 	case 13:
-		communicator = new BGR0Communicator;
+		communicator = new BGSeparate;
 		break;
 	case 14:
 		communicator = new BGRSpatialCommunicator;

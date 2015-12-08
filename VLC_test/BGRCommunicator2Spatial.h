@@ -30,7 +30,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "BGRCommunicator2.h"
+#include "BRComplementary.h"
 
 /*
 Do you mean brightness? Perceived brightness? Luminance?
@@ -40,7 +40,7 @@ Luminance (perceived option 1): (0.299*R + 0.587*G + 0.114*B) [2]
 Luminance (perceived option 2, slower to calculate): sqrt( 0.299*R^2 + 0.587*G^2 + 0.114*B^2 )
 */
 class BGRCommunicator2Spatial :
-	public BGRCommunicator2
+	public BRComplementary
 {
 public:
 	////////////////////////////// Split Amplitude ///////////////////////////
@@ -50,7 +50,7 @@ public:
 	}
 	virtual void initCommunication()
 	{
-		BGRCommunicator2::initCommunication();
+		BRComplementary::initCommunication();
 		// then double every thing with negative value
 		vector<vector<float> > tmpAmplitudes(3, vector<float>());
 		for (int i = 0; i < amplitudes[0].size(); i += framesForSymbol)

@@ -145,7 +145,7 @@ public:
 
 		vector<vector<short> > vt(sections, vector<short>());
 
-#pragma omp parallel for
+//#pragma omp parallel for
 		for (int k = 0; k < sections; k++)
 		{
 			vt[k] = receive2(frames[k], fps, frames_per_symbol, start, end);

@@ -30,9 +30,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include "BGRCommunicator2.h"
+#include "BRComplementary.h"
 class BGRSpatialCommunicator :
-	public BGRCommunicator2
+	public BRComplementary
 {
 public:
 	////////////////////////////// Split Amplitude ///////////////////////////
