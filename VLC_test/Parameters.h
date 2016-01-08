@@ -30,8 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #pragma once
-#include <string>
 #include <vector>
+#include <string>
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -245,6 +245,29 @@ struct Parameters
 	static int seed;
 	static int numSynchDataSymbols;
 	static vector<int> luminancesDivisionStarts;
+	static vector<int> mapping;
+	static void readMapping(string file)
+	{
+		ifstream inp(file);
+		int tmp;
+		while (inp >> tmp)
+		{
+			mapping.push_back(tmp);
+		}
+	}
+	// count only positive indeces
+	static int getNumberofGridCells()
+	{
+		int cnt = 0;
+		for (int i = 0; i < mapping.size(); i++)
+		{
+			if (mapping[i] > 0)
+			{
+				cnt++;
+			}
+		}
+		return cnt;
+	}
 	static string getSide()
 	{
 		ostringstream ostr;
@@ -331,3 +354,4 @@ int Parameters::totalTime = 0;
 int Parameters::seed = 1;
 int Parameters::numSynchDataSymbols = 20;
 vector<int> Parameters::luminancesDivisionStarts;
+vector<int> Parameters::mapping;

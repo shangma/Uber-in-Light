@@ -1339,7 +1339,27 @@ public:
 					}
 				}
 			}
-			return tempROIs;
+			ROIs = tempROIs;
+		}
+		// do the mapping
+		if (ROIs.size() == Parameters::mapping.size())
+		{
+			// sorting
+			multimap<int, Rect> mmap;
+			for (int i = 0; i < ROIs.size(); i++)
+			{
+				mmap.insert(make_pair(Parameters::mapping[i], ROIs[i]));
+			}
+			//
+			vector<Rect> tmpROI;
+			for (multimap<int, Rect>::iterator itr = mmap.begin(); itr != mmap.end(); itr++)
+			{
+				if (itr->first > 0)
+				{
+					tmpROI.push_back(itr->second);
+				}
+			}
+			ROIs = tmpROI;
 		}
 		return ROIs;
 	}

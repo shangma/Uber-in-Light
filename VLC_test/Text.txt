@@ -1,0 +1,5 @@
+Receive:
+-r -map map2x3.map -total 3 -seed 1 -sideB 2 -sideA 3 -if 524319075__RGB2_totaltime3_seed1_8Freq8orgsymbol_sideA3_sideB2_full0_300ms_levels_XVID_d1mp4_synch0_output.avi -symbols 8Freq8org.symbol -m 9 -v -fps 60 -time 300 -res 1280 720  -codec XVID -decode 2
+
+Send:
+-s -map map2x3.map -total 3 -seed 1 -sideB 2 -sideA 3 -if d1.mp4 -symbols 8Freq8org.symbol -m 9 -v -fps 60 -time 300 -res 1280 720  -codec XVID -decode 2

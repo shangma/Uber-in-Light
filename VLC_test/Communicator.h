@@ -337,16 +337,16 @@ public:
 		vector<int> best_end(signals.size(), 0);
 		vector<int> test_start(signals.size(), 0);
 		static int cellNumber = 0;
-		ostringstream outputframes;
-		outputframes << "outputframes" << setw(5) << setfill('0') << cellNumber++ << ".txt";
-		ofstream outputFrames(outputframes.str());
+		//ostringstream outputframes;
+		//outputframes << "outputframes" << setw(5) << setfill('0') << cellNumber++ << ".txt";
+		//ofstream outputFrames(outputframes.str());
 		for (int i = start; i < end; i += window_size)
 		{
-			for (int j = 0; j < window_size; j++)
-			{
-				outputFrames << frames[i + j] << ",";
-			}
-			outputFrames << endl;
+			//for (int j = 0; j < window_size; j++)
+			//{
+			//	outputFrames << frames[i + j] << ",";
+			//}
+			//outputFrames << endl;
 			vector<double> Detected;
 			for (int j = 0; j < signals.size(); j++)
 			{
@@ -366,7 +366,7 @@ public:
 			vector<short> maxSymbol = Parameters::symbolsData.allData[maxIdx].getSymbol();
 			result.insert(result.end(), maxSymbol.begin(), maxSymbol.end());
 		}
-		outputFrames.close();
+		//outputFrames.close();
 		return result;
 	}
 	vector<short> receiveFFT(vector<float> frames, int fps, int frames_per_symbol)

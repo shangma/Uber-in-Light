@@ -67,7 +67,7 @@ public:
 		framesForSymbol = (Parameters::fps * Parameters::symbolTime) / 1000;
 
 		ROIs = Utilities::getDivisions(Parameters::sideA, Parameters::sideB, 1, false, Parameters::globalROI, true, 1,1);
-		sections = Parameters::sideA * Parameters::sideB;
+		sections = Parameters::getNumberofGridCells();
 	}
 
 	// adding additional synchronization data

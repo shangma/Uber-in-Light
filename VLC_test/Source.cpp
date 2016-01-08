@@ -43,8 +43,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "GRSeparate.h"
 #include "BGSeparate.h"
 #include "BGRSpatialCommunicator.h"
-#include "BGRCommunicator2Spatial.h"
-#include "BGR2CommunicatorPatterns.h"
 #include "Hamming.h"
 #include "ReedSolomon.h"
 #include "mygl.h"
@@ -481,12 +479,34 @@ int Properties::testSendReceive(int argc, char** argv)
 			Utilities::displayChessBoardFullScreen();
 			return 0;
 		}
+		else if (!strcmp(argv[i], "-map"))
+		{
+			// the amplitude
+			if (i < argc - 1)
+			{
+				Parameters::readMapping(argv[++i]);
+			}
+			else
+			{
+				return returnError();
+			}
+		}
+	}
+	// check and see if there is a valid mapping
+	if (Parameters::sideA*Parameters::sideB != Parameters::mapping.size())
+	{
+		// then clear the mapping and redo them in normal order
+		Parameters::mapping.clear();
+		for (int i = 1; i <= Parameters::sideA*Parameters::sideB; i++)
+		{
+			Parameters::mapping.push_back(i);
+		}
 	}
 	if (mode == SEND || mode == RECV)
 	{
 		if (Parameters::totalTime)
 		{
-			int totalLength = Parameters::getSymbolLength() *  Parameters::sideA * Parameters::sideB * 1000 * Parameters::totalTime / Parameters::symbolTime;
+			int totalLength = Parameters::getSymbolLength() *  Parameters::getNumberofGridCells() * 1000 * Parameters::totalTime / Parameters::symbolTime;
 			//printf("length=%d\n", totalLength);
 			msg.clear();
 			std::mt19937 mt(Parameters::seed);
@@ -567,12 +587,6 @@ int Properties::testSendReceive(int argc, char** argv)
 		break;
 	case 14:
 		communicator = new BGRSpatialCommunicator;
-		break;
-	case 15:
-		communicator = new BGRCommunicator2Spatial;
-		break;
-	case 16:
-		communicator = new BGRCommunicator2Patterns;
 		break;
 	case -1:
 		communicator = new OldCommunicator;
@@ -689,6 +703,24 @@ vector<Mat> Properties::getSplittedImages(Mat &frame)
 
 int main(int argc, char** argv)
 {
+	/*
+	multimap<int, int> tmp1;
+	for (int i = 0; i < 10; i++)
+	{
+		if (i < 5)
+		{
+			tmp1.insert(make_pair(2, 10 - i));
+		}
+		else
+		{
+			tmp1.insert(make_pair(1, 10 - i));
+		}
+	}
+	for (multimap<int, int>::iterator itr = tmp1.begin(); itr != tmp1.end(); itr++)
+	{
+		cout << (itr->second) << endl;
+	}
+	return 0;*/
 	/*AllSymbolsData as;
 	as.createGrayCodeSymbols(14, 1, 8, 0.008);
 	for (int i = 0; i < as.allData.size(); i++)
